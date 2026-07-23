@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/WardenId.SharedKernel/">
+    <Project Path="src/WardenId.SharedKernel.Application/WardenId.SharedKernel.Application.csproj" />
+    <Project Path="src/WardenId.SharedKernel.Domain/WardenId.SharedKernel.Domain.csproj" />
+    <Project Path="src/WardenId.SharedKernel.FileOperation/WardenId.SharedKernel.FileOperation.csproj" />
+    <Project Path="src/WardenId.SharedKernel.Infrastructure/WardenId.SharedKernel.Infrastructure.csproj" />
+    <Project Path="src/WardenId.SharedKernel.Persistence/WardenId.SharedKernel.Persistence.csproj" />
+    <Project Path="src/WardenId.SharedKernel.Presentation/WardenId.SharedKernel.Presentation.csproj" />
+    <Project Path="src/WardenId.SharedKernel.Query.Contracts/WardenId.SharedKernel.Query.Contracts.csproj" />
+    <Project Path="src/WardenId.SharedKernel.Query/WardenId.SharedKernel.Query.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Project Path="WardenId.Gateway/WardenId.Gateway.csproj" />
+</Solution>

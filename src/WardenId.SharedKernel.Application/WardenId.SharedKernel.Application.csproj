@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\WardenId.SharedKernel.Domain\WardenId.SharedKernel.Domain.csproj" />
+    <ProjectReference Include="..\WardenId.SharedKernel.FileOperation\WardenId.SharedKernel.FileOperation.csproj" />
+    <ProjectReference Include="..\WardenId.SharedKernel.Query.Contracts\WardenId.SharedKernel.Query.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DotNetCore.CAP" />
+    <PackageReference Include="FluentResults" />
+    <PackageReference Include="Microsoft.AspNetCore.Http" />
+  </ItemGroup>
+</Project>

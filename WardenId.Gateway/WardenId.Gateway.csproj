@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Swashbuckle.AspNetCore" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\src\WardenId.SharedKernel.Infrastructure\WardenId.SharedKernel.Infrastructure.csproj" />
+      <ProjectReference Include="..\src\WardenId.SharedKernel.Persistence\WardenId.SharedKernel.Persistence.csproj" />
+      <ProjectReference Include="..\src\WardenId.SharedKernel.Presentation\WardenId.SharedKernel.Presentation.csproj" />
+      <ProjectReference Include="..\src\WardenId.SharedKernel.Query\WardenId.SharedKernel.Query.csproj" />
+    </ItemGroup>
+
+</Project>

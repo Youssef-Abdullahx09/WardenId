@@ -1,0 +1,6 @@
+@WardenId.Gateway_HostAddress = http://localhost:5221
+
+GET {{WardenId.Gateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\WardenId.SharedKernel.Application\WardenId.SharedKernel.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DotNetCore.CAP.PostgreSql" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+</Project>
