@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/WardenId.ClientManagement/">
+    <Project Path="src/WardenId.ClientManagement.Application/WardenId.ClientManagement.Application.csproj" />
     <Project Path="src/WardenId.ClientManagement.Domain/WardenId.ClientManagement.Domain.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.SharedKernel/">
