@@ -3,6 +3,7 @@
   <Folder Name="/src/WardenId.ClientManagement/">
     <Project Path="src/WardenId.ClientManagement.Application/WardenId.ClientManagement.Application.csproj" />
     <Project Path="src/WardenId.ClientManagement.Domain/WardenId.ClientManagement.Domain.csproj" />
+    <Project Path="src/WardenId.ClientManagement.Infrastructure/WardenId.ClientManagement.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.SharedKernel/">
     <Project Path="src/WardenId.SharedKernel.Application/WardenId.SharedKernel.Application.csproj" />
