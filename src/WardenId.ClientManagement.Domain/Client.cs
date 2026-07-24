@@ -182,4 +182,6 @@ public sealed class Client : AggregateRoot
     }
 
     public void Enable() => Enabled = true;
+
+    public void UpdateTokenLifetimeOverrides(TokenLifetimeOverrides? overrides) => TokenLifetimeOverrides = overrides;
 }
