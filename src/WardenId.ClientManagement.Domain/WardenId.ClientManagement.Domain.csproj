@@ -5,7 +5,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WardenId.Tenancy.Domain\WardenId.Tenancy.Domain.csproj" />
+      <ProjectReference Include="..\WardenId.SharedKernel.Domain\WardenId.SharedKernel.Domain.csproj" />
     </ItemGroup>
 
 </Project>
