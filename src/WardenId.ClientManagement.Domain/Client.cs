@@ -118,4 +118,36 @@ public sealed class Client : AggregateRoot
     public void RemoveCorsOrigin(CorsOrigin origin) => _corsOrigins.Remove(origin);
 
     public bool ValidateRedirectUri(RedirectUri requested) => _redirectUris.Contains(requested);
+
+    public Result AddSecret(ClientSecret secret)
+    {
+        if (ClientType == ClientType.Public) return Result.Fail(ClientErrors.PublicClientCannotHaveSecret());
+
+        _secrets.Add(secret);
+        return Result.Ok();
+    }
+
+    public Result RotateSecret(ClientSecret newSecret, DateTimeOffset overlapExpiresAt)
+    {
+        var addResult = AddSecret(newSecret);
+        if (addResult.IsFailed) return addResult;
+
+        foreach (var existing in _secrets.Where(s => s.Id != newSecret.Id && s.ExpiresAt is null))
+        {
+            existing.SetExpiry(overlapExpiresAt);
+        }
+
+        RaiseDomainEvent(new ClientSecretRotatedDomainEvent(newSecret.Id));
+        return Result.Ok();
+    }
+
+    public Result ExpireSecret(Guid secretId)
+    {
+        var secret = _secrets.FirstOrDefault(s => s.Id == secretId);
+        if (secret is null) return Result.Fail(ClientErrors.SecretNotFound());
+
+        secret.SetExpiry(DateTimeOffset.UtcNow);
+        RaiseDomainEvent(new ClientSecretExpiredDomainEvent(secretId));
+        return Result.Ok();
+    }
 }
