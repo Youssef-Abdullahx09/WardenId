@@ -1,5 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    
+
+    <ItemGroup>
+      <PackageReference Include="FluentResults" />
+    </ItemGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\WardenId.Tenancy.Domain\WardenId.Tenancy.Domain.csproj" />
     </ItemGroup>
