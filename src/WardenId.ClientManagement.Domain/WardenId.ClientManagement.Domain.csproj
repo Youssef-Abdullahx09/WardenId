@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    
+    <ItemGroup>
+      <ProjectReference Include="..\WardenId.Tenancy.Domain\WardenId.Tenancy.Domain.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -486,3 +486,6 @@ packages.lock.json
 !KensingtonOval.Gateway/packages.lock.json
 
 appsettings.Development.json
+
+# Superpowers subagent-driven-development scratch state
+.superpowers/

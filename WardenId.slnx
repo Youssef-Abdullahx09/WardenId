@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/WardenId.ClientManagement/">
+    <Project Path="src/WardenId.ClientManagement.Domain/WardenId.ClientManagement.Domain.csproj" />
+  </Folder>
   <Folder Name="/src/WardenId.SharedKernel/">
     <Project Path="src/WardenId.SharedKernel.Application/WardenId.SharedKernel.Application.csproj" />
     <Project Path="src/WardenId.SharedKernel.Domain/WardenId.SharedKernel.Domain.csproj" />
@@ -16,6 +19,8 @@
     <Project Path="src/WardenId.Tenancy.Infrastructure/WardenId.Tenancy.Infrastructure.csproj" />
     <Project Path="src/WardenId.Tenancy.Presentation/WardenId.Tenancy.Presentation.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/WardenId.ClientManagement.Domain.Tests/WardenId.ClientManagement.Domain.Tests.csproj" />
+  </Folder>
   <Project Path="WardenId.Gateway/WardenId.Gateway.csproj" />
 </Solution>
