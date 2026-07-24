@@ -17,7 +17,6 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="WardenId.ClientManagement.Domain" />
-    <Using Include="WardenId.ClientManagement.Domain.Events" />
   </ItemGroup>
 
 </Project>
