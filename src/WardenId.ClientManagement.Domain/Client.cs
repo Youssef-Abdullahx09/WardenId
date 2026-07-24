@@ -95,4 +95,27 @@ public sealed class Client : AggregateRoot
         client.RaiseDomainEvent(new ClientCreatedDomainEvent(client.ClientId));
         return Result.Ok(client);
     }
+
+    public void AddRedirectUri(RedirectUri uri)
+    {
+        if (!_redirectUris.Contains(uri)) _redirectUris.Add(uri);
+    }
+
+    public void RemoveRedirectUri(RedirectUri uri) => _redirectUris.Remove(uri);
+
+    public void AddPostLogoutRedirectUri(RedirectUri uri)
+    {
+        if (!_postLogoutRedirectUris.Contains(uri)) _postLogoutRedirectUris.Add(uri);
+    }
+
+    public void RemovePostLogoutRedirectUri(RedirectUri uri) => _postLogoutRedirectUris.Remove(uri);
+
+    public void AddCorsOrigin(CorsOrigin origin)
+    {
+        if (!_corsOrigins.Contains(origin)) _corsOrigins.Add(origin);
+    }
+
+    public void RemoveCorsOrigin(CorsOrigin origin) => _corsOrigins.Remove(origin);
+
+    public bool ValidateRedirectUri(RedirectUri requested) => _redirectUris.Contains(requested);
 }
