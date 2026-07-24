@@ -8,5 +8,6 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<ICurrentTenant, CurrentTenant>();
     }
 }
