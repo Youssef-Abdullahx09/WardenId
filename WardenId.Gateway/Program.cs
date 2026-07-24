@@ -7,7 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.AddOpenTelemetryLogging(builder.Configuration);
 
-builder.Services.AddSharedKernel(builder.Configuration);
+builder.Services.AddSharedKernelModule(builder.Configuration);
+builder.Services.AddTenancyModule(builder.Configuration);
 builder.Services.AddGateway(builder.Configuration);
 
 var app = builder.Build();

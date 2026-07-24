@@ -36,7 +36,6 @@ public sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder
             .HasMany(t => t.SigningKeys)
             .WithOne()
-            .HasForeignKey()
             .OnDelete(DeleteBehavior.Cascade);
 
         // EF Core finds the _signingKeys backing field by naming convention;

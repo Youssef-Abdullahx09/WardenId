@@ -8,7 +8,7 @@ namespace WardenId.Gateway.DependencyInjection;
 
 public static class SharedKernelDependencyInjection
 {
-    public static void AddSharedKernel(
+    public static void AddSharedKernelModule(
         this IServiceCollection services,
         IConfiguration configuration)
     {

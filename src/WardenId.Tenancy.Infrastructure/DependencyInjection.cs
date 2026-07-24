@@ -10,7 +10,7 @@ namespace WardenId.Tenancy.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static void AddTenancyInfrastructureServices(
+    public static void AddTenancyInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -22,7 +22,7 @@ public static class DependencyInjection
         services.AddTenancyPersistence(configuration);
     }
     
-    public static void AddTenancyPersistence(
+    private static void AddTenancyPersistence(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -36,6 +36,7 @@ public static class DependencyInjection
             options.AddInterceptors(serviceProvider.GetRequiredService<DomainEventsInterceptor>());
         });
 
+        services.AddScoped<ITenantRepository, TenantRepository>();
         MigrateAsync(services).GetAwaiter().GetResult();
     }
 

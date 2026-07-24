@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Asp.Versioning;
 using Microsoft.OpenApi;
 using WardenId.Gateway.Utilities;
 using WardenId.SharedKernel.Presentation;
@@ -13,10 +14,22 @@ public static class GatewayDependencyInjection
         IConfiguration configuration)
     {
         services.AddEndPoints();
+        services.AddApiVersioningConfiguration();
         services.AddExceptionHandling();
         services.AddJsonConfiguration();
         services.AddSwaggerDocumentation();
         services.AddCorsConfiguration();
+    }
+
+    private static void AddApiVersioningConfiguration(this IServiceCollection services)
+    {
+        services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true;
+            options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        });
     }
 
     private static void AddJsonConfiguration(

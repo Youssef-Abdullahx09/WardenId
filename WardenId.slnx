@@ -14,6 +14,7 @@
     <Project Path="src/WardenId.Tenancy.Application/WardenId.Tenancy.Application.csproj" />
     <Project Path="src/WardenId.Tenancy.Domain/WardenId.Tenancy.Domain.csproj" />
     <Project Path="src/WardenId.Tenancy.Infrastructure/WardenId.Tenancy.Infrastructure.csproj" />
+    <Project Path="src/WardenId.Tenancy.Presentation/WardenId.Tenancy.Presentation.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Project Path="WardenId.Gateway/WardenId.Gateway.csproj" />
