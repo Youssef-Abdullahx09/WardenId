@@ -174,4 +174,12 @@ public sealed class Client : AggregateRoot
 
         RaiseDomainEvent(new ClientScopesChangedDomainEvent(scopeId, Assigned: false));
     }
+
+    public void Disable()
+    {
+        Enabled = false;
+        RaiseDomainEvent(new ClientDisabledDomainEvent());
+    }
+
+    public void Enable() => Enabled = true;
 }
