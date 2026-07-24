@@ -29,7 +29,7 @@ public sealed class Handler(
         // Pre-generate the key id so the "kid" embedded in the JWK by the generator matches
         // TenantSigningKey.Id once the entity is created — see ISigningKeyGenerator's doc.
         var signingKeyId = Guid.NewGuid();
-        var keyMaterial = await signingKeyGenerator.GenerateEs256Async(signingKeyId, cancellationToken);
+        var keyMaterial = signingKeyGenerator.GenerateEs256Async(signingKeyId);
         var signingKey = SigningKey.CreateEs256(
             signingKeyId, keyMaterial.PublicKeyJwk, keyMaterial.EncryptedPrivateKey);
  

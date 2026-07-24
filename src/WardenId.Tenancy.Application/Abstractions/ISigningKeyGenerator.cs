@@ -10,7 +10,5 @@
 /// </summary>
 public interface ISigningKeyGenerator
 {
-    Task<SigningKeyMaterial> GenerateEs256Async(
-        Guid keyId,
-        CancellationToken cancellationToken = default);
+    SigningKeyMaterial GenerateEs256Async(Guid keyId);
 }

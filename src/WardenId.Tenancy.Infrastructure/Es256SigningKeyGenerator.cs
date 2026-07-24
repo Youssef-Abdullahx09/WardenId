@@ -18,9 +18,7 @@ public sealed class Es256SigningKeyGenerator(
  
     private readonly IDataProtector _protector = dataProtectionProvider.CreateProtector(DataProtectionPurpose);
 
-    public Task<SigningKeyMaterial> GenerateEs256Async(
-        Guid keyId,
-        CancellationToken cancellationToken = default)
+    public SigningKeyMaterial GenerateEs256Async(Guid keyId)
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
  
@@ -30,7 +28,7 @@ public sealed class Es256SigningKeyGenerator(
         try
         {
             var encryptedPrivateKey = _protector.Protect(privateKeyPkcs8);
-            return Task.FromResult(new SigningKeyMaterial(publicKeyJwk, encryptedPrivateKey));
+            return new SigningKeyMaterial(publicKeyJwk, encryptedPrivateKey);
         }
         finally
         {
