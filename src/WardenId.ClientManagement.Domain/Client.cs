@@ -150,4 +150,13 @@ public sealed class Client : AggregateRoot
         RaiseDomainEvent(new ClientSecretExpiredDomainEvent(secretId));
         return Result.Ok();
     }
+
+    public Result AddSigningKey(ClientSigningKey key)
+    {
+        if (ClientAuthenticationMethod != ClientAuthenticationMethod.PrivateKeyJwt)
+            return Result.Fail(ClientErrors.SigningKeyRequiresPrivateKeyJwt());
+
+        _signingKeys.Add(key);
+        return Result.Ok();
+    }
 }
