@@ -159,4 +159,19 @@ public sealed class Client : AggregateRoot
         _signingKeys.Add(key);
         return Result.Ok();
     }
+
+    public void AssignScope(Guid scopeId)
+    {
+        if (_assignedScopeIds.Contains(scopeId)) return;
+
+        _assignedScopeIds.Add(scopeId);
+        RaiseDomainEvent(new ClientScopesChangedDomainEvent(scopeId, Assigned: true));
+    }
+
+    public void RemoveScope(Guid scopeId)
+    {
+        if (!_assignedScopeIds.Remove(scopeId)) return;
+
+        RaiseDomainEvent(new ClientScopesChangedDomainEvent(scopeId, Assigned: false));
+    }
 }
