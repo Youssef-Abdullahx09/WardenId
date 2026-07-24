@@ -11,5 +11,4 @@ public interface IAudit
     public Guid? DeletedById { get; }
     public DateTime? DeletedAt { get; }
     public bool IsDeleted { get; }
-    public bool IsActive { get; }
 }

@@ -8,5 +8,6 @@
     <PackageReference Include="DotNetCore.CAP" />
     <PackageReference Include="FluentResults" />
     <PackageReference Include="Microsoft.AspNetCore.Http" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
   </ItemGroup>
 </Project>

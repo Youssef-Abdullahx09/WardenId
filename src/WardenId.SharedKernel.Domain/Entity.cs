@@ -13,8 +13,6 @@ public abstract class Entity : IEntity
     public Guid? DeletedById { get; private set; }
     public DateTime? DeletedAt { get; private set; }
     public bool IsDeleted { get; private set; }
-    
-    public bool IsActive { get; private set; } = true;
 
     public void MarkAsCreated(Guid userId)
     {
@@ -33,29 +31,5 @@ public abstract class Entity : IEntity
         IsDeleted = true;
         DeletedById = userId;
         DeletedAt = DateTime.Now;
-    }
-
-    public void MarkAsActivate(Guid modifiedById)
-    {
-        IsActive = true;
-        LastModificationById = modifiedById;
-        LastModificationAt = DateTime.Now;
-    }
-
-    public void MarkAsInActive(Guid modifiedById)
-    {
-        IsActive = false;
-        LastModificationById = modifiedById;
-        LastModificationAt = DateTime.Now;
-    }
-
-    public void InitiateAsActive()
-    {
-        IsActive = true;
-    }
-
-    protected void InitiateAsInActive()
-    {
-        IsActive = false;
     }
 }

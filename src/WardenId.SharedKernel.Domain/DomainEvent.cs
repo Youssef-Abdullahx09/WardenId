@@ -1,6 +1,6 @@
 namespace WardenId.SharedKernel.Domain;
 
-public abstract class DomainEvent()
+public abstract record DomainEvent()
 {
     protected DomainEvent(Guid? transactionId) : this()
     {
@@ -9,7 +9,7 @@ public abstract class DomainEvent()
 
     public Guid EventId { get; } = Guid.NewGuid();
 
-    public DateTimeOffset DateOccurred { get; } = DateTime.UtcNow;
+    public DateTimeOffset OccurredOnUtc { get; } = DateTime.UtcNow;
     public Guid UserId { get; private set; }
     public Guid? TransactionId { get; }
     public Guid AggregateId { get; private set; }

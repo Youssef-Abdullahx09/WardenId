@@ -10,6 +10,11 @@
     <Project Path="src/WardenId.SharedKernel.Query.Contracts/WardenId.SharedKernel.Query.Contracts.csproj" />
     <Project Path="src/WardenId.SharedKernel.Query/WardenId.SharedKernel.Query.csproj" />
   </Folder>
+  <Folder Name="/src/WardenId.Tenancy/">
+    <Project Path="src/WardenId.Tenancy.Application/WardenId.Tenancy.Application.csproj" />
+    <Project Path="src/WardenId.Tenancy.Domain/WardenId.Tenancy.Domain.csproj" />
+    <Project Path="src/WardenId.Tenancy.Infrastructure/WardenId.Tenancy.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Project Path="WardenId.Gateway/WardenId.Gateway.csproj" />
 </Solution>

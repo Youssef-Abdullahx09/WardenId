@@ -5,15 +5,6 @@ namespace WardenId.SharedKernel.Persistence;
 
 public static class ModelBuilderExtensions
 {
-    public static void ApplyIndexOnEntityActive(this ModelBuilder builder)
-    {
-        var entityTypes = builder.Model.GetEntityTypes()
-            .Where(x => typeof(IEntity).IsAssignableFrom(x.ClrType));
-        
-        foreach (var entityType in entityTypes)
-            builder.Entity(entityType.ClrType).HasIndex(nameof(IEntity.IsActive));
-    }
-    
     public static void ApplyIndexOnEntityIsDeleted(this ModelBuilder builder)
     {
         var entityTypes = builder.Model.GetEntityTypes()

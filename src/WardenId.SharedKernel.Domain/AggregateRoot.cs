@@ -4,7 +4,7 @@ public abstract class AggregateRoot : Entity, IAggregateRoot
 {
     public List<DomainEvent> DomainEvents { get; private set; } = [];
 
-    protected void AddDomainEvent(DomainEvent @event)
+    protected void RaiseDomainEvent(DomainEvent @event)
     {
         DomainEvents.Add(@event);
     }

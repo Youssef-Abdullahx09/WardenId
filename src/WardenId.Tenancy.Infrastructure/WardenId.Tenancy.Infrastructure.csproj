@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\WardenId.SharedKernel.Persistence\WardenId.SharedKernel.Persistence.csproj" />
+      <ProjectReference Include="..\WardenId.Tenancy.Application\WardenId.Tenancy.Application.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.DataProtection" />
+      <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" />
+      <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
+    </ItemGroup>
+
+</Project>

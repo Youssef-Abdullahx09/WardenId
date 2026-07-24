@@ -9,7 +9,6 @@ public abstract class DbContextBase(DbContextOptions options) : DbContext(option
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyIndexOnEntityActive();
         modelBuilder.ApplyIndexOnEntityIsDeleted();
         modelBuilder.ApplyValueGeneratedNeverOnId();
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
