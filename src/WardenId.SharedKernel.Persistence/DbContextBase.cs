@@ -46,8 +46,12 @@ public abstract class DbContextBase(DbContextOptions options) : DbContext(option
         ChangeTracker
             .Entries<AggregateRoot>()
             .Where(e => e.State == EntityState.Deleted)
-            .ToList().ForEach(entry => entry.Entity.MarkAsDeleted(userId));
-       
+            .ToList().ForEach(entry =>
+            {
+                entry.Entity.MarkAsDeleted(userId);
+                entry.State = EntityState.Modified;
+            });
+
         ChangeTracker
             .Entries<Entity>()
             .Where(e => e.State == EntityState.Added)
@@ -59,6 +63,10 @@ public abstract class DbContextBase(DbContextOptions options) : DbContext(option
         ChangeTracker
             .Entries<Entity>()
             .Where(e => e.State == EntityState.Deleted)
-            .ToList().ForEach(entry => entry.Entity.MarkAsDeleted(userId));
+            .ToList().ForEach(entry =>
+            {
+                entry.Entity.MarkAsDeleted(userId);
+                entry.State = EntityState.Modified;
+            });
     }
 }
