@@ -12,7 +12,7 @@ public sealed class Client : AggregateRoot
         ClientType clientType,
         string displayName,
         string? description,
-        GrantType allowedGrantTypes,
+        GrantType grantType,
         ClientAuthenticationMethod clientAuthenticationMethod,
         bool requirePkce,
         bool isFirstParty,
@@ -23,7 +23,7 @@ public sealed class Client : AggregateRoot
         ClientType = clientType;
         DisplayName = displayName;
         Description = description;
-        AllowedGrantTypes = allowedGrantTypes;
+        GrantType = grantType;
         ClientAuthenticationMethod = clientAuthenticationMethod;
         RequirePkce = requirePkce;
         IsFirstParty = isFirstParty;
@@ -38,7 +38,7 @@ public sealed class Client : AggregateRoot
     public string? Description { get; private set; }
     public bool Enabled { get; private set; }
     public bool IsFirstParty { get; private set; }
-    public GrantType AllowedGrantTypes { get; private set; }
+    public GrantType GrantType { get; private set; }
     public bool RequirePkce { get; private set; }
     public TokenLifetimeOverrides? TokenLifetimeOverrides { get; private set; }
     public ClientAuthenticationMethod ClientAuthenticationMethod { get; private set; }
@@ -184,4 +184,18 @@ public sealed class Client : AggregateRoot
     public void Enable() => Enabled = true;
 
     public void UpdateTokenLifetimeOverrides(TokenLifetimeOverrides? overrides) => TokenLifetimeOverrides = overrides;
+
+    public Result UpdateDisplayName(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName)) return Result.Fail(ClientErrors.ClientDisplayNameRequired());
+
+        var trimmed = displayName.Trim();
+
+        if (trimmed.Length > 200) return Result.Fail(ClientErrors.ClientDisplayNameTooLong());
+
+        DisplayName = trimmed;
+        return Result.Ok();
+    }
+
+    public void UpdateConsentRequired(bool consentRequired) => ConsentRequired = consentRequired;
 }
