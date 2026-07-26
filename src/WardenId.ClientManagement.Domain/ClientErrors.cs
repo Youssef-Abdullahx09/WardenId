@@ -48,6 +48,9 @@ public static class ClientErrors
     public static Error SecretNotFound()
         => Validation("Client secret not found.");
 
+    public static Error SecretLabelRequired()
+        => Validation("Client secret label is required.");
+
     public static Error SigningKeyRequiresPrivateKeyJwt()
         => Validation("Signing keys can only be added to clients using the PrivateKeyJwt authentication method.");
 }
