@@ -70,4 +70,21 @@ public sealed class User : AggregateRoot
         RaiseDomainEvent(new UserEmailVerifiedDomainEvent());
         return Result.Ok();
     }
+
+    public Result SetPassword(PasswordCredential newCredential, PasswordPolicy policy)
+    {
+        if (Credential is not null)
+        {
+            _passwordHistory.Add(PasswordHistoryEntry.Create(Credential.Hash, Credential.Algorithm, Credential.SetAtUtc));
+
+            while (_passwordHistory.Count > policy.HistoryCount)
+            {
+                _passwordHistory.RemoveAt(0);
+            }
+        }
+
+        Credential = newCredential;
+        RaiseDomainEvent(new PasswordChangedDomainEvent());
+        return Result.Ok();
+    }
 }
