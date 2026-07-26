@@ -206,10 +206,12 @@ public static class UserErrors
 
     public static Error EmailRequired() => Validation("Email is required.");
     public static Error EmailInvalidFormat() => Validation("Email is not a valid email address.");
-    public static Error EmailTooLong() => Validation($"Email cannot exceed {Email.MaxLength} characters.");
+    // Literal 254, not Email.MaxLength — Email doesn't exist until Task 2; keep this value in sync with Email.MaxLength.
+    public static Error EmailTooLong() => Validation("Email cannot exceed 254 characters.");
 
     public static Error UsernameRequired() => Validation("Username is required.");
-    public static Error UsernameInvalidLength() => Validation($"Username must be between {Username.MinLength} and {Username.MaxLength} characters.");
+    // Literals 3/64, not Username.MinLength/MaxLength — Username doesn't exist until Task 3; keep in sync with those constants.
+    public static Error UsernameInvalidLength() => Validation("Username must be between 3 and 64 characters.");
     public static Error UsernameInvalidFormat() => Validation("Username may only contain letters, digits, dots, underscores and hyphens.");
 
     public static Error PasswordPolicyMinLengthInvalid() => Validation("Password policy minimum length must be at least 1.");
@@ -264,11 +266,12 @@ public static class UserErrors
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="WardenId.Identity.Domain" />
-    <Using Include="WardenId.Identity.Domain.Events" />
   </ItemGroup>
 
 </Project>
 ```
+
+Note: no `<Using Include="WardenId.Identity.Domain.Events" />` yet — a global using targeting a namespace with zero types in it fails to compile (`CS0246`), and `Events/` is empty until Task 12 creates the first domain event. Task 12 adds this line once the namespace is populated.
 
 - [ ] **Step 6: Register both projects in `WardenId.slnx`**
 
@@ -1797,12 +1800,13 @@ git commit -m "feat: add password hashing/breach-check ports and PasswordPolicyE
 - Create: `src/WardenId.Identity.Domain/User.cs`
 - Create: `src/WardenId.Identity.Domain/Events/UserRegisteredDomainEvent.cs`
 - Create: `src/WardenId.Identity.Domain/Events/UserEmailVerifiedDomainEvent.cs`
+- Modify: `tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj`
 - Test: `tests/WardenId.Identity.Domain.Tests/UserRegisterTests.cs`
 - Test: `tests/WardenId.Identity.Domain.Tests/UserVerifyEmailTests.cs`
 
 **Interfaces:**
 - Consumes: `Email` (Task 2), `Username` (Task 3), `LoginLockoutState` (Task 6), `PasswordCredential`/`PasswordHistoryEntry` (Task 7), `EmailVerificationToken`/`PasswordResetToken` (Task 8), `MfaFactor`/`RecoveryCode` (Task 9), `UserAttribute` (Task 10), `UserErrors.EmailAlreadyVerified()`, `.TokenInvalid()` (Task 1).
-- Produces: `User : AggregateRoot` with full state shape (`TenantId`, `Email`, `Username`, `Status`, `Credential`, `Lockout`, and all owned collections) — **every other `User` task (14-19) adds behaviors to this same class**, so this task's field/collection names are load-bearing for all of them: `MfaFactors`, `RecoveryCodes`, `Attributes`, `PendingActions`, `PasswordHistory`, `EmailVerificationTokens`, `PasswordResetTokens`. `User.Register(Guid tenantId, Email email, Username username) -> Result<User>`. `User.AddEmailVerificationToken(EmailVerificationToken token)`. `User.VerifyEmail(string tokenHash) -> Result`.
+- Produces: `User : AggregateRoot` with full state shape (`TenantId`, `Email`, `Username`, `Status`, `Credential`, `Lockout`, and all owned collections) — **every other `User` task (13-18) adds behaviors to this same class**, so this task's field/collection names are load-bearing for all of them: `MfaFactors`, `RecoveryCodes`, `Attributes`, `PendingActions`, `PasswordHistory`, `EmailVerificationTokens`, `PasswordResetTokens`. `User.Register(Guid tenantId, Email email, Username username) -> Result<User>`. `User.AddEmailVerificationToken(EmailVerificationToken token)`. `User.VerifyEmail(string tokenHash) -> Result`. This task also adds the `Events` global using to the test `.csproj` (Task 1 deliberately omitted it — see Task 1's note) now that `Events/` has real members.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1965,6 +1969,27 @@ namespace WardenId.Identity.Domain.Events;
 public sealed record UserEmailVerifiedDomainEvent : DomainEvent;
 ```
 
+- [ ] **Step 3b: Add the `Events` global using to the test project**
+
+`Events/` now has real members, so the global using Task 1 deliberately omitted can be added back. In `tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj`, change:
+
+```xml
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="WardenId.Identity.Domain" />
+  </ItemGroup>
+```
+
+to:
+
+```xml
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="WardenId.Identity.Domain" />
+    <Using Include="WardenId.Identity.Domain.Events" />
+  </ItemGroup>
+```
+
 - [ ] **Step 4: Implement the `User` aggregate skeleton with `Register` and `VerifyEmail`**
 
 `src/WardenId.Identity.Domain/User.cs`:
@@ -2053,7 +2078,7 @@ Expected: PASS (10 tests)
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/WardenId.Identity.Domain/User.cs src/WardenId.Identity.Domain/Events/UserRegisteredDomainEvent.cs src/WardenId.Identity.Domain/Events/UserEmailVerifiedDomainEvent.cs tests/WardenId.Identity.Domain.Tests/UserRegisterTests.cs tests/WardenId.Identity.Domain.Tests/UserVerifyEmailTests.cs
+git add src/WardenId.Identity.Domain/User.cs src/WardenId.Identity.Domain/Events/UserRegisteredDomainEvent.cs src/WardenId.Identity.Domain/Events/UserEmailVerifiedDomainEvent.cs tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj tests/WardenId.Identity.Domain.Tests/UserRegisterTests.cs tests/WardenId.Identity.Domain.Tests/UserVerifyEmailTests.cs
 git commit -m "feat: add User aggregate with Register and VerifyEmail"
 ```
 
