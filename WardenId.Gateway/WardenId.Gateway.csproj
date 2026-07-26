@@ -7,6 +7,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\src\WardenId.ClientManagement.Infrastructure\WardenId.ClientManagement.Infrastructure.csproj" />
+      <ProjectReference Include="..\src\WardenId.ClientManagement.Presentation\WardenId.ClientManagement.Presentation.csproj" />
       <ProjectReference Include="..\src\WardenId.SharedKernel.Infrastructure\WardenId.SharedKernel.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.SharedKernel.Persistence\WardenId.SharedKernel.Persistence.csproj" />
       <ProjectReference Include="..\src\WardenId.SharedKernel.Presentation\WardenId.SharedKernel.Presentation.csproj" />

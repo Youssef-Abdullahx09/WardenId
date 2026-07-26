@@ -9,6 +9,7 @@ builder.Logging.AddOpenTelemetryLogging(builder.Configuration);
 
 builder.Services.AddSharedKernelModule(builder.Configuration);
 builder.Services.AddTenancyModule(builder.Configuration);
+builder.Services.AddClientManagementModule(builder.Configuration);
 builder.Services.AddGateway(builder.Configuration);
 
 var app = builder.Build();
