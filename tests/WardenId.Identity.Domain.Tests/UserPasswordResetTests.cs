@@ -1,0 +1,65 @@
+namespace WardenId.Identity.Domain.Tests;
+
+public class UserPasswordResetTests
+{
+    private static User CreateActiveUserWithCredential()
+    {
+        var user = User.Register(Guid.NewGuid(), Email.Create("someone@example.com").Value, Username.Create("someone").Value).Value;
+        user.AddEmailVerificationToken(EmailVerificationToken.Create("verify-hash", DateTimeOffset.UtcNow.AddHours(1)));
+        user.VerifyEmail("verify-hash");
+        user.SetPassword(PasswordCredential.Create("hash-old", "Argon2id", 1, DateTimeOffset.UtcNow), PasswordPolicy.Create(8, true, true, false, false, 2).Value);
+        return user;
+    }
+
+    [Fact]
+    public void RequestPasswordReset_AddsTokenAndRaisesEvent()
+    {
+        var user = CreateActiveUserWithCredential();
+
+        user.RequestPasswordReset(PasswordResetToken.Create("reset-hash", DateTimeOffset.UtcNow.AddHours(1)));
+
+        Assert.Single(user.PasswordResetTokens);
+        Assert.Contains(user.DomainEvents, e => e is PasswordResetRequestedDomainEvent);
+    }
+
+    [Fact]
+    public void ResetPassword_FailsWhenTokenDoesNotMatch()
+    {
+        var user = CreateActiveUserWithCredential();
+        user.RequestPasswordReset(PasswordResetToken.Create("reset-hash", DateTimeOffset.UtcNow.AddHours(1)));
+
+        var result = user.ResetPassword("wrong-hash", PasswordCredential.Create("hash-new", "Argon2id", 1, DateTimeOffset.UtcNow), PasswordPolicy.Create(8, true, true, false, false, 2).Value);
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public void ResetPassword_SucceedsAndSetsNewCredential()
+    {
+        var user = CreateActiveUserWithCredential();
+        user.RequestPasswordReset(PasswordResetToken.Create("reset-hash", DateTimeOffset.UtcNow.AddHours(1)));
+
+        var result = user.ResetPassword("reset-hash", PasswordCredential.Create("hash-new", "Argon2id", 1, DateTimeOffset.UtcNow), PasswordPolicy.Create(8, true, true, false, false, 2).Value);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("hash-new", user.Credential!.Hash);
+        Assert.Contains(user.DomainEvents, e => e is PasswordResetDomainEvent);
+    }
+
+    [Fact]
+    public void ResetPassword_ClearsLockoutAndReactivatesLockedUser()
+    {
+        var user = CreateActiveUserWithCredential();
+        for (var i = 0; i < 5; i++)
+        {
+            user.RecordFailedLogin(maxFailedAttempts: 5, lockoutDuration: TimeSpan.FromMinutes(15));
+        }
+        user.RequestPasswordReset(PasswordResetToken.Create("reset-hash", DateTimeOffset.UtcNow.AddHours(1)));
+
+        var result = user.ResetPassword("reset-hash", PasswordCredential.Create("hash-new", "Argon2id", 1, DateTimeOffset.UtcNow), PasswordPolicy.Create(8, true, true, false, false, 2).Value);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(UserStatus.Active, user.Status);
+        Assert.Equal(0, user.Lockout.FailedAttemptCount);
+    }
+}

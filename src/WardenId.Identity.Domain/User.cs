@@ -158,4 +158,26 @@ public sealed class User : AggregateRoot
         RaiseDomainEvent(new MfaFactorRevokedDomainEvent(factorId));
         return Result.Ok();
     }
+
+    public void RequestPasswordReset(PasswordResetToken token)
+    {
+        _passwordResetTokens.Add(token);
+        RaiseDomainEvent(new PasswordResetRequestedDomainEvent());
+    }
+
+    public Result ResetPassword(string tokenHash, PasswordCredential newCredential, PasswordPolicy policy)
+    {
+        var token = _passwordResetTokens.FirstOrDefault(t => t.Matches(tokenHash));
+        if (token is null) return Result.Fail(UserErrors.TokenInvalid());
+
+        var consumeResult = token.Consume(DateTimeOffset.UtcNow);
+        if (consumeResult.IsFailed) return consumeResult;
+
+        SetPassword(newCredential, policy);
+        Lockout = LoginLockoutState.None;
+        if (Status == UserStatus.Locked) Status = UserStatus.Active;
+
+        RaiseDomainEvent(new PasswordResetDomainEvent());
+        return Result.Ok();
+    }
 }
