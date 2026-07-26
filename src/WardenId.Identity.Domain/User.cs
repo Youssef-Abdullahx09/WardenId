@@ -118,4 +118,23 @@ public sealed class User : AggregateRoot
         RaiseDomainEvent(new UserUnlockedDomainEvent());
         return Result.Ok();
     }
+
+    public Result Disable(string reason)
+    {
+        if (Status == UserStatus.Disabled) return Result.Fail(UserErrors.InvalidStatusTransition());
+        if (string.IsNullOrWhiteSpace(reason)) return Result.Fail(UserErrors.DisableReasonRequired());
+
+        Status = UserStatus.Disabled;
+        RaiseDomainEvent(new UserDisabledDomainEvent(reason.Trim()));
+        return Result.Ok();
+    }
+
+    public Result SoftDelete()
+    {
+        if (Status == UserStatus.SoftDeleted) return Result.Fail(UserErrors.InvalidStatusTransition());
+
+        Status = UserStatus.SoftDeleted;
+        RaiseDomainEvent(new UserSoftDeletedDomainEvent());
+        return Result.Ok();
+    }
 }
