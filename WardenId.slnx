@@ -22,8 +22,12 @@
     <Project Path="src/WardenId.Tenancy.Infrastructure/WardenId.Tenancy.Infrastructure.csproj" />
     <Project Path="src/WardenId.Tenancy.Presentation/WardenId.Tenancy.Presentation.csproj" />
   </Folder>
+  <Folder Name="/src/WardenId.Identity/">
+    <Project Path="src/WardenId.Identity.Domain/WardenId.Identity.Domain.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WardenId.ClientManagement.Domain.Tests/WardenId.ClientManagement.Domain.Tests.csproj" />
+    <Project Path="tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj" />
   </Folder>
   <Project Path="WardenId.Gateway/WardenId.Gateway.csproj" />
 </Solution>
