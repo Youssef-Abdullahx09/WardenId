@@ -87,4 +87,35 @@ public sealed class User : AggregateRoot
         RaiseDomainEvent(new PasswordChangedDomainEvent());
         return Result.Ok();
     }
+
+    public Result RecordFailedLogin(int maxFailedAttempts, TimeSpan lockoutDuration)
+    {
+        var failedCount = Lockout.FailedAttemptCount + 1;
+
+        if (failedCount >= maxFailedAttempts)
+        {
+            var lockedUntil = DateTimeOffset.UtcNow.Add(lockoutDuration);
+            Lockout = LoginLockoutState.FromTrustedSource(failedCount, lockedUntil);
+            Status = UserStatus.Locked;
+            RaiseDomainEvent(new LoginFailedDomainEvent(failedCount));
+            RaiseDomainEvent(new AccountLockedOutDomainEvent(lockedUntil));
+            return Result.Ok();
+        }
+
+        Lockout = LoginLockoutState.FromTrustedSource(failedCount, null);
+        RaiseDomainEvent(new LoginFailedDomainEvent(failedCount));
+        return Result.Ok();
+    }
+
+    public void RecordSuccessfulLogin() => Lockout = LoginLockoutState.None;
+
+    public Result Unlock()
+    {
+        if (Status != UserStatus.Locked) return Result.Fail(UserErrors.InvalidStatusTransition());
+
+        Lockout = LoginLockoutState.None;
+        Status = UserStatus.Active;
+        RaiseDomainEvent(new UserUnlockedDomainEvent());
+        return Result.Ok();
+    }
 }
