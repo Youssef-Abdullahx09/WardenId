@@ -137,4 +137,25 @@ public sealed class User : AggregateRoot
         RaiseDomainEvent(new UserSoftDeletedDomainEvent());
         return Result.Ok();
     }
+
+    public Result EnrollMfaFactor(MfaFactor factor, IEnumerable<RecoveryCode> recoveryCodes)
+    {
+        _mfaFactors.Add(factor);
+        _recoveryCodes.AddRange(recoveryCodes);
+        RaiseDomainEvent(new MfaFactorEnrolledDomainEvent(factor.Id, factor.FactorType));
+        return Result.Ok();
+    }
+
+    public Result RevokeMfaFactor(Guid factorId, MfaPolicy policy, bool userIsAdmin)
+    {
+        var factor = _mfaFactors.FirstOrDefault(f => f.Id == factorId);
+        if (factor is null) return Result.Fail(UserErrors.MfaFactorNotFound());
+
+        var canRevoke = MfaPolicyEvaluator.CanRevokeFactor(policy, this, factor, userIsAdmin);
+        if (canRevoke.IsFailed) return canRevoke;
+
+        _mfaFactors.Remove(factor);
+        RaiseDomainEvent(new MfaFactorRevokedDomainEvent(factorId));
+        return Result.Ok();
+    }
 }
