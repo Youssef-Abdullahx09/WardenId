@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WardenId.SharedKernel.Presentation\WardenId.SharedKernel.Presentation.csproj" />
+    <ProjectReference Include="..\WardenId.ClientManagement.Application\WardenId.ClientManagement.Application.csproj" />
+  </ItemGroup>
+</Project>
