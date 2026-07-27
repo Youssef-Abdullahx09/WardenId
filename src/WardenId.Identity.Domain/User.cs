@@ -15,7 +15,6 @@ public sealed class User : AggregateRoot
         Username = username;
         Status = UserStatus.PendingVerification;
         Lockout = LoginLockoutState.None;
-        _pendingActions.Add(RequiredAction.VerifyEmail);
     }
 
     public Guid TenantId { get; private set; }
@@ -49,8 +48,16 @@ public sealed class User : AggregateRoot
     public static Result<User> Register(Guid tenantId, Email email, Username username)
     {
         var user = new User(tenantId, email, username);
+        user._pendingActions.Add(RequiredAction.VerifyEmail);
         user.RaiseDomainEvent(new UserRegisteredDomainEvent(email, username));
         return Result.Ok(user);
+    }
+
+    private Result EnsureMutable()
+    {
+        return Status is UserStatus.Disabled or UserStatus.SoftDeleted
+            ? Result.Fail(UserErrors.InvalidStatusTransition())
+            : Result.Ok();
     }
 
     public void AddEmailVerificationToken(EmailVerificationToken token) => _emailVerificationTokens.Add(token);
@@ -73,6 +80,9 @@ public sealed class User : AggregateRoot
 
     public Result SetPassword(PasswordCredential newCredential, PasswordPolicy policy)
     {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+
         if (Credential is not null)
         {
             _passwordHistory.Add(PasswordHistoryEntry.Create(Credential.Hash, Credential.Algorithm, Credential.SetAtUtc));
@@ -90,6 +100,9 @@ public sealed class User : AggregateRoot
 
     public Result RecordFailedLogin(int maxFailedAttempts, TimeSpan lockoutDuration)
     {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+
         var failedCount = Lockout.FailedAttemptCount + 1;
 
         if (failedCount >= maxFailedAttempts)
@@ -121,7 +134,7 @@ public sealed class User : AggregateRoot
 
     public Result Disable(string reason)
     {
-        if (Status == UserStatus.Disabled) return Result.Fail(UserErrors.InvalidStatusTransition());
+        if (Status is UserStatus.Disabled or UserStatus.SoftDeleted) return Result.Fail(UserErrors.InvalidStatusTransition());
         if (string.IsNullOrWhiteSpace(reason)) return Result.Fail(UserErrors.DisableReasonRequired());
 
         Status = UserStatus.Disabled;
@@ -140,9 +153,36 @@ public sealed class User : AggregateRoot
 
     public Result EnrollMfaFactor(MfaFactor factor, IEnumerable<RecoveryCode> recoveryCodes)
     {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+
         _mfaFactors.Add(factor);
         _recoveryCodes.AddRange(recoveryCodes);
         RaiseDomainEvent(new MfaFactorEnrolledDomainEvent(factor.Id, factor.FactorType));
+        return Result.Ok();
+    }
+
+    public Result VerifyMfaFactor(Guid factorId)
+    {
+        var factor = _mfaFactors.FirstOrDefault(f => f.Id == factorId);
+        if (factor is null) return Result.Fail(UserErrors.MfaFactorNotFound());
+
+        return factor.Verify();
+    }
+
+    public Result ConsumeRecoveryCode(string codeHash)
+    {
+        var code = _recoveryCodes.FirstOrDefault(c => c.Matches(codeHash));
+        if (code is null) return Result.Fail(UserErrors.RecoveryCodeInvalid());
+
+        return code.Consume();
+    }
+
+    public Result RehashCredential(string newHash, int newAlgorithmVersion)
+    {
+        if (Credential is null) return Result.Fail(UserErrors.InvalidStatusTransition());
+
+        Credential.Rehash(newHash, newAlgorithmVersion, DateTimeOffset.UtcNow);
         return Result.Ok();
     }
 
@@ -155,6 +195,7 @@ public sealed class User : AggregateRoot
         if (canRevoke.IsFailed) return canRevoke;
 
         _mfaFactors.Remove(factor);
+        if (_mfaFactors.All(f => !f.Enabled)) _recoveryCodes.Clear();
         RaiseDomainEvent(new MfaFactorRevokedDomainEvent(factorId));
         return Result.Ok();
     }
@@ -167,6 +208,9 @@ public sealed class User : AggregateRoot
 
     public Result ResetPassword(string tokenHash, PasswordCredential newCredential, PasswordPolicy policy)
     {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+
         var token = _passwordResetTokens.FirstOrDefault(t => t.Matches(tokenHash));
         if (token is null) return Result.Fail(UserErrors.TokenInvalid());
 
@@ -183,14 +227,15 @@ public sealed class User : AggregateRoot
 
     public Result SetAttribute(string key, string value, UserAttributeValueType valueType)
     {
-        var existing = _attributes.FirstOrDefault(a => a.Key == key);
+        var trimmedKey = key.Trim();
+        var existing = _attributes.FirstOrDefault(a => a.Key == trimmedKey);
         if (existing is not null)
         {
             existing.UpdateValue(value, valueType);
             return Result.Ok();
         }
 
-        var createResult = UserAttribute.Create(key, value, valueType);
+        var createResult = UserAttribute.Create(trimmedKey, value, valueType);
         if (createResult.IsFailed) return createResult.ToResult();
 
         _attributes.Add(createResult.Value);

@@ -1,3 +1,5 @@
+using FluentResults;
+
 namespace WardenId.Identity.Domain.Tests;
 
 public class UserLoginLockoutTests
@@ -86,5 +88,47 @@ public class UserLoginLockoutTests
         Assert.True(result.IsSuccess);
         Assert.Equal(UserStatus.Active, user.Status);
         Assert.Equal(0, user.Lockout.FailedAttemptCount);
+    }
+
+    [Fact]
+    public void RecordFailedLogin_FailsWhenUserIsSoftDeleted()
+    {
+        var user = CreateActiveUser();
+        user.SoftDelete();
+
+        var result = user.RecordFailedLogin(maxFailedAttempts: 5, lockoutDuration: TimeSpan.FromMinutes(15));
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public void RecordFailedLogin_FailsWhenUserIsDisabled()
+    {
+        var user = CreateActiveUser();
+        user.Disable("policy violation");
+
+        var result = user.RecordFailedLogin(maxFailedAttempts: 5, lockoutDuration: TimeSpan.FromMinutes(15));
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public void SoftDelete_ThenRecordFailedLoginThenUnlock_DoesNotReactivateUser()
+    {
+        var user = CreateActiveUser();
+        user.SoftDelete();
+
+        Result? lastResult = null;
+        for (var i = 0; i < 5; i++)
+        {
+            lastResult = user.RecordFailedLogin(maxFailedAttempts: 5, lockoutDuration: TimeSpan.FromMinutes(15));
+        }
+
+        Assert.True(lastResult!.IsFailed);
+        Assert.Equal(UserStatus.SoftDeleted, user.Status);
+
+        var unlockResult = user.Unlock();
+        Assert.True(unlockResult.IsFailed);
+        Assert.Equal(UserStatus.SoftDeleted, user.Status);
     }
 }

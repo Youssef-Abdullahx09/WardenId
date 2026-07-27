@@ -62,4 +62,30 @@ public class UserPasswordResetTests
         Assert.Equal(UserStatus.Active, user.Status);
         Assert.Equal(0, user.Lockout.FailedAttemptCount);
     }
+
+    [Fact]
+    public void ResetPassword_FailsWhenUserIsDisabled()
+    {
+        var user = CreateActiveUserWithCredential();
+        user.RequestPasswordReset(PasswordResetToken.Create("reset-hash", DateTimeOffset.UtcNow.AddHours(1)));
+        user.Disable("policy violation");
+
+        var result = user.ResetPassword("reset-hash", PasswordCredential.Create("hash-new", "Argon2id", 1, DateTimeOffset.UtcNow), PasswordPolicy.Create(8, true, true, false, false, 2).Value);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserStatus.Disabled, user.Status);
+    }
+
+    [Fact]
+    public void ResetPassword_FailsWhenUserIsSoftDeleted()
+    {
+        var user = CreateActiveUserWithCredential();
+        user.RequestPasswordReset(PasswordResetToken.Create("reset-hash", DateTimeOffset.UtcNow.AddHours(1)));
+        user.SoftDelete();
+
+        var result = user.ResetPassword("reset-hash", PasswordCredential.Create("hash-new", "Argon2id", 1, DateTimeOffset.UtcNow), PasswordPolicy.Create(8, true, true, false, false, 2).Value);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserStatus.SoftDeleted, user.Status);
+    }
 }

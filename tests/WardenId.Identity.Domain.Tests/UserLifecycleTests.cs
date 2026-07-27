@@ -60,4 +60,16 @@ public class UserLifecycleTests
 
         Assert.True(result.IsFailed);
     }
+
+    [Fact]
+    public void Disable_FailsWhenAlreadySoftDeleted()
+    {
+        var user = CreateUser();
+        user.SoftDelete();
+
+        var result = user.Disable("policy violation");
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserStatus.SoftDeleted, user.Status);
+    }
 }

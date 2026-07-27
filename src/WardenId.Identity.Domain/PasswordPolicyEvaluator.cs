@@ -7,6 +7,7 @@ public static class PasswordPolicyEvaluator
     public static async Task<Result> EvaluateAsync(
         PasswordPolicy policy,
         string candidatePassword,
+        PasswordCredential? currentCredential,
         IReadOnlyCollection<PasswordHistoryEntry> history,
         IPasswordHasher passwordHasher,
         IBreachedPasswordChecker breachChecker)
@@ -18,6 +19,9 @@ public static class PasswordPolicyEvaluator
 
         if (policy.BreachCheckEnabled && await breachChecker.IsBreachedAsync(candidatePassword))
             return Result.Fail(UserErrors.PasswordBreached());
+
+        if (currentCredential is not null && passwordHasher.Verify(candidatePassword, currentCredential.Hash))
+            return Result.Fail(UserErrors.PasswordReused());
 
         if (history.Any(entry => passwordHasher.Verify(candidatePassword, entry.Hash)))
             return Result.Fail(UserErrors.PasswordReused());

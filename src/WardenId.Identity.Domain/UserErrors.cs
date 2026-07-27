@@ -18,10 +18,10 @@ public static class UserErrors
 
     public static Error EmailRequired() => Validation("Email is required.");
     public static Error EmailInvalidFormat() => Validation("Email is not a valid email address.");
-    public static Error EmailTooLong() => Validation("Email cannot exceed 254 characters.");
+    public static Error EmailTooLong() => Validation($"Email cannot exceed {Email.MaxLength} characters.");
 
     public static Error UsernameRequired() => Validation("Username is required.");
-    public static Error UsernameInvalidLength() => Validation("Username must be between 3 and 64 characters.");
+    public static Error UsernameInvalidLength() => Validation($"Username must be between {Username.MinLength} and {Username.MaxLength} characters.");
     public static Error UsernameInvalidFormat() => Validation("Username may only contain letters, digits, dots, underscores and hyphens.");
 
     public static Error PasswordPolicyMinLengthInvalid() => Validation("Password policy minimum length must be at least 1.");
@@ -43,6 +43,7 @@ public static class UserErrors
     public static Error DisableReasonRequired() => Validation("A reason is required to disable a user.");
 
     public static Error RecoveryCodeAlreadyUsed() => Validation("Recovery code has already been used.");
+    public static Error RecoveryCodeInvalid() => Validation("Recovery code is invalid.");
 
     public static Error MfaFactorNotFound() => Validation("MFA factor not found.");
     public static Error MfaFactorAlreadyVerified() => Validation("MFA factor is already verified.");

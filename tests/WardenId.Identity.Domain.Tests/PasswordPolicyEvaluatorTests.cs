@@ -21,7 +21,7 @@ public class PasswordPolicyEvaluatorTests
     public async Task EvaluateAsync_FailsWhenTooShort()
     {
         var result = await PasswordPolicyEvaluator.EvaluateAsync(
-            Policy, "Ab1", [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(false));
+            Policy, "Ab1", null, [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(false));
 
         Assert.True(result.IsFailed);
     }
@@ -30,7 +30,7 @@ public class PasswordPolicyEvaluatorTests
     public async Task EvaluateAsync_FailsWhenMissingUppercase()
     {
         var result = await PasswordPolicyEvaluator.EvaluateAsync(
-            Policy, "lowercase1", [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(false));
+            Policy, "lowercase1", null, [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(false));
 
         Assert.True(result.IsFailed);
     }
@@ -39,7 +39,7 @@ public class PasswordPolicyEvaluatorTests
     public async Task EvaluateAsync_FailsWhenMissingDigit()
     {
         var result = await PasswordPolicyEvaluator.EvaluateAsync(
-            Policy, "NoDigitsHere", [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(false));
+            Policy, "NoDigitsHere", null, [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(false));
 
         Assert.True(result.IsFailed);
     }
@@ -48,7 +48,7 @@ public class PasswordPolicyEvaluatorTests
     public async Task EvaluateAsync_FailsWhenBreached()
     {
         var result = await PasswordPolicyEvaluator.EvaluateAsync(
-            Policy, "Valid1Password", [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(true));
+            Policy, "Valid1Password", null, [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(true));
 
         Assert.True(result.IsFailed);
     }
@@ -60,7 +60,19 @@ public class PasswordPolicyEvaluatorTests
         var history = new[] { PasswordHistoryEntry.Create(hasher.Hash("Valid1Password"), "Argon2id", DateTimeOffset.UtcNow) };
 
         var result = await PasswordPolicyEvaluator.EvaluateAsync(
-            Policy, "Valid1Password", history, hasher, new FakeBreachedPasswordChecker(false));
+            Policy, "Valid1Password", null, history, hasher, new FakeBreachedPasswordChecker(false));
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_FailsWhenSameAsCurrentCredential()
+    {
+        var hasher = new FakePasswordHasher();
+        var currentCredential = PasswordCredential.Create(hasher.Hash("Valid1Password"), "Argon2id", 1, DateTimeOffset.UtcNow);
+
+        var result = await PasswordPolicyEvaluator.EvaluateAsync(
+            Policy, "Valid1Password", currentCredential, [], hasher, new FakeBreachedPasswordChecker(false));
 
         Assert.True(result.IsFailed);
     }
@@ -69,7 +81,7 @@ public class PasswordPolicyEvaluatorTests
     public async Task EvaluateAsync_SucceedsWhenAllChecksPass()
     {
         var result = await PasswordPolicyEvaluator.EvaluateAsync(
-            Policy, "Valid1Password", [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(false));
+            Policy, "Valid1Password", null, [], new FakePasswordHasher(), new FakeBreachedPasswordChecker(false));
 
         Assert.True(result.IsSuccess);
     }

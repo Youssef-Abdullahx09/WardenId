@@ -59,4 +59,49 @@ public class UserSetPasswordTests
 
         Assert.Contains(user.DomainEvents, e => e is PasswordChangedDomainEvent);
     }
+
+    [Fact]
+    public void SetPassword_FailsWhenUserIsSoftDeleted()
+    {
+        var user = CreateUser();
+        user.SoftDelete();
+
+        var result = user.SetPassword(PasswordCredential.Create("hash-1", "Argon2id", 1, DateTimeOffset.UtcNow), PolicyWithHistory(2));
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public void SetPassword_FailsWhenUserIsDisabled()
+    {
+        var user = CreateUser();
+        user.Disable("policy violation");
+
+        var result = user.SetPassword(PasswordCredential.Create("hash-1", "Argon2id", 1, DateTimeOffset.UtcNow), PolicyWithHistory(2));
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public void RehashCredential_ReplacesHashAndVersion()
+    {
+        var user = CreateUser();
+        user.SetPassword(PasswordCredential.Create("hash-1", "Argon2id", 1, DateTimeOffset.UtcNow), PolicyWithHistory(2));
+
+        var result = user.RehashCredential("hash-1-rehashed", 2);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("hash-1-rehashed", user.Credential!.Hash);
+        Assert.Equal(2, user.Credential!.AlgorithmVersion);
+    }
+
+    [Fact]
+    public void RehashCredential_FailsWhenNoCredentialSet()
+    {
+        var user = CreateUser();
+
+        var result = user.RehashCredential("hash-1-rehashed", 2);
+
+        Assert.True(result.IsFailed);
+    }
 }

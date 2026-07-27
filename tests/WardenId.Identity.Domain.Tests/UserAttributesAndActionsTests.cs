@@ -40,6 +40,19 @@ public class UserAttributesAndActionsTests
     }
 
     [Fact]
+    public void SetAttribute_UpsertsCorrectlyWhenKeyHasSurroundingWhitespace()
+    {
+        var user = CreateUser();
+        user.SetAttribute("department ", "a", UserAttributeValueType.String);
+
+        var result = user.SetAttribute(" department", "b", UserAttributeValueType.String);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(user.Attributes);
+        Assert.Equal("b", user.Attributes.Single().Value);
+    }
+
+    [Fact]
     public void AddRequiredAction_DedupesOnRepeatedAdd()
     {
         var user = CreateUser();
