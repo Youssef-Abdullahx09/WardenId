@@ -180,4 +180,27 @@ public sealed class User : AggregateRoot
         RaiseDomainEvent(new PasswordResetDomainEvent());
         return Result.Ok();
     }
+
+    public Result SetAttribute(string key, string value, UserAttributeValueType valueType)
+    {
+        var existing = _attributes.FirstOrDefault(a => a.Key == key);
+        if (existing is not null)
+        {
+            existing.UpdateValue(value, valueType);
+            return Result.Ok();
+        }
+
+        var createResult = UserAttribute.Create(key, value, valueType);
+        if (createResult.IsFailed) return createResult.ToResult();
+
+        _attributes.Add(createResult.Value);
+        return Result.Ok();
+    }
+
+    public void AddRequiredAction(RequiredAction action)
+    {
+        if (!_pendingActions.Contains(action)) _pendingActions.Add(action);
+    }
+
+    public void ClearRequiredAction(RequiredAction action) => _pendingActions.Remove(action);
 }
