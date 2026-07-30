@@ -27,6 +27,7 @@ public class HandlerTests
         Assert.Equal("someone@example.com", result.Value.Email);
         Assert.Equal("someone", result.Value.Username);
         Assert.Equal(UserStatus.PendingVerification, result.Value.Status);
+        Assert.Contains(RequiredAction.VerifyEmail, result.Value.PendingActions);
     }
 
     [Fact]
@@ -56,6 +57,28 @@ public class HandlerTests
         var handler = new Handler(queryContext);
 
         var result = await handler.Handle(new Query(Guid.NewGuid(), user.Id), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public async Task Handle_Fails_WhenUserIsDeleted()
+    {
+        var databaseName = Guid.NewGuid().ToString();
+        var tenantId = Guid.NewGuid();
+        var user = TestUsers.CreatePendingVerification(tenantId);
+        user.MarkAsDeleted(Guid.NewGuid());
+
+        using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
+        {
+            seedContext.Users.Add(user);
+            await seedContext.SaveChangesAsync(CancellationToken.None);
+        }
+
+        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
+        var handler = new Handler(queryContext);
+
+        var result = await handler.Handle(new Query(tenantId, user.Id), CancellationToken.None);
 
         Assert.True(result.IsFailed);
     }

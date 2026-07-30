@@ -60,6 +60,9 @@ public sealed class TestIdentityDbContext(DbContextOptions<TestIdentityDbContext
 
             builder.HasMany(u => u.PasswordResetTokens).WithOne().OnDelete(DeleteBehavior.Cascade);
             builder.Navigation(u => u.PasswordResetTokens).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.PrimitiveCollection(u => u.PendingActions)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         });
     }
 
