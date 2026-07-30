@@ -14,6 +14,9 @@ public sealed class Handler(IUserRepository repository) : IRequestHandler<Comman
 
         var user = userResult.Value;
 
+        if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
+            return Result.Fail(UserErrors.InvalidStatusTransition());
+
         var (rawToken, tokenHash) = SecureTokenGenerator.Generate();
         var token = EmailVerificationToken.Create(tokenHash, DateTimeOffset.UtcNow.AddHours(24));
         user.AddEmailVerificationToken(token);

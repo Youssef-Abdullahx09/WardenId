@@ -50,7 +50,7 @@ All under `Features/Users/`. Command/Query records + `Handler`s, matching `Tenan
 
 - **`ChangePassword`** — `(TenantId, UserId, CurrentPassword, NewPassword)`. `GetByIdAsync`, verify `CurrentPassword` against `user.Credential.Hash` via `IPasswordHasher.Verify` (fail with generic invalid-credentials error on mismatch), `PasswordPolicyEvaluator.EvaluateAsync` for the new password, `user.SetPassword(...)`, `UpdateAsync`.
 - **`RequestPasswordReset`** — `(TenantId, Email)`. Looks up by email; **if not found, returns `Result.Ok()` anyway** (no token generated) to avoid user-enumeration via response-timing/shape. If found: generate+hash a random token same as verification tokens, `user.RequestPasswordReset(token)`, `UpdateAsync`. Returns `Result<PasswordResetRequested?>` — `null` payload when no matching user, populated DTO otherwise; caller must not let the two cases become distinguishable at the HTTP layer (a Presentation-layer concern, noted here so it isn't lost).
-- **`ResetPassword`** — `(TenantId, Email, RawToken, NewPassword)`. Looks up by email (not-found → generic invalid-token error, same enumeration hygiene), SHA-256 the raw token, `PasswordPolicyEvaluator.EvaluateAsync`, `PasswordCredential.Create(...)`, `user.ResetPassword(hash, credential, policy)`, `UpdateAsync`.
+- **`ResetPassword`** — `(TenantId, Email, RawToken, NewPassword)`. Looks up by email (not-found → generic invalid-token error, same enumeration hygiene), SHA-256 the raw token, then **validates the token before anything else**: a non-mutating scan of `user.PasswordResetTokens` for one that `Matches(hash)` with `ConsumedAtUtc is null` and `ExpiresAtUtc > nowUtc`; no match → generic `UserErrors.TokenInvalid()`, immediately. Only once the token is known good does it run `PasswordPolicyEvaluator.EvaluateAsync` on the new password, then `PasswordCredential.Create(...)`, `user.ResetPassword(hash, credential, policy)` (which re-validates and atomically consumes the token + swaps the credential), `UpdateAsync`. **The order is load-bearing:** evaluating the password first made this unauthenticated endpoint a password oracle — a `PasswordReused` response told an anonymous caller their guessed password matched the real one, on a path that never touches `RecordFailedLogin`/lockout.
 
 ### Lifecycle (admin actions)
 
@@ -62,7 +62,7 @@ All under `Features/Users/`. Command/Query records + `Handler`s, matching `Tenan
 
 - **`EnrollMfaFactor`** — `(TenantId, UserId, FactorType, CredentialData)`. `CredentialData` is accepted as an opaque pre-built string — actual TOTP secret generation and at-rest encryption need a port that doesn't exist in Domain yet (only `IPasswordHasher`/`IBreachedPasswordChecker` are defined); **explicitly deferred**, same treatment as the `MfaFactorType.WebAuthnPasskey` stub. `MfaFactor.Create(factorType, credentialData)`, generates a batch (10) of recovery codes — each a random value hashed via SHA-256 (same generation pattern as `ClientSecret`/verification tokens), `RecoveryCode.Create(hash)` per code — `user.EnrollMfaFactor(factor, codes)`, `UpdateAsync`. Returns `Result<MfaFactorEnrolled>` DTO: `(FactorId, RawRecoveryCodes[])` — raw codes shown once, same pattern as `ClientSecretIssued`.
 - **`VerifyMfaFactor`** — `(TenantId, UserId, FactorId)`. Orchestration only — `user.VerifyMfaFactor(factorId)`, `UpdateAsync`. Actual TOTP-code validation has the same missing-port caveat as `EnrollMfaFactor`; this command trusts that validation happened upstream (an explicit gap to close when the TOTP port is added).
-- **`RevokeMfaFactor`** — `(TenantId, UserId, FactorId, ActorIsAdmin)`. `GetByIdAsync`, builds `MfaPolicy` from `IdentityPolicyOptions`, `user.RevokeMfaFactor(factorId, policy, actorIsAdmin)`, `UpdateAsync`.
+- **`RevokeMfaFactor`** — `(TenantId, UserId, FactorId, ActorUserId, TargetUserIsAdmin)`. `GetByIdAsync`, builds `MfaPolicy` from `IdentityPolicyOptions`, `user.RevokeMfaFactor(factorId, policy, targetUserIsAdmin)`, `UpdateAsync`. `TargetUserIsAdmin` describes the user whose factor is being revoked, **not** the caller — that is how `MfaPolicyMode.RequiredForAdmins` reads everywhere else (`MfaPolicyEvaluator.IsMfaRequired(policy, userIsAdmin)`). It stays a caller-supplied bool until a real roles system exists.
 
 ### Attributes & required actions
 
@@ -72,10 +72,12 @@ All under `Features/Users/`. Command/Query records + `Handler`s, matching `Tenan
 
 ### Queries
 
-- **`Get`** — `(TenantId, UserId) -> Result<UserDetail>`. `IIdentityDbContext.Users`, filtered by `TenantId`/`!IsDeleted`, projects `Id, Email, Username, Status, MfaFactors (summary), Attributes, PendingActions, CreatedAt`.
+- **`Get`** — `(TenantId, UserId) -> Result<UserDetail>`. `IIdentityDbContext.Users`, `.Include(u => u.Attributes).Include(u => u.MfaFactors)` (both are required — without them EF returns the user with those collections empty), filtered by `TenantId`/`!IsDeleted`, projects `Id, Email, Username, Status, MfaFactors (summary), Attributes, PendingActions, CreatedAt`.
 - **`List`** — `(TenantId, PageNumber, PageSize, Status?) -> Result<PaginationListResponse<UserListItem>>`. Same shape as `ClientManagement`'s `List`: filter, `LongCountAsync`, `OrderByDescending(CreatedAt)`, `Skip/Take`, projects `Id, Email, Username, Status, CreatedAt`.
 
 ## Error handling
+
+**Disabled/soft-deleted guard.** Domain's internal `EnsureMutable()` only protects `SetPassword`/`RecordFailedLogin`/`EnrollMfaFactor`/`ResetPassword`. The remaining mutating handlers add the equivalent check themselves right after the lookup succeeds: `VerifyMfaFactor`, `RevokeMfaFactor`, `SetAttribute`, `RequiredActions/Add`, `RequiredActions/Clear` and `RequestEmailVerification` return `UserErrors.InvalidStatusTransition()`; `RequestPasswordReset` instead returns `Ok(null)` — identical to its no-match response, since it is email-keyed and must not distinguish a disabled account from a non-existent one.
 
 No new error codes needed — `UserErrorCodes`/`UserErrors` in Domain already cover every failure case these handlers surface (`NotFound`, `Validation(...)` variants, `AccountLocked`). Handlers return `Result.Fail(x.Errors)` propagated from Domain/repository calls; no Application-specific error factory needed for this pass.
 

@@ -16,7 +16,8 @@ public class HandlerTests
             PasswordCredential.Create(hasher.Hash(CurrentPassword), "Argon2id", 1, DateTimeOffset.UtcNow),
             PasswordPolicy.FromTrustedSource(8, true, true, false, true, 5));
         var repository = new FakeUserRepository();
-        await repository.CreateAsync(user, user.Id, CancellationToken.None);
+        // Seeded with a different actor so post-Handle actor assertions prove the handler set it.
+        await repository.CreateAsync(user, Guid.NewGuid(), CancellationToken.None);
         return (user, repository, hasher);
     }
 
@@ -32,6 +33,8 @@ public class HandlerTests
 
         Assert.True(result.IsSuccess);
         Assert.True(hasher.Verify("N3wP@ssword", user.Credential!.Hash));
+        Assert.Equal(1, repository.UpdateCallCount);
+        Assert.Equal(user.Id, repository.LastActorId!.Value);
     }
 
     [Fact]
@@ -48,6 +51,21 @@ public class HandlerTests
     }
 
     [Fact]
+    public async Task Handle_DoesNotPersist_WhenCurrentPasswordIsWrong()
+    {
+        var (user, repository, hasher) = await SeedUserAsync();
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(
+            new Command(user.TenantId, user.Id, "wrong-current-password", "N3wP@ssword"),
+            CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(0, repository.UpdateCallCount);
+        Assert.True(hasher.Verify(CurrentPassword, user.Credential!.Hash));
+    }
+
+    [Fact]
     public async Task Handle_Fails_WhenNewPasswordReusesCurrentPassword()
     {
         var (user, repository, hasher) = await SeedUserAsync();
@@ -58,5 +76,6 @@ public class HandlerTests
             CancellationToken.None);
 
         Assert.True(result.IsFailed);
+        Assert.Equal(0, repository.UpdateCallCount);
     }
 }

@@ -17,6 +17,11 @@ public sealed class Handler(IUserRepository repository) : IRequestHandler<Comman
 
         var user = userResult.Value;
 
+        // Disabled/soft-deleted targets are treated exactly like "no such user" — minting a token or
+        // returning a distinguishing failure would leak account state to an anonymous caller.
+        if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
+            return Result.Ok<PasswordResetRequested?>(null);
+
         var (rawToken, tokenHash) = SecureTokenGenerator.Generate();
         var token = PasswordResetToken.Create(tokenHash, DateTimeOffset.UtcNow.AddHours(1));
         user.RequestPasswordReset(token);

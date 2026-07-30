@@ -16,9 +16,13 @@ public sealed class Handler(
         if (userResult.IsFailed) return Result.Fail(userResult.Errors);
 
         var user = userResult.Value;
+
+        if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
+            return Result.Fail(UserErrors.InvalidStatusTransition());
+
         var policy = MfaPolicy.Create(options.Value.MfaPolicyMode);
 
-        var revokeResult = user.RevokeMfaFactor(request.FactorId, policy, request.ActorIsAdmin);
+        var revokeResult = user.RevokeMfaFactor(request.FactorId, policy, request.TargetUserIsAdmin);
         if (revokeResult.IsFailed) return revokeResult;
 
         await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);

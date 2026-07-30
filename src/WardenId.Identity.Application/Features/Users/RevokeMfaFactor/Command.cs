@@ -8,4 +8,4 @@ public sealed record Command(
     Guid UserId,
     Guid FactorId,
     Guid ActorUserId,
-    bool ActorIsAdmin) : IRequest<Result>;
+    bool TargetUserIsAdmin) : IRequest<Result>;

@@ -22,6 +22,14 @@ public sealed class Handler(
 
         var user = userResult.Value;
         var tokenHash = SecureTokenGenerator.Hash(request.RawToken);
+        var nowUtc = DateTimeOffset.UtcNow;
+
+        // Token validity is checked BEFORE the password is evaluated against policy: evaluating first
+        // turned this endpoint into an unauthenticated password oracle (a `PasswordReused` failure told
+        // an anonymous caller their guess matched the account's real password), with no lockout on the path.
+        var tokenIsValid = user.PasswordResetTokens
+            .Any(t => t.Matches(tokenHash) && t.ConsumedAtUtc is null && t.ExpiresAtUtc > nowUtc);
+        if (!tokenIsValid) return Result.Fail(UserErrors.TokenInvalid());
 
         var policyResult = PasswordPolicyFactory.Create(options.Value);
         if (policyResult.IsFailed) return Result.Fail(policyResult.Errors);

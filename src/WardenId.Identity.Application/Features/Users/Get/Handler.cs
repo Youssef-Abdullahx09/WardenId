@@ -11,6 +11,8 @@ public sealed class Handler(IIdentityDbContext dbContext) : IRequestHandler<Quer
     public async Task<Result<UserDetail>> Handle(Query request, CancellationToken cancellationToken)
     {
         var user = await dbContext.Users
+            .Include(u => u.Attributes)
+            .Include(u => u.MfaFactors)
             .Where(u => u.Id == request.UserId && u.TenantId == request.TenantId && !u.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 

@@ -30,6 +30,39 @@ public class HandlerTests
         Assert.Contains(RequiredAction.VerifyEmail, result.Value.PendingActions);
     }
 
+    // Regression: the query had no .Include(...), so these two navigations always came back empty.
+    [Fact]
+    public async Task Handle_ReturnsAttributesAndMfaFactors()
+    {
+        var databaseName = Guid.NewGuid().ToString();
+        var tenantId = Guid.NewGuid();
+        var user = TestUsers.CreatePendingVerification(tenantId, "someone@example.com", "someone");
+        user.MarkAsCreated(Guid.NewGuid());
+        user.SetAttribute("department", "engineering", UserAttributeValueType.String);
+        var factor = MfaFactor.Create(MfaFactorType.Totp, "opaque-blob");
+        user.EnrollMfaFactor(factor, []);
+
+        using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
+        {
+            seedContext.Users.Add(user);
+            await seedContext.SaveChangesAsync(CancellationToken.None);
+        }
+
+        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
+        var handler = new Handler(queryContext);
+
+        var result = await handler.Handle(new Query(tenantId, user.Id), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        var attribute = Assert.Single(result.Value.Attributes);
+        Assert.Equal("department", attribute.Key);
+        Assert.Equal("engineering", attribute.Value);
+        Assert.Equal(UserAttributeValueType.String, attribute.ValueType);
+        var mfaFactor = Assert.Single(result.Value.MfaFactors);
+        Assert.Equal(factor.Id, mfaFactor.Id);
+        Assert.Equal(MfaFactorType.Totp, mfaFactor.FactorType);
+    }
+
     [Fact]
     public async Task Handle_Fails_WhenUserDoesNotExist()
     {

@@ -29,4 +29,21 @@ public class HandlerTests
 
         Assert.True(result.IsFailed);
     }
+
+    [Fact]
+    public async Task Handle_Fails_AndMintsNoToken_WhenUserIsDisabled()
+    {
+        var tenantId = Guid.NewGuid();
+        var user = TestUsers.CreatePendingVerification(tenantId);
+        user.Disable("policy violation");
+        var repository = new FakeUserRepository();
+        await repository.CreateAsync(user, user.Id, CancellationToken.None);
+
+        var handler = new Handler(repository);
+        var result = await handler.Handle(new Command(tenantId, user.Id), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Empty(user.EmailVerificationTokens);
+        Assert.Equal(0, repository.UpdateCallCount);
+    }
 }

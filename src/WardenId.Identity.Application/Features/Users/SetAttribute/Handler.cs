@@ -1,6 +1,7 @@
 using FluentResults;
 using MediatR;
 using WardenId.Identity.Application.Abstractions;
+using WardenId.Identity.Domain;
 
 namespace WardenId.Identity.Application.Features.Users.SetAttribute;
 
@@ -12,6 +13,9 @@ public sealed class Handler(IUserRepository repository) : IRequestHandler<Comman
         if (userResult.IsFailed) return Result.Fail(userResult.Errors);
 
         var user = userResult.Value;
+
+        if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
+            return Result.Fail(UserErrors.InvalidStatusTransition());
 
         var setAttributeResult = user.SetAttribute(request.Key, request.Value, request.ValueType);
         if (setAttributeResult.IsFailed) return setAttributeResult;
