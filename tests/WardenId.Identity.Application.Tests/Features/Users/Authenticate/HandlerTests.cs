@@ -90,4 +90,32 @@ public class HandlerTests
         Assert.Equal(UserErrorCodes.AccountLocked, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
         Assert.Equal(1, user.Lockout.FailedAttemptCount);
     }
+
+    [Fact]
+    public async Task Handle_UnlocksUser_WhenLockoutWindowHasAlreadyExpired()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.RecordFailedLogin(1, TimeSpan.FromMinutes(-1));
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(UserStatus.Active, user.Status);
+        Assert.Equal(0, user.Lockout.FailedAttemptCount);
+        Assert.Null(user.Lockout.LockedUntilUtc);
+    }
+
+    [Fact]
+    public async Task Handle_RehashesCredential_WhenAlgorithmVersionIsStale()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions { CurrentPasswordAlgorithmVersion = 2 }));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, user.Credential!.AlgorithmVersion);
+        Assert.True(hasher.Verify(Password, user.Credential.Hash));
+    }
 }

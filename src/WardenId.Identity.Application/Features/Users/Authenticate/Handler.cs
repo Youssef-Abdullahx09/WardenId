@@ -38,7 +38,15 @@ public sealed class Handler(
                 : Result.Fail(UserErrors.InvalidCredentials());
         }
 
-        user.RecordSuccessfulLogin();
+        if (user.Status == UserStatus.Locked)
+        {
+            var unlockResult = user.Unlock();
+            if (unlockResult.IsFailed) return Result.Fail(unlockResult.Errors);
+        }
+        else
+        {
+            user.RecordSuccessfulLogin();
+        }
 
         if (user.Credential.NeedsRehash(options.Value.CurrentPasswordAlgorithmVersion))
             user.RehashCredential(passwordHasher.Hash(request.Password), options.Value.CurrentPasswordAlgorithmVersion);
