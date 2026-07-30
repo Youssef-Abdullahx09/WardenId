@@ -1,0 +1,28 @@
+using FluentResults;
+using MediatR;
+using Microsoft.Extensions.Options;
+using WardenId.Identity.Application.Abstractions;
+using WardenId.Identity.Domain;
+
+namespace WardenId.Identity.Application.Features.Users.RevokeMfaFactor;
+
+public sealed class Handler(
+    IUserRepository repository,
+    IOptions<IdentityPolicyOptions> options) : IRequestHandler<Command, Result>
+{
+    public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
+    {
+        var userResult = await repository.GetByIdAsync(request.TenantId, request.UserId, cancellationToken);
+        if (userResult.IsFailed) return Result.Fail(userResult.Errors);
+
+        var user = userResult.Value;
+        var policy = MfaPolicy.Create(options.Value.MfaPolicyMode);
+
+        var revokeResult = user.RevokeMfaFactor(request.FactorId, policy, request.ActorIsAdmin);
+        if (revokeResult.IsFailed) return revokeResult;
+
+        await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);
+
+        return Result.Ok();
+    }
+}
