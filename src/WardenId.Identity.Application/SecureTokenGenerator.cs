@@ -3,7 +3,7 @@ using System.Text;
 
 namespace WardenId.Identity.Application;
 
-internal static class SecureTokenGenerator
+public static class SecureTokenGenerator
 {
     public static (string Raw, string Hash) Generate()
     {
