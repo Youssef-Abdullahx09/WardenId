@@ -1,3 +1,5 @@
+using WardenId.Identity.Domain.Events;
+
 namespace WardenId.Identity.Domain.Tests;
 
 public class UserLifecycleTests

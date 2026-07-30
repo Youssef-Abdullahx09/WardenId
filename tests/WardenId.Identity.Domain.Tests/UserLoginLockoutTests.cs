@@ -1,4 +1,5 @@
 using FluentResults;
+using WardenId.Identity.Domain.Events;
 
 namespace WardenId.Identity.Domain.Tests;
 
