@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WardenId.Identity.Application\WardenId.Identity.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="FluentResults" />
+    <Using Include="WardenId.Identity.Domain" />
+    <Using Include="WardenId.Identity.Application" />
+    <Using Include="WardenId.Identity.Application.Abstractions" />
+    <Using Include="WardenId.Identity.Application.Tests.Fakes" />
+  </ItemGroup>
+
+</Project>
