@@ -4,6 +4,7 @@ public class PasswordPolicyEvaluatorTests
 {
     private sealed class FakePasswordHasher : IPasswordHasher
     {
+        public string Algorithm => "Argon2id";
         public string Hash(string plaintext) => "hashed:" + plaintext;
         public bool Verify(string plaintext, string hash) => hash == "hashed:" + plaintext;
         public bool NeedsRehash(string hash) => false;

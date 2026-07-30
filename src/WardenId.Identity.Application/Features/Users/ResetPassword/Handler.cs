@@ -40,7 +40,7 @@ public sealed class Handler(
         if (evaluateResult.IsFailed) return evaluateResult;
 
         var credential = PasswordCredential.Create(
-            passwordHasher.Hash(request.NewPassword), "Argon2id", options.Value.CurrentPasswordAlgorithmVersion, DateTimeOffset.UtcNow);
+            passwordHasher.Hash(request.NewPassword), passwordHasher.Algorithm, options.Value.CurrentPasswordAlgorithmVersion, DateTimeOffset.UtcNow);
 
         var resetResult = user.ResetPassword(tokenHash, credential, policy);
         if (resetResult.IsFailed) return resetResult;

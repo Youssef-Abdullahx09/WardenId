@@ -47,7 +47,7 @@ public sealed class Handler(
 
         var credential = PasswordCredential.Create(
             passwordHasher.Hash(request.Password),
-            "Argon2id",
+            passwordHasher.Algorithm,
             options.Value.CurrentPasswordAlgorithmVersion,
             DateTimeOffset.UtcNow);
 

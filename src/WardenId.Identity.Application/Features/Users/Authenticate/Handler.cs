@@ -11,6 +11,10 @@ public sealed class Handler(
     IPasswordHasher passwordHasher,
     IOptions<IdentityPolicyOptions> options) : IRequestHandler<Command, Result<AuthenticatedUser>>
 {
+    // Not a real credential — verified against on the not-found/deactivated paths so those
+    // branches cost the same hashing time as a real password check (timing side-channel).
+    private const string DummyPasswordHash = "$argon2id$v=19$m=19456,t=2,p=1$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
     public async Task<Result<AuthenticatedUser>> Handle(Command request, CancellationToken cancellationToken)
     {
         var emailResult = Email.Create(request.EmailOrUsername);
@@ -19,15 +23,25 @@ public sealed class Handler(
             ? await repository.GetByEmailAsync(request.TenantId, emailResult.Value, cancellationToken)
             : await LookupByUsernameAsync(request, cancellationToken);
 
-        if (userResult.IsFailed) return Result.Fail(UserErrors.InvalidCredentials());
+        if (userResult.IsFailed)
+        {
+            passwordHasher.Verify(request.Password, DummyPasswordHash);
+            return Result.Fail(UserErrors.InvalidCredentials());
+        }
 
         var user = userResult.Value;
 
         if (user.Status == UserStatus.Locked && user.Lockout.LockedUntilUtc is { } lockedUntil && lockedUntil > DateTimeOffset.UtcNow)
             return Result.Fail(UserErrors.AccountLocked(lockedUntil));
 
+        // Disabled/soft-deleted accounts must never authenticate, regardless of password
+        // correctness — checked before the password verify so the response (incl. timing)
+        // is indistinguishable from an unknown account.
         if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
+        {
+            passwordHasher.Verify(request.Password, DummyPasswordHash);
             return Result.Fail(UserErrors.InvalidCredentials());
+        }
 
         if (user.Credential is null || !passwordHasher.Verify(request.Password, user.Credential.Hash))
         {
