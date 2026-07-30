@@ -118,4 +118,28 @@ public class HandlerTests
         Assert.Equal(2, user.Credential!.AlgorithmVersion);
         Assert.True(hasher.Verify(Password, user.Credential.Hash));
     }
+
+    [Fact]
+    public async Task Handle_Fails_WhenUserIsDisabled()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.Disable("reason");
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public async Task Handle_Fails_WhenUserIsSoftDeleted()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.SoftDelete();
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+    }
 }

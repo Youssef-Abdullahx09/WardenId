@@ -26,6 +26,9 @@ public sealed class Handler(
         if (user.Status == UserStatus.Locked && user.Lockout.LockedUntilUtc is { } lockedUntil && lockedUntil > DateTimeOffset.UtcNow)
             return Result.Fail(UserErrors.AccountLocked(lockedUntil));
 
+        if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
+            return Result.Fail(UserErrors.InvalidCredentials());
+
         if (user.Credential is null || !passwordHasher.Verify(request.Password, user.Credential.Hash))
         {
             var failResult = user.RecordFailedLogin(options.Value.MaxFailedLoginAttempts, options.Value.LockoutDuration);
