@@ -10,6 +10,7 @@ public sealed class Handler(
     IUserRepository repository,
     IPasswordHasher passwordHasher,
     IBreachedPasswordChecker breachedPasswordChecker,
+    IIdentityEmailSender emailSender,
     IOptions<IdentityPolicyOptions> options) : IRequestHandler<Command, Result<UserRegistered>>
 {
     public async Task<Result<UserRegistered>> Handle(Command request, CancellationToken cancellationToken)
@@ -42,7 +43,8 @@ public sealed class Handler(
         var user = registerResult.Value;
 
         var (rawToken, tokenHash) = SecureTokenGenerator.Generate();
-        var verificationToken = EmailVerificationToken.Create(tokenHash, DateTimeOffset.UtcNow.AddHours(24));
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(24);
+        var verificationToken = EmailVerificationToken.Create(tokenHash, expiresAtUtc);
         user.AddEmailVerificationToken(verificationToken);
 
         var credential = PasswordCredential.Create(
@@ -55,6 +57,8 @@ public sealed class Handler(
         if (setPasswordResult.IsFailed) return Result.Fail(setPasswordResult.Errors);
 
         await repository.CreateAsync(user, user.Id, cancellationToken);
+
+        await emailSender.SendEmailVerificationAsync(email.Value, username.Value, rawToken, expiresAtUtc, cancellationToken);
 
         return Result.Ok(new UserRegistered(user.Id, rawToken));
     }

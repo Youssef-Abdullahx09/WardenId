@@ -25,6 +25,8 @@
   <Folder Name="/src/WardenId.Identity/">
     <Project Path="src/WardenId.Identity.Application/WardenId.Identity.Application.csproj" />
     <Project Path="src/WardenId.Identity.Domain/WardenId.Identity.Domain.csproj" />
+    <Project Path="src/WardenId.Identity.Infrastructure/WardenId.Identity.Infrastructure.csproj" />
+    <Project Path="src/WardenId.Identity.Presentation/WardenId.Identity.Presentation.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WardenId.ClientManagement.Domain.Tests/WardenId.ClientManagement.Domain.Tests.csproj" />

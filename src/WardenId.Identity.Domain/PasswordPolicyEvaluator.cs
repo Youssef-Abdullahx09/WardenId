@@ -15,7 +15,7 @@ public static class PasswordPolicyEvaluator
         if (candidatePassword.Length < policy.MinLength) return Result.Fail(UserErrors.PasswordTooShort(policy.MinLength));
         if (policy.RequireUppercase && !candidatePassword.Any(char.IsUpper)) return Result.Fail(UserErrors.PasswordMissingUppercase());
         if (policy.RequireDigit && !candidatePassword.Any(char.IsDigit)) return Result.Fail(UserErrors.PasswordMissingDigit());
-        if (policy.RequireSymbol && !candidatePassword.Any(c => !char.IsLetterOrDigit(c))) return Result.Fail(UserErrors.PasswordMissingSymbol());
+        if (policy.RequireSymbol && candidatePassword.All(char.IsLetterOrDigit)) return Result.Fail(UserErrors.PasswordMissingSymbol());
 
         if (policy.BreachCheckEnabled && await breachChecker.IsBreachedAsync(candidatePassword))
             return Result.Fail(UserErrors.PasswordBreached());

@@ -61,7 +61,7 @@ public class HandlerTests
         var result = await handler.Handle(new Command(Guid.NewGuid(), "unknown@example.com", "whatever"), CancellationToken.None);
 
         Assert.True(result.IsFailed);
-        Assert.Equal(UserErrorCodes.Validation, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+        Assert.Equal(UserErrorCodes.InvalidCredentials, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
     }
 
     [Fact]

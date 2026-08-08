@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+      <ProjectReference Include="..\WardenId.SharedKernel.Persistence\WardenId.SharedKernel.Persistence.csproj" />
+      <ProjectReference Include="..\WardenId.Identity.Application\WardenId.Identity.Application.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Isopoh.Cryptography.Argon2" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+      <PackageReference Include="Microsoft.Extensions.Http" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="EmailTemplates\**\*.html" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>

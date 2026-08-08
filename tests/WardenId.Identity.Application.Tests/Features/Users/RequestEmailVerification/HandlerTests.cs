@@ -12,18 +12,21 @@ public class HandlerTests
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
 
-        var handler = new Handler(repository);
+        var emailSender = new FakeIdentityEmailSender();
+        var handler = new Handler(repository, emailSender);
         var result = await handler.Handle(new Command(tenantId, user.Id), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.False(string.IsNullOrWhiteSpace(result.Value.RawVerificationToken));
         Assert.Single(user.EmailVerificationTokens);
+        Assert.Single(emailSender.SentVerificationEmails);
+        Assert.Equal(result.Value.RawVerificationToken, emailSender.SentVerificationEmails[0].RawToken);
     }
 
     [Fact]
     public async Task Handle_Fails_WhenUserNotFound()
     {
-        var handler = new Handler(new FakeUserRepository());
+        var handler = new Handler(new FakeUserRepository(), new FakeIdentityEmailSender());
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
 
@@ -39,11 +42,13 @@ public class HandlerTests
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
 
-        var handler = new Handler(repository);
+        var emailSender = new FakeIdentityEmailSender();
+        var handler = new Handler(repository, emailSender);
         var result = await handler.Handle(new Command(tenantId, user.Id), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Empty(user.EmailVerificationTokens);
         Assert.Equal(0, repository.UpdateCallCount);
+        Assert.Empty(emailSender.SentVerificationEmails);
     }
 }

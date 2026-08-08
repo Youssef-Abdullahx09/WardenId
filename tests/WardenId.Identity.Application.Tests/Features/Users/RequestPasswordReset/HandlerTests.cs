@@ -12,7 +12,8 @@ public class HandlerTests
         var repository = new FakeUserRepository();
         // Seeded with a different actor so the post-Handle actor assertion proves the handler set it.
         await repository.CreateAsync(user, Guid.NewGuid(), CancellationToken.None);
-        var handler = new Handler(repository);
+        var emailSender = new FakeIdentityEmailSender();
+        var handler = new Handler(repository, emailSender);
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com"), CancellationToken.None);
 
@@ -22,12 +23,14 @@ public class HandlerTests
         Assert.Single(user.PasswordResetTokens);
         Assert.Equal(1, repository.UpdateCallCount);
         Assert.Equal(user.Id, repository.LastActorId!.Value);
+        Assert.Single(emailSender.SentPasswordResetEmails);
+        Assert.Equal(result.Value.RawResetToken, emailSender.SentPasswordResetEmails[0].RawToken);
     }
 
     [Fact]
     public async Task Handle_ReturnsSuccessWithNullPayload_WhenEmailDoesNotMatch()
     {
-        var handler = new Handler(new FakeUserRepository());
+        var handler = new Handler(new FakeUserRepository(), new FakeIdentityEmailSender());
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "nobody@example.com"), CancellationToken.None);
 
@@ -45,7 +48,8 @@ public class HandlerTests
         user.Disable("policy violation");
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
-        var handler = new Handler(repository);
+        var emailSender = new FakeIdentityEmailSender();
+        var handler = new Handler(repository, emailSender);
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com"), CancellationToken.None);
 
@@ -53,6 +57,7 @@ public class HandlerTests
         Assert.Null(result.Value);
         Assert.Empty(user.PasswordResetTokens);
         Assert.Equal(0, repository.UpdateCallCount);
+        Assert.Empty(emailSender.SentPasswordResetEmails);
     }
 
     [Fact]
@@ -63,7 +68,8 @@ public class HandlerTests
         user.SoftDelete();
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
-        var handler = new Handler(repository);
+        var emailSender = new FakeIdentityEmailSender();
+        var handler = new Handler(repository, emailSender);
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com"), CancellationToken.None);
 
@@ -71,5 +77,6 @@ public class HandlerTests
         Assert.Null(result.Value);
         Assert.Empty(user.PasswordResetTokens);
         Assert.Equal(0, repository.UpdateCallCount);
+        Assert.Empty(emailSender.SentPasswordResetEmails);
     }
 }

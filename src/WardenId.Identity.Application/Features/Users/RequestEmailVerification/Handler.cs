@@ -5,7 +5,9 @@ using WardenId.Identity.Domain;
 
 namespace WardenId.Identity.Application.Features.Users.RequestEmailVerification;
 
-public sealed class Handler(IUserRepository repository) : IRequestHandler<Command, Result<EmailVerificationRequested>>
+public sealed class Handler(
+    IUserRepository repository,
+    IIdentityEmailSender emailSender) : IRequestHandler<Command, Result<EmailVerificationRequested>>
 {
     public async Task<Result<EmailVerificationRequested>> Handle(Command request, CancellationToken cancellationToken)
     {
@@ -18,10 +20,13 @@ public sealed class Handler(IUserRepository repository) : IRequestHandler<Comman
             return Result.Fail(UserErrors.InvalidStatusTransition());
 
         var (rawToken, tokenHash) = SecureTokenGenerator.Generate();
-        var token = EmailVerificationToken.Create(tokenHash, DateTimeOffset.UtcNow.AddHours(24));
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(24);
+        var token = EmailVerificationToken.Create(tokenHash, expiresAtUtc);
         user.AddEmailVerificationToken(token);
 
         await repository.UpdateAsync(user, user.Id, cancellationToken);
+
+        await emailSender.SendEmailVerificationAsync(user.Email.Value, user.Username.Value, rawToken, expiresAtUtc, cancellationToken);
 
         return Result.Ok(new EmailVerificationRequested(rawToken));
     }

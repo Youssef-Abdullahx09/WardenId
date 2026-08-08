@@ -5,7 +5,9 @@ using WardenId.Identity.Domain;
 
 namespace WardenId.Identity.Application.Features.Users.RequestPasswordReset;
 
-public sealed class Handler(IUserRepository repository) : IRequestHandler<Command, Result<PasswordResetRequested?>>
+public sealed class Handler(
+    IUserRepository repository,
+    IIdentityEmailSender emailSender) : IRequestHandler<Command, Result<PasswordResetRequested?>>
 {
     public async Task<Result<PasswordResetRequested?>> Handle(Command request, CancellationToken cancellationToken)
     {
@@ -23,10 +25,13 @@ public sealed class Handler(IUserRepository repository) : IRequestHandler<Comman
             return Result.Ok<PasswordResetRequested?>(null);
 
         var (rawToken, tokenHash) = SecureTokenGenerator.Generate();
-        var token = PasswordResetToken.Create(tokenHash, DateTimeOffset.UtcNow.AddHours(1));
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(1);
+        var token = PasswordResetToken.Create(tokenHash, expiresAtUtc);
         user.RequestPasswordReset(token);
 
         await repository.UpdateAsync(user, user.Id, cancellationToken);
+
+        await emailSender.SendPasswordResetAsync(user.Email.Value, user.Username.Value, rawToken, expiresAtUtc, cancellationToken);
 
         return Result.Ok<PasswordResetRequested?>(new PasswordResetRequested(rawToken));
     }

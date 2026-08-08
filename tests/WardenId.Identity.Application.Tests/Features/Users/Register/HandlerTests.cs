@@ -9,17 +9,20 @@ public class HandlerTests
         FakeUserRepository repository,
         FakePasswordHasher? passwordHasher = null,
         FakeBreachedPasswordChecker? breachedPasswordChecker = null,
+        FakeIdentityEmailSender? emailSender = null,
         IdentityPolicyOptions? options = null) =>
         new(
             repository,
             passwordHasher ?? new FakePasswordHasher(),
             breachedPasswordChecker ?? new FakeBreachedPasswordChecker(),
+            emailSender ?? new FakeIdentityEmailSender(),
             Options.Create(options ?? new IdentityPolicyOptions()));
 
     [Fact]
     public async Task Handle_ReturnsUserIdAndRawToken_WhenEmailAndUsernameAreUnique()
     {
-        var handler = CreateHandler(new FakeUserRepository());
+        var emailSender = new FakeIdentityEmailSender();
+        var handler = CreateHandler(new FakeUserRepository(), emailSender: emailSender);
 
         var result = await handler.Handle(
             new Command(Guid.NewGuid(), "someone@example.com", "someone", "P@ssw0rd1"),
@@ -28,6 +31,9 @@ public class HandlerTests
         Assert.True(result.IsSuccess);
         Assert.NotEqual(Guid.Empty, result.Value.UserId);
         Assert.False(string.IsNullOrWhiteSpace(result.Value.RawVerificationToken));
+        Assert.Single(emailSender.SentVerificationEmails);
+        Assert.Equal("someone@example.com", emailSender.SentVerificationEmails[0].ToEmail);
+        Assert.Equal(result.Value.RawVerificationToken, emailSender.SentVerificationEmails[0].RawToken);
     }
 
     [Fact]
