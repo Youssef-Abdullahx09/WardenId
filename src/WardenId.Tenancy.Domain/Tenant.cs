@@ -20,7 +20,7 @@ public sealed class Tenant : AggregateRoot
     public Status Status { get; private set; }
     public DateTimeOffset? SuspendedAtUtc { get; private set; }
     public string? SuspendedReason { get; private set; }
-    public byte[] Version { get; private set; }
+    public uint Version { get; private set; }
 
     private readonly List<SigningKey> _signingKeys = new();
     public IReadOnlyCollection<SigningKey> SigningKeys => _signingKeys.AsReadOnly();

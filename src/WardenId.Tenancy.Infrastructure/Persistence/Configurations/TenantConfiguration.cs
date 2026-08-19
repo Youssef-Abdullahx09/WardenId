@@ -31,7 +31,9 @@ public sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.SuspendedReason).HasMaxLength(500);
 
         // Concurrency token — Admin API will have concurrent writers eventually.
-        builder.Property(x => x.Version).IsRowVersion();
+        // uint + IsRowVersion() is auto-mapped by Npgsql's provider to the "xmin" system column
+        // (no real column created) rather than a server-generated value we'd have to supply.
+        builder.Property(t => t.Version).IsRowVersion();
 
         builder
             .HasMany(t => t.SigningKeys)

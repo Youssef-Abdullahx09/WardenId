@@ -1,4 +1,5 @@
 using Swashbuckle.AspNetCore.SwaggerUI;
+using WardenId.Gateway.Bootstrap;
 using WardenId.Gateway.DependencyInjection;
 using WardenId.SharedKernel.Infrastructure;
 using WardenId.SharedKernel.Presentation;
@@ -38,4 +39,12 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-await app.RunAsync(CancellationToken.None);
+// Hosted services (including CAP's storage bootstrapper, which creates the "cap.published"
+// outbox table) only start here — start the host explicitly so both seeders, which publish
+// domain events through CAP, run after that table exists rather than racing it.
+await app.StartAsync(CancellationToken.None);
+
+await MasterTenantSeeder.SeedAsync(app);
+await MasterAdminSeeder.SeedAsync(app);
+
+await app.WaitForShutdownAsync(CancellationToken.None);

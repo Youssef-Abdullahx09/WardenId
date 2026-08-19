@@ -10,6 +10,7 @@
       <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" />
       <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     </ItemGroup>
 
 </Project>

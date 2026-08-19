@@ -21,7 +21,7 @@ public sealed class TenantRepository(
         Slug slug,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await dbContext.Tenants.Where(x => x.Slug.Value == slug.Value
+        var tenant = await dbContext.Tenants.Where(x => x.Slug == slug
                                                         && !x.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
         
@@ -32,7 +32,7 @@ public sealed class TenantRepository(
         Slug slug,
         CancellationToken cancellationToken = default)
     {
-        return await dbContext.Tenants.Where(x => x.Slug.Value == slug.Value
+        return await dbContext.Tenants.Where(x => x.Slug == slug
                                                   && !x.IsDeleted)
             .AnyAsync(cancellationToken);
     }

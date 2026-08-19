@@ -17,19 +17,19 @@ public abstract class Entity : IEntity
     public void MarkAsCreated(Guid userId)
     {
         CreatedById = userId;
-        CreatedAt = DateTime.Now;
+        CreatedAt = DateTime.UtcNow;
     }
 
     public void MarkAsModified(Guid userId)
     {
         LastModificationById = userId;
-        LastModificationAt = DateTime.Now;
+        LastModificationAt = DateTime.UtcNow;
     }
 
     public void MarkAsDeleted(Guid userId)
     {
         IsDeleted = true;
         DeletedById = userId;
-        DeletedAt = DateTime.Now;
+        DeletedAt = DateTime.UtcNow;
     }
 }

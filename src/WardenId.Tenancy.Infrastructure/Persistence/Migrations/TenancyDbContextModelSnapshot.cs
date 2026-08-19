@@ -150,11 +150,11 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<byte[]>("Version")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
