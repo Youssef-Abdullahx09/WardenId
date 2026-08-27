@@ -1,0 +1,39 @@
+using Asp.Versioning;
+using Asp.Versioning.Builder;
+using MediatR;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using WardenId.Audit.Application.Features.CheckpointKeys.List;
+using WardenId.SharedKernel.Presentation;
+
+namespace WardenId.Audit.Presentation.Features.CheckpointKeys.List;
+
+public sealed class Endpoint : IEndpoint
+{
+    public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
+    {
+        var apiVersionSet = app.NewApiVersionSet("Audit")
+            .HasApiVersion(new ApiVersion(1))
+            .ReportApiVersions()
+            .Build();
+
+        return app.MapGet("/api/v{version:apiVersion}/audit/checkpoint-keys", async (
+                [FromServices] ISender sender,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(new Query(), cancellationToken);
+
+                return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
+            })
+            .WithApiVersionSet(apiVersionSet)
+            .MapToApiVersion(new ApiVersion(1))
+            .RequireAuthorization()
+            .WithTags("Audit - Verification")
+            .WithSummary("List checkpoint signing public keys")
+            .WithDescription("Publishes every checkpoint signing key's public JWK (spec §6) — needed to verify checkpoint signatures independently.")
+            .Produces(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
+    }
+}

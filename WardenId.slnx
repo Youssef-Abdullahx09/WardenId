@@ -1,5 +1,11 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/WardenId.Audit/">
+    <Project Path="src/WardenId.Audit.Application/WardenId.Audit.Application.csproj" />
+    <Project Path="src/WardenId.Audit.Domain/WardenId.Audit.Domain.csproj" />
+    <Project Path="src/WardenId.Audit.Infrastructure/WardenId.Audit.Infrastructure.csproj" />
+    <Project Path="src/WardenId.Audit.Presentation/WardenId.Audit.Presentation.csproj" />
+  </Folder>
   <Folder Name="/src/WardenId.ClientManagement/">
     <Project Path="src/WardenId.ClientManagement.Application/WardenId.ClientManagement.Application.csproj" />
     <Project Path="src/WardenId.ClientManagement.Domain/WardenId.ClientManagement.Domain.csproj" />
@@ -29,6 +35,10 @@
     <Project Path="src/WardenId.Identity.Presentation/WardenId.Identity.Presentation.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/WardenId.Audit.Application.Tests/WardenId.Audit.Application.Tests.csproj" />
+    <Project Path="tests/WardenId.Audit.Domain.Tests/WardenId.Audit.Domain.Tests.csproj" />
+    <Project Path="tests/WardenId.Audit.Infrastructure.Tests/WardenId.Audit.Infrastructure.Tests.csproj" />
+    <Project Path="tests/WardenId.Audit.Presentation.Tests/WardenId.Audit.Presentation.Tests.csproj" />
     <Project Path="tests/WardenId.ClientManagement.Domain.Tests/WardenId.ClientManagement.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Application.Tests/WardenId.Identity.Application.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj" />

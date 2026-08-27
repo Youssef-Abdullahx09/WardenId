@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WardenId.Audit.Infrastructure\WardenId.Audit.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="WardenId.Audit.Domain" />
+    <Using Include="WardenId.Audit.Application" />
+    <Using Include="WardenId.Audit.Infrastructure" />
+    <Using Include="WardenId.Audit.Infrastructure.Persistence" />
+    <Using Include="WardenId.SharedKernel.Persistence.Audit" />
+  </ItemGroup>
+
+</Project>

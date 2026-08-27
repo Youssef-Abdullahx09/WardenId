@@ -355,9 +355,9 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("LastModificationById")
                         .HasColumnType("uuid");
 
-                    b.Property<int[]>("PendingActions")
+                    b.Property<string[]>("PendingActions")
                         .IsRequired()
-                        .HasColumnType("integer[]")
+                        .HasColumnType("text[]")
                         .HasColumnName("PendingActions");
 
                     b.Property<string>("Status")
@@ -438,6 +438,42 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserAttributes", "Identity");
+                });
+
+            modelBuilder.Entity("WardenId.SharedKernel.Persistence.Audit.AuditEventRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Channel")
+                        .HasColumnType("integer");
+
+                    b.Property<byte[]>("LeafHash")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("Payload")
+                        .HasColumnType("bytea");
+
+                    b.Property<long?>("Sequence")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id", "Channel");
+
+                    b.HasIndex("Channel", "Sequence");
+
+                    b.HasIndex("TenantId", "OccurredAt");
+
+                    b.ToTable("events", "audit", t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("WardenId.Identity.Domain.EmailVerificationToken", b =>

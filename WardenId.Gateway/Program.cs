@@ -1,4 +1,5 @@
 using Swashbuckle.AspNetCore.SwaggerUI;
+using WardenId.Audit.Presentation;
 using WardenId.Gateway.Bootstrap;
 using WardenId.Gateway.DependencyInjection;
 using WardenId.SharedKernel.Infrastructure;
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddOpenTelemetryLogging(builder.Configuration);
 
 builder.Services.AddSharedKernelModule(builder.Configuration);
+builder.Services.AddAuditModule(builder.Configuration);
 builder.Services.AddTenancyModule(builder.Configuration);
 builder.Services.AddClientManagementModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
@@ -19,6 +21,12 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors();
+
+// Before endpoints so every handler runs with ambient audit context set — see
+// docs/audit/PLAN.md §3.4. No UseAuthentication()/UseAuthorization() exists yet anywhere
+// in the app (RBAC/JWT auth is greenfield), so context.User is the framework's default,
+// unauthenticated ClaimsPrincipal for every request until that lands.
+app.UseMiddleware<AuditContextMiddleware>();
 
 app.MapEndpoints();
 

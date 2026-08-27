@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WardenId.Audit.Presentation\WardenId.Audit.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\WardenId.Audit.Infrastructure\WardenId.Audit.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="WardenId.Audit.Domain" />
+    <Using Include="WardenId.Audit.Application" />
+    <Using Include="WardenId.Audit.Infrastructure" />
+    <Using Include="WardenId.Audit.Presentation" />
+  </ItemGroup>
+
+</Project>

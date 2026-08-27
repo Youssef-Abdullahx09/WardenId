@@ -4,8 +4,16 @@ using WardenId.SharedKernel.Domain;
 
 namespace WardenId.Identity.Domain;
 
-public sealed class User : AggregateRoot
+public sealed class User : AggregateRoot, IAuditableAggregate
 {
+    public string AuditTargetTypeKey => "user";
+    public AuditableChannel AuditChannel => AuditableChannel.AdminDirectory;
+
+    // Credential/MFA secrets live on child entities the generic interceptor never diffs
+    // (see AuditCaptureInterceptor's docstring) — none of User's own scalar properties carry
+    // secret material, so nothing needs redaction here.
+    public IReadOnlySet<string> AuditSensitivePropertyNames { get; } = new HashSet<string>();
+
     private User(Guid tenantId, Email email, Username username)
     {
         if (tenantId == Guid.Empty) throw new ArgumentException("Tenant id is required.", nameof(tenantId));

@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Domain;
 
@@ -11,7 +10,12 @@ public abstract class DbContextBase(DbContextOptions options) : DbContext(option
     {
         modelBuilder.ApplyIndexOnEntityIsDeleted();
         modelBuilder.ApplyValueGeneratedNeverOnId();
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Deliberately no ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly())
+        // here: GetExecutingAssembly() resolves to THIS assembly (SharedKernel.Persistence),
+        // not the derived DbContext's — so it would silently apply every config living here
+        // (e.g. AuditEventConfiguration) to every module's context, not just the ones that
+        // opt in. Each context applies its own configs explicitly instead.
 
         base.OnModelCreating(modelBuilder);
     }

@@ -1,4 +1,6 @@
 using MediatR;
+using WardenId.Audit.Application;
+using WardenId.Audit.Domain;
 using WardenId.Identity.Application.Features.Users.Register;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Domain;
@@ -49,6 +51,15 @@ public static class MasterAdminSeeder
 
         var tenantId = tenantResult.Value.Id;
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
+
+        // Runs before the request pipeline exists, so AuditContextMiddleware never sets ambient
+        // audit context here — AuditCaptureInterceptor fails closed without it (I10). Bootstrap
+        // seeding is the one legitimate non-HTTP writer of a User today; a System actor records
+        // that plainly rather than faking an end-user identity.
+        var auditContextAccessor = scope.ServiceProvider.GetRequiredService<IAuditContextAccessor>();
+        var systemActor = Actor.Create(ActorType.System, "master-admin-seeder", ActorScope.Platform()).Value;
+        using var auditScope = auditContextAccessor.BeginScope(
+            new AuditAmbientContext(systemActor, tenantId, Correlation.None(), ClientContext.Unknown()));
 
         try
         {

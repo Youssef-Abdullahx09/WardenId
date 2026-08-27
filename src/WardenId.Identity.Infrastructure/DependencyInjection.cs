@@ -23,7 +23,7 @@ public static class DependencyInjection
                 throw new InvalidOperationException(AppConfigurationConstants.NotFoundConnectionStringMessage),
                 postgresSql =>
                     postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", IdentityDbContext.Schema));
-            options.AddInterceptors(serviceProvider.GetRequiredService<DomainEventsInterceptor>());
+            options.AddSharedInterceptors(serviceProvider);
         });
 
         services.AddScoped<IUserRepository, UserRepository>();

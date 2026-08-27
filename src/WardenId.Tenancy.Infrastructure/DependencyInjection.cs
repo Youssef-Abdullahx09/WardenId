@@ -33,7 +33,7 @@ public static class DependencyInjection
                 throw new InvalidOperationException(AppConfigurationConstants.NotFoundConnectionStringMessage),
                 postgresSql =>
                     postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", TenancyDbContext.Schema));
-            options.AddInterceptors(serviceProvider.GetRequiredService<DomainEventsInterceptor>());
+            options.AddSharedInterceptors(serviceProvider);
         });
 
         services.AddScoped<ITenantRepository, TenantRepository>();

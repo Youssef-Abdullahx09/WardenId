@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Audit;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Domain;
 
@@ -21,6 +22,13 @@ public sealed class TenancyDbContext(
         // Module configurations must be registered before base.OnModelCreating so the
         // SharedKernel IsActive/IsDeleted index conventions see this module's entity types.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TenancyDbContext).Assembly);
+
+        // AuditEventConfiguration lives in SharedKernel.Persistence, a different assembly —
+        // ApplyConfigurationsFromAssembly above only scans this module's own assembly, so it
+        // needs applying explicitly. AuditDbContext owns the migration for audit.events; every
+        // other module maps the same entity but excludes it from its own migrations.
+        modelBuilder.ApplyConfiguration(new AuditEventConfiguration());
+        modelBuilder.Entity<AuditEventRecord>().ToTable("events", "audit", t => t.ExcludeFromMigrations());
 
         base.OnModelCreating(modelBuilder);
     }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using WardenId.Identity.Domain;
 
@@ -38,8 +39,12 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.PendingActions)
             .HasConversion(
-                actions => actions.Select(a => (int)a).ToArray(),
-                values => values.Select(v => (RequiredAction)v).ToList())
+                actions => actions.Select(a => a.ToString()).ToArray(),
+                values => values.Select(Enum.Parse<RequiredAction>).ToList(),
+                new ValueComparer<IReadOnlyCollection<RequiredAction>>(
+                    (a, b) => (a ?? Array.Empty<RequiredAction>()).SequenceEqual(b ?? Array.Empty<RequiredAction>()),
+                    a => a.Aggregate(0, (hash, action) => HashCode.Combine(hash, action)),
+                    a => a.ToList()))
             .HasColumnName("PendingActions");
 
         builder.HasOne(u => u.Credential)

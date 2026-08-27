@@ -7,6 +7,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\src\WardenId.Audit.Infrastructure\WardenId.Audit.Infrastructure.csproj" />
+      <ProjectReference Include="..\src\WardenId.Audit.Presentation\WardenId.Audit.Presentation.csproj" />
       <ProjectReference Include="..\src\WardenId.ClientManagement.Infrastructure\WardenId.ClientManagement.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.ClientManagement.Presentation\WardenId.ClientManagement.Presentation.csproj" />
       <ProjectReference Include="..\src\WardenId.Identity.Infrastructure\WardenId.Identity.Infrastructure.csproj" />
