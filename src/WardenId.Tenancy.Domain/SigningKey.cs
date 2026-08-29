@@ -9,7 +9,7 @@ public sealed class SigningKey : Entity
     
     private SigningKey(
         Guid signingKeyId,
-        string algorithm, 
+        string algorithm,
         string publicKeyJwk,
         byte[] encryptedPrivateKey)
     {
@@ -17,6 +17,7 @@ public sealed class SigningKey : Entity
         Algorithm = algorithm;
         PublicKeyJwk = publicKeyJwk;
         EncryptedPrivateKey = encryptedPrivateKey;
+        IsActive = true;
     }
     
     public Guid SigningKeyId { get; private set; } 

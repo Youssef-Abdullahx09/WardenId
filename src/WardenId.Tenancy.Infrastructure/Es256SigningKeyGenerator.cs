@@ -12,11 +12,8 @@ namespace WardenId.Tenancy.Infrastructure;
 public sealed class Es256SigningKeyGenerator(
     IDataProtectionProvider dataProtectionProvider) : ISigningKeyGenerator
 {
-    // Bump the version suffix if the protection scheme ever changes incompatibly —
-    // existing encrypted keys become undecryptable across a purpose-string change.
-    private const string DataProtectionPurpose = "WardenId.Tenancy.SigningKeys.v1";
- 
-    private readonly IDataProtector _protector = dataProtectionProvider.CreateProtector(DataProtectionPurpose);
+    private readonly IDataProtector _protector =
+        dataProtectionProvider.CreateProtector(SigningKeyProtectionPurposes.PrivateKey);
 
     public SigningKeyMaterial GenerateEs256Async(Guid keyId)
     {

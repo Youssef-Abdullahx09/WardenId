@@ -45,6 +45,10 @@ public static class TenantErrors
 
     public static Error TenantNoActiveSigningKey()
         => Validation("Tenant cannot be activated without an active signing key.");
+
+    public static Error TenantHasNoActiveSigningKey()
+        => Validation("Tenant has no active signing key.");
+
     public static Error TenantSuspendReasonRequired()
         => Validation("A reason is required to suspend a tenant.");
     public static Error TenantAlreadyArchived()
