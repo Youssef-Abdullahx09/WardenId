@@ -35,6 +35,7 @@
     <Project Path="src/WardenId.Identity.Presentation/WardenId.Identity.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.Protocol/">
+    <Project Path="src/WardenId.Protocol.Application/WardenId.Protocol.Application.csproj" />
     <Project Path="src/WardenId.Protocol.Domain/WardenId.Protocol.Domain.csproj" />
   </Folder>
   <Folder Name="/tests/">
