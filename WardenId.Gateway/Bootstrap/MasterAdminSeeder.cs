@@ -1,7 +1,9 @@
 using MediatR;
 using WardenId.Audit.Application;
 using WardenId.Audit.Domain;
+using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Application.Features.Users.Register;
+using WardenId.Identity.Domain;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Domain;
 using WardenId.Tenancy.Infrastructure;
@@ -50,6 +52,23 @@ public static class MasterAdminSeeder
         }
 
         var tenantId = tenantResult.Value.Id;
+
+        // Checked explicitly, same pattern as MasterTenantSeeder, so a genuine seed failure
+        // (e.g. the configured password failing policy/breach checks) is never confused with
+        // this ordinary "already ran before" case — Register's own uniqueness error and a
+        // policy rejection both come back as an equally generic Result.Fail otherwise.
+        var emailResult = Email.Create(options.AdminEmail);
+        if (emailResult.IsSuccess)
+        {
+            var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+            if (await userRepository.ExistsByEmailAsync(tenantId, emailResult.Value, CancellationToken.None))
+            {
+                logger.LogInformation(
+                    "Master admin user '{Email}' already exists — skipping seed.", options.AdminEmail);
+                return;
+            }
+        }
+
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
         // Runs before the request pipeline exists, so AuditContextMiddleware never sets ambient
@@ -74,10 +93,12 @@ public static class MasterAdminSeeder
             }
             else
             {
-                // Most commonly hit on every restart after the first — the admin user already
-                // exists (Register enforces uniqueness itself). Treated as a no-op, not an error.
-                logger.LogInformation(
-                    "Master admin user seed for '{Email}' was a no-op: {Errors}",
+                // The existence check above already accounted for the "ran before" case, so
+                // anything reaching here is a real, actionable failure (e.g. the configured
+                // password rejected by policy/breach checks) — it needs to be loud, not buried
+                // at Info alongside routine no-ops.
+                logger.LogWarning(
+                    "Master admin user seed for '{Email}' failed: {Errors}",
                     options.AdminEmail, string.Join("; ", registerResult.Errors.Select(e => e.Message)));
             }
         }
