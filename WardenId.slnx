@@ -34,6 +34,9 @@
     <Project Path="src/WardenId.Identity.Infrastructure/WardenId.Identity.Infrastructure.csproj" />
     <Project Path="src/WardenId.Identity.Presentation/WardenId.Identity.Presentation.csproj" />
   </Folder>
+  <Folder Name="/src/WardenId.Protocol/">
+    <Project Path="src/WardenId.Protocol.Domain/WardenId.Protocol.Domain.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WardenId.Audit.Application.Tests/WardenId.Audit.Application.Tests.csproj" />
     <Project Path="tests/WardenId.Audit.Domain.Tests/WardenId.Audit.Domain.Tests.csproj" />
@@ -42,6 +45,7 @@
     <Project Path="tests/WardenId.ClientManagement.Domain.Tests/WardenId.ClientManagement.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Application.Tests/WardenId.Identity.Application.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj" />
+    <Project Path="tests/WardenId.Protocol.Domain.Tests/WardenId.Protocol.Domain.Tests.csproj" />
   </Folder>
   <Project Path="WardenId.Gateway/WardenId.Gateway.csproj" />
 </Solution>
