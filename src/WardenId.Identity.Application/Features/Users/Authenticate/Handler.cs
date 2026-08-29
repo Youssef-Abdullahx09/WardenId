@@ -70,7 +70,7 @@ public sealed class Handler(
 
         await repository.UpdateAsync(user, user.Id, cancellationToken);
 
-        return Result.Ok(new AuthenticatedUser(user.Id, user.Status, user.PendingActions));
+        return Result.Ok(new AuthenticatedUser(user.Id, user.Email.Value, user.Username.Value, user.Status, user.PendingActions));
     }
 
     private async Task<Result<User>> LookupByUsernameAsync(Command request, CancellationToken cancellationToken)
