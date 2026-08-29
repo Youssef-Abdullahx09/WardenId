@@ -3,6 +3,7 @@
     <ItemGroup>
       <ProjectReference Include="..\WardenId.SharedKernel.Application\WardenId.SharedKernel.Application.csproj" />
       <ProjectReference Include="..\WardenId.Identity.Domain\WardenId.Identity.Domain.csproj" />
+      <ProjectReference Include="..\WardenId.Identity.Integration.Command\WardenId.Identity.Integration.Command.csproj" />
     </ItemGroup>
 
     <ItemGroup>

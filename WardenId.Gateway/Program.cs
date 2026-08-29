@@ -14,6 +14,7 @@ builder.Services.AddAuditModule(builder.Configuration);
 builder.Services.AddTenancyModule(builder.Configuration);
 builder.Services.AddClientManagementModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
+builder.Services.AddProtocolModule(builder.Configuration);
 builder.Services.AddGateway(builder.Configuration);
 
 var app = builder.Build();
@@ -21,6 +22,7 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseAntiforgery();
 
 // Before endpoints so every handler runs with ambient audit context set — see
 // docs/audit/PLAN.md §3.4. No UseAuthentication()/UseAuthorization() exists yet anywhere

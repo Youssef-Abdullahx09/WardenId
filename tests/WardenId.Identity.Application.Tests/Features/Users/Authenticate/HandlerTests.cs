@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Features.Users.Authenticate;
+using Command = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.Authenticate;
 

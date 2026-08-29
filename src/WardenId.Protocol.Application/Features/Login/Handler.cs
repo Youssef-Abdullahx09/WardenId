@@ -5,36 +5,41 @@ using MediatR;
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Domain;
+using AuthenticateCommand = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
+using AuthenticatedUserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
+using AuthenticatedUserRequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
+using GetActiveForSigningQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.Query;
 
 namespace WardenId.Protocol.Application.Features.Login;
 
 public sealed class Handler(
-    IAuthenticateUsers authenticator,
-    IActiveSigningKeyProvider signingKeyProvider,
+    ISender sender,
     IJwtIssuer jwtIssuer,
     IRefreshTokenRepository refreshTokenRepository,
     IOptions<ProtocolTokenOptions> options) : IRequestHandler<Command, Result<LoginResult>>
 {
     public async Task<Result<LoginResult>> Handle(Command request, CancellationToken cancellationToken)
     {
-        var authResult = await authenticator.AuthenticateAsync(
-            request.TenantId, request.EmailOrUsername, request.Password, cancellationToken);
+        var authResult = await sender.Send(
+            new AuthenticateCommand(request.TenantId, request.EmailOrUsername, request.Password), cancellationToken);
         if (authResult.IsFailed) return Result.Fail<LoginResult>(authResult.Errors);
 
         var user = authResult.Value;
-        if (!user.IsActive || user.HasPendingActions)
+        if (user.Status != AuthenticatedUserStatus.Active || user.PendingActions.Count > 0)
             return Result.Ok(new LoginResult(RequiresAdditionalAction: true, Tokens: null));
 
-        var keyResult = await signingKeyProvider.GetActiveSigningKeyAsync(request.TenantId, cancellationToken);
+        var keyResult = await sender.Send(new GetActiveForSigningQuery(request.TenantId), cancellationToken);
         if (keyResult.IsFailed) return Result.Fail<LoginResult>(keyResult.Errors);
-        var key = keyResult.Value;
+        var keyDto = keyResult.Value;
+        var key = new ActiveSigningKey(keyDto.KeyId, keyDto.Algorithm, keyDto.EncryptedPrivateKey);
 
         var now = DateTimeOffset.UtcNow;
         var accessLifetime = options.Value.AccessTokenLifetime;
 
         var accessToken = jwtIssuer.IssueAccessToken(key, request.TenantId, user.UserId, now, accessLifetime);
+        var emailVerified = !user.PendingActions.Contains(AuthenticatedUserRequiredAction.VerifyEmail);
         var idToken = jwtIssuer.IssueIdToken(
-            key, request.TenantId, user.UserId, user.Email, user.EmailVerified, user.Username, now, options.Value.IdTokenLifetime);
+            key, request.TenantId, user.UserId, user.Email, emailVerified, user.Username, now, options.Value.IdTokenLifetime);
 
         var (rawRefreshToken, refreshTokenHash) = GenerateRefreshToken();
         var refreshTokenResult = RefreshToken.Create(

@@ -26,17 +26,21 @@
     <Project Path="src/WardenId.Tenancy.Application/WardenId.Tenancy.Application.csproj" />
     <Project Path="src/WardenId.Tenancy.Domain/WardenId.Tenancy.Domain.csproj" />
     <Project Path="src/WardenId.Tenancy.Infrastructure/WardenId.Tenancy.Infrastructure.csproj" />
+    <Project Path="src/WardenId.Tenancy.Integration.Command/WardenId.Tenancy.Integration.Command.csproj" />
     <Project Path="src/WardenId.Tenancy.Presentation/WardenId.Tenancy.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.Identity/">
     <Project Path="src/WardenId.Identity.Application/WardenId.Identity.Application.csproj" />
     <Project Path="src/WardenId.Identity.Domain/WardenId.Identity.Domain.csproj" />
     <Project Path="src/WardenId.Identity.Infrastructure/WardenId.Identity.Infrastructure.csproj" />
+    <Project Path="src/WardenId.Identity.Integration.Command/WardenId.Identity.Integration.Command.csproj" />
     <Project Path="src/WardenId.Identity.Presentation/WardenId.Identity.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.Protocol/">
     <Project Path="src/WardenId.Protocol.Application/WardenId.Protocol.Application.csproj" />
     <Project Path="src/WardenId.Protocol.Domain/WardenId.Protocol.Domain.csproj" />
+    <Project Path="src/WardenId.Protocol.Infrastructure/WardenId.Protocol.Infrastructure.csproj" />
+    <Project Path="src/WardenId.Protocol.Presentation/WardenId.Protocol.Presentation.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WardenId.Audit.Application.Tests/WardenId.Audit.Application.Tests.csproj" />
@@ -48,6 +52,7 @@
     <Project Path="tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Protocol.Application.Tests/WardenId.Protocol.Application.Tests.csproj" />
     <Project Path="tests/WardenId.Protocol.Domain.Tests/WardenId.Protocol.Domain.Tests.csproj" />
+    <Project Path="tests/WardenId.Protocol.Infrastructure.Tests/WardenId.Protocol.Infrastructure.Tests.csproj" />
   </Folder>
   <Project Path="WardenId.Gateway/WardenId.Gateway.csproj" />
 </Solution>

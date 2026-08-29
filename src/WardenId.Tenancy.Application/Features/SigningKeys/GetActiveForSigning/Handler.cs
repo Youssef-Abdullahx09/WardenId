@@ -2,6 +2,7 @@ using FluentResults;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WardenId.Tenancy.Application.Abstractions;
+using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning;
 using WardenId.Tenancy.Domain;
 
 namespace WardenId.Tenancy.Application.Features.SigningKeys.GetActiveForSigning;
@@ -18,7 +19,7 @@ public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query
         if (tenant is null) return Result.Fail(TenantErrors.NotFound);
 
         var activeKey = tenant.SigningKeys.FirstOrDefault(k => k.IsActive && !k.IsDeleted);
-        if (activeKey is null) return Result.Fail(TenantErrors.TenantHasNoActiveSigningKey());
+        if (activeKey is null) return Result.Fail(TenantErrors.NoActiveSigningKeyForSigning());
 
         return Result.Ok(new ActiveSigningKeyDto(activeKey.SigningKeyId, activeKey.Algorithm, activeKey.EncryptedPrivateKey));
     }

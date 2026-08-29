@@ -1,4 +1,4 @@
-using WardenId.Identity.Application.Features.Users.Authenticate;
+using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
 
 namespace WardenId.Identity.Presentation.Features.Users.Authenticate;
 

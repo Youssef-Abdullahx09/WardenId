@@ -19,6 +19,7 @@ public static class GatewayDependencyInjection
         services.AddJsonConfiguration();
         services.AddSwaggerDocumentation();
         services.AddCorsConfiguration();
+        services.AddAntiforgery();
     }
 
     private static void AddApiVersioningConfiguration(this IServiceCollection services)

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WardenId.SharedKernel.Presentation\WardenId.SharedKernel.Presentation.csproj" />
+    <ProjectReference Include="..\WardenId.Protocol.Application\WardenId.Protocol.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Templates\**\*.html" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

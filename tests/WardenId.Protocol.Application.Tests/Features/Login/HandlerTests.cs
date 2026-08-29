@@ -1,27 +1,29 @@
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application.Features.Login;
+using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning;
+using AuthenticatedUser = WardenId.Identity.Integration.Command.Features.Users.Authenticate.AuthenticatedUser;
+using AuthenticatedUserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
+using AuthenticatedUserRequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
 
 namespace WardenId.Protocol.Application.Tests.Features.Login;
 
 public class HandlerTests
 {
-    private static AuthenticatedUserInfo ActiveUser(Guid userId) =>
-        new(userId, "someone@example.com", true, "someone", IsActive: true, HasPendingActions: false);
+    private static AuthenticatedUser ActiveUser(Guid userId) =>
+        new(userId, "someone@example.com", "someone", AuthenticatedUserStatus.Active, []);
 
     [Fact]
     public async Task Handle_IssuesTokens_WhenUserIsActiveWithNoPendingActions()
     {
         var userId = Guid.NewGuid();
         var tenantId = Guid.NewGuid();
-        var authenticator = new FakeAuthenticateUsers { Response = Result.Ok(ActiveUser(userId)) };
-        var signingKeyProvider = new FakeActiveSigningKeyProvider
+        var sender = new FakeSender
         {
-            Response = Result.Ok(new ActiveSigningKey(Guid.NewGuid(), "ES256", [1, 2, 3]))
+            AuthenticateResponse = Result.Ok(ActiveUser(userId)),
+            SigningKeyResponse = Result.Ok(new ActiveSigningKeyDto(Guid.NewGuid(), "ES256", [1, 2, 3]))
         };
         var refreshTokenRepository = new FakeRefreshTokenRepository();
-        var handler = new Handler(
-            authenticator, signingKeyProvider, new FakeJwtIssuer(), refreshTokenRepository,
-            Options.Create(new ProtocolTokenOptions()));
+        var handler = new Handler(sender, new FakeJwtIssuer(), refreshTokenRepository, Options.Create(new ProtocolTokenOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone", "password"), CancellationToken.None);
 
@@ -36,14 +38,12 @@ public class HandlerTests
     public async Task Handle_SkipsTokenIssuance_WhenUserHasPendingActions()
     {
         var userId = Guid.NewGuid();
-        var authenticator = new FakeAuthenticateUsers
+        var sender = new FakeSender
         {
-            Response = Result.Ok(ActiveUser(userId) with { HasPendingActions = true })
+            AuthenticateResponse = Result.Ok(ActiveUser(userId) with { PendingActions = [AuthenticatedUserRequiredAction.VerifyEmail] })
         };
         var refreshTokenRepository = new FakeRefreshTokenRepository();
-        var handler = new Handler(
-            authenticator, new FakeActiveSigningKeyProvider(), new FakeJwtIssuer(), refreshTokenRepository,
-            Options.Create(new ProtocolTokenOptions()));
+        var handler = new Handler(sender, new FakeJwtIssuer(), refreshTokenRepository, Options.Create(new ProtocolTokenOptions()));
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "someone", "password"), CancellationToken.None);
 
@@ -57,13 +57,11 @@ public class HandlerTests
     public async Task Handle_SkipsTokenIssuance_WhenUserIsNotActive()
     {
         var userId = Guid.NewGuid();
-        var authenticator = new FakeAuthenticateUsers
+        var sender = new FakeSender
         {
-            Response = Result.Ok(ActiveUser(userId) with { IsActive = false })
+            AuthenticateResponse = Result.Ok(ActiveUser(userId) with { Status = AuthenticatedUserStatus.Disabled })
         };
-        var handler = new Handler(
-            authenticator, new FakeActiveSigningKeyProvider(), new FakeJwtIssuer(), new FakeRefreshTokenRepository(),
-            Options.Create(new ProtocolTokenOptions()));
+        var handler = new Handler(sender, new FakeJwtIssuer(), new FakeRefreshTokenRepository(), Options.Create(new ProtocolTokenOptions()));
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "someone", "password"), CancellationToken.None);
 
@@ -74,14 +72,12 @@ public class HandlerTests
     [Fact]
     public async Task Handle_PropagatesFailure_WhenAuthenticationFails()
     {
-        var authenticator = new FakeAuthenticateUsers
+        var sender = new FakeSender
         {
-            Response = Result.Fail<AuthenticatedUserInfo>(
+            AuthenticateResponse = Result.Fail<AuthenticatedUser>(
                 new Error("Invalid credentials.").WithMetadata("ErrorCode", "InvalidCredentials"))
         };
-        var handler = new Handler(
-            authenticator, new FakeActiveSigningKeyProvider(), new FakeJwtIssuer(), new FakeRefreshTokenRepository(),
-            Options.Create(new ProtocolTokenOptions()));
+        var handler = new Handler(sender, new FakeJwtIssuer(), new FakeRefreshTokenRepository(), Options.Create(new ProtocolTokenOptions()));
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "someone", "wrong"), CancellationToken.None);
 
@@ -93,14 +89,12 @@ public class HandlerTests
     public async Task Handle_PropagatesFailure_WhenNoActiveSigningKeyExists()
     {
         var userId = Guid.NewGuid();
-        var authenticator = new FakeAuthenticateUsers { Response = Result.Ok(ActiveUser(userId)) };
-        var signingKeyProvider = new FakeActiveSigningKeyProvider
+        var sender = new FakeSender
         {
-            Response = Result.Fail<ActiveSigningKey>(new Error("Tenant has no active signing key."))
+            AuthenticateResponse = Result.Ok(ActiveUser(userId)),
+            SigningKeyResponse = Result.Fail<ActiveSigningKeyDto>(new Error("Tenant has no active signing key."))
         };
-        var handler = new Handler(
-            authenticator, signingKeyProvider, new FakeJwtIssuer(), new FakeRefreshTokenRepository(),
-            Options.Create(new ProtocolTokenOptions()));
+        var handler = new Handler(sender, new FakeJwtIssuer(), new FakeRefreshTokenRepository(), Options.Create(new ProtocolTokenOptions()));
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "someone", "password"), CancellationToken.None);
 
