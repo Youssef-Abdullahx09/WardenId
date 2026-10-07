@@ -1,23 +1,33 @@
 using FluentResults;
 using MediatR;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
-using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning;
+using TenancyActiveSigningKey = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.ActiveSigningKey;
+using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys;
+using AuthenticateCommand = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
+using GetActiveForSigningQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.Query;
+using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
 
 namespace WardenId.Protocol.Application.Tests.Fakes;
 
 public sealed class FakeSender : ISender
 {
     public Result<AuthenticatedUser>? AuthenticateResponse { get; set; }
-    public Result<ActiveSigningKeyDto>? SigningKeyResponse { get; set; }
+    public Result<TenancyActiveSigningKey>? SigningKeyResponse { get; set; }
+    public Result<TenantPublicKeys>? PublicKeysResponse { get; set; }
+
+    public List<object> Sent { get; } = [];
 
     public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
+        Sent.Add(request);
         return request switch
         {
-            Command => (Task<TResponse>)(object)Task.FromResult(
+            AuthenticateCommand => (Task<TResponse>)(object)Task.FromResult(
                 AuthenticateResponse ?? throw new InvalidOperationException("AuthenticateResponse not configured.")),
-            Query => (Task<TResponse>)(object)Task.FromResult(
+            GetActiveForSigningQuery => (Task<TResponse>)(object)Task.FromResult(
                 SigningKeyResponse ?? throw new InvalidOperationException("SigningKeyResponse not configured.")),
+            GetPublicKeysQuery => (Task<TResponse>)(object)Task.FromResult(
+                PublicKeysResponse ?? throw new InvalidOperationException("PublicKeysResponse not configured.")),
             _ => throw new NotSupportedException($"Unexpected request type: {request.GetType()}")
         };
     }

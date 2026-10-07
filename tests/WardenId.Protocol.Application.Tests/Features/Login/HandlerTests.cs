@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application.Features.Login;
-using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning;
+using TenancyActiveSigningKey = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.ActiveSigningKey;
 using AuthenticatedUser = WardenId.Identity.Integration.Command.Features.Users.Authenticate.AuthenticatedUser;
 using AuthenticatedUserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
 using AuthenticatedUserRequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
@@ -20,10 +20,11 @@ public class HandlerTests
         var sender = new FakeSender
         {
             AuthenticateResponse = Result.Ok(ActiveUser(userId)),
-            SigningKeyResponse = Result.Ok(new ActiveSigningKeyDto(Guid.NewGuid(), "ES256", [1, 2, 3]))
+            SigningKeyResponse = Result.Ok(new TenancyActiveSigningKey(Guid.NewGuid(), "ES256", [1, 2, 3], "acme"))
         };
+        var jwtIssuer = new FakeJwtIssuer();
         var refreshTokenRepository = new FakeRefreshTokenRepository();
-        var handler = new Handler(sender, new FakeJwtIssuer(), refreshTokenRepository, Options.Create(new ProtocolTokenOptions()));
+        var handler = new Handler(sender, jwtIssuer, refreshTokenRepository, Options.Create(new ProtocolTokenOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone", "password"), CancellationToken.None);
 
@@ -32,6 +33,7 @@ public class HandlerTests
         Assert.NotNull(result.Value.Tokens);
         Assert.Equal("Bearer", result.Value.Tokens!.TokenType);
         Assert.Single(refreshTokenRepository.Created);
+        Assert.Equal("acme", jwtIssuer.LastKey!.Slug);
     }
 
     [Fact]
@@ -92,7 +94,7 @@ public class HandlerTests
         var sender = new FakeSender
         {
             AuthenticateResponse = Result.Ok(ActiveUser(userId)),
-            SigningKeyResponse = Result.Fail<ActiveSigningKeyDto>(new Error("Tenant has no active signing key."))
+            SigningKeyResponse = Result.Fail<TenancyActiveSigningKey>(new Error("Tenant has no active signing key."))
         };
         var handler = new Handler(sender, new FakeJwtIssuer(), new FakeRefreshTokenRepository(), Options.Create(new ProtocolTokenOptions()));
 

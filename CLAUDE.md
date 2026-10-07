@@ -17,7 +17,7 @@ dotnet ef migrations add <Name> \
   --context TenancyDbContext              # add a migration for a module
 ```
 
-- No test project exists yet (`tests/` is empty).
+- Tests: xUnit projects under `tests/` (`WardenId.<Module>.<Layer>.Tests`), hand-written fakes in each project's `Fakes/`, EF Core InMemory for handler tests. Run all with `dotnet test WardenId.slnx`.
 - `dotnet ef` (v10.0.8) is available via `dotnet tool` / global install, not a local manifest — there's no `.config/dotnet-tools.json`.
 - NuGet package versions are centrally managed in `Directory.Packages.props`; add new packages there, reference by name only in each `.csproj`.
 - Every project restores with `packages.lock.json` (`RestorePackagesWithLockFile=true`); regenerate with `dotnet restore --force-evaluate` after changing package references.
@@ -32,9 +32,11 @@ The solution is organized into **bounded-context modules**, each split into up t
 - `WardenId.<Module>.Domain` — aggregates, value objects, domain events, error factories. Zero framework dependencies.
 - `WardenId.<Module>.Application` — CQRS commands/queries (MediatR), handler logic, abstractions (`I<X>Repository`, `I<Module>DbContext`) that Infrastructure implements.
 - `WardenId.<Module>.Infrastructure` — EF Core `DbContext`, repositories, EF configurations/migrations, module-specific DI wiring (`Add<Module>Infrastructure`).
-- `WardenId.<Module>.Presentation` — minimal-API endpoints, request DTOs, module DI wiring (`Add<Module>Presentation`).
+- `WardenId.<Module>.Presentation` — minimal-API endpoints, request records, module DI wiring (`Add<Module>Presentation`).
 
-Today there is one module, `Tenancy` (tenant provisioning + ES256 signing keys). `SharedKernel.*` projects are the cross-cutting equivalents (no Domain-specific project; `SharedKernel.Domain` holds base types instead).
+Modules today: `Tenancy` (tenant provisioning + ES256 signing keys), `Identity` (users, credentials, MFA, lifecycle), `ClientManagement` (OAuth clients, secrets, redirect URIs, CORS origins), `Protocol` (login, token issuance, discovery/JWKS), and `Audit` (transparency-log audit trail). `SharedKernel.*` projects are the cross-cutting equivalents (no Domain-specific project; `SharedKernel.Domain` holds base types instead).
+
+Modules never reference each other's `Application`/`Domain` projects. Cross-module calls go through a `WardenId.<Module>.Integration.Command` contract project (MediatR request + response records only) and are sent in-process via `ISender`; the owning module's `Application` project implements the handler (e.g. `Tenancy.Integration.Command/Features/SigningKeys/GetPublicKeys` → `Tenancy.Application/Features/SigningKeys/GetPublicKeys/Handler.cs`).
 
 `WardenId.Gateway` is the only executable. It composes every module via `WardenId.Gateway/DependencyInjection/*DependencyInjection.cs` (one file per module, e.g. `TenancyDependencyInjection.AddTenancyModule`), called from `Program.cs`. Adding a module means: create the 4 layer projects, add its `Add<Module>Module` extension, wire it into `Program.cs` and the corresponding `Add*Module` file, and add the projects to `WardenId.slnx`.
 
@@ -42,8 +44,10 @@ Today there is one module, `Tenancy` (tenant provisioning + ES256 signing keys).
 
 Inside Application/Presentation, features live under `Features/<Aggregate>/<UseCase>/`, e.g. `Features/Tenants/Create/`:
 
-- **Presentation**: `Endpoint.cs` (implements `IEndpoint`, maps the route) + `Request.cs` (public DTO, has a `ToCommand(...)` mapper).
+- **Presentation**: `Endpoint.cs` (implements `IEndpoint`, maps the route) + `Request.cs` (public request record, has a `ToCommand(...)` mapper).
 - **Application**: `Command.cs` (or `Query.cs`, a MediatR `IRequest<Result<T>>`) + `Handler.cs` (`IRequestHandler<TCommand, Result<T>>`).
+
+Never suffix type names with `Dto` — name records for what they represent (`TenantPublicKeys`, `ActiveSigningKey`, `Request`). When two modules' contract types share a name, alias at the using site (e.g. `using TenancyActiveSigningKey = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.ActiveSigningKey;`) rather than renaming either.
 
 `IEndpoint` implementations are auto-discovered and registered via reflection over assemblies whose name ends in `Presentation` (`EndpointExtensions.AddEndPoints`) — no manual endpoint registration needed, just implement `IEndpoint` in the right project.
 
@@ -70,6 +74,6 @@ Inside Application/Presentation, features live under `Features/<Aggregate>/<UseC
 ### Cross-cutting / SharedKernel
 
 - `ICurrentUser`/`ICurrentTenant` (`SharedKernel.Presentation`) resolve identity from `HttpContext`: `ICurrentUser.UserId` from the JWT `sub`/`NameIdentifier` claim, `ICurrentTenant.TenantId` from a custom `TenantId` claim, `ICurrentTenant.Slug` from the `{slug}` route value — tenancy is routed (`/api/v{version}/{slug}/...`-style), not header-based.
-- API versioning is via `Asp.Versioning` with `UrlSegmentApiVersionReader` (`/api/v{version:apiVersion}/...`); every endpoint builds an `ApiVersionSet` and calls `.MapToApiVersion(...)`.
+- API versioning is via `Asp.Versioning` with `UrlSegmentApiVersionReader` (`/api/v{version:apiVersion}/...`); every REST/admin endpoint builds an `ApiVersionSet` and calls `.MapToApiVersion(...)`. **Exception:** OIDC protocol endpoints live unversioned under the tenant issuer `{ProtocolToken:IssuerBaseUri}/tenants/{slug}/...` (discovery, JWKS) — the issuer string is built only by `Protocol.Application.IssuerUri.For`.
 - OpenTelemetry (traces/metrics/logs) and CAP (outbox/messaging) are both configured centrally in `SharedKernel.Infrastructure.DependencyInjection` and can be toggled off via the `OpenTelemetry:Enabled` config flag; standard `OTEL_*` env vars in config are applied to the process environment as fallback only (real env vars always win).
 - Config keys are centralized in `<Layer>.ConfigurationKeys`/`AppConfigurationConstants` static classes per project rather than magic strings — follow that pattern for new config sections.

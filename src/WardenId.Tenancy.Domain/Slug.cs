@@ -5,7 +5,7 @@ using WardenId.SharedKernel.Domain;
 namespace WardenId.Tenancy.Domain;
 
 /// <summary>
-/// Tenant slug used in the issuer path (/tenant/{slug}/...) and in per-tenant discovery/JWKS URLs.
+/// Tenant slug used in the issuer path (/tenants/{slug}/...) and in per-tenant discovery/JWKS URLs.
 /// Treat as immutable once a tenant has issued its first token — changing it invalidates
 /// every relying party's cached discovery document for that tenant.
 /// </summary>

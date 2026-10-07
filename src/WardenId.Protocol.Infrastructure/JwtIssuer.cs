@@ -62,7 +62,7 @@ public sealed class JwtIssuer(
 
             var claims = new Dictionary<string, object>(extraClaims)
             {
-                [JwtRegisteredClaimNames.Iss] = $"{options.Value.IssuerBaseUri}/tenants/{tenantId}",
+                [JwtRegisteredClaimNames.Iss] = IssuerUri.For(options.Value.IssuerBaseUri, key.Slug),
                 [JwtRegisteredClaimNames.Sub] = userId.ToString()
             };
 

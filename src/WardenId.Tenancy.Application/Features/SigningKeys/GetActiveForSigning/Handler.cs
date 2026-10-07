@@ -7,9 +7,9 @@ using WardenId.Tenancy.Domain;
 
 namespace WardenId.Tenancy.Application.Features.SigningKeys.GetActiveForSigning;
 
-public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query, Result<ActiveSigningKeyDto>>
+public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query, Result<ActiveSigningKey>>
 {
-    public async Task<Result<ActiveSigningKeyDto>> Handle(Query request, CancellationToken cancellationToken)
+    public async Task<Result<ActiveSigningKey>> Handle(Query request, CancellationToken cancellationToken)
     {
         var tenant = await dbContext.Tenants
             .Include(t => t.SigningKeys)
@@ -21,6 +21,7 @@ public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query
         var activeKey = tenant.SigningKeys.FirstOrDefault(k => k.IsActive && !k.IsDeleted);
         if (activeKey is null) return Result.Fail(TenantErrors.NoActiveSigningKeyForSigning());
 
-        return Result.Ok(new ActiveSigningKeyDto(activeKey.SigningKeyId, activeKey.Algorithm, activeKey.EncryptedPrivateKey));
+        return Result.Ok(new ActiveSigningKey(
+            activeKey.SigningKeyId, activeKey.Algorithm, activeKey.EncryptedPrivateKey, tenant.Slug.Value));
     }
 }

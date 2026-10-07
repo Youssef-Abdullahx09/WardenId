@@ -30,8 +30,8 @@ public sealed class Handler(
 
         var keyResult = await sender.Send(new GetActiveForSigningQuery(request.TenantId), cancellationToken);
         if (keyResult.IsFailed) return Result.Fail<LoginResult>(keyResult.Errors);
-        var keyDto = keyResult.Value;
-        var key = new ActiveSigningKey(keyDto.KeyId, keyDto.Algorithm, keyDto.EncryptedPrivateKey);
+        var tenantKey = keyResult.Value;
+        var key = new ActiveSigningKey(tenantKey.KeyId, tenantKey.Algorithm, tenantKey.EncryptedPrivateKey, tenantKey.Slug);
 
         var now = DateTimeOffset.UtcNow;
         var accessLifetime = options.Value.AccessTokenLifetime;
