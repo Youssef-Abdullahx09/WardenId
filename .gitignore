@@ -490,5 +490,8 @@ appsettings.Development.json
 # Superpowers subagent-driven-development scratch state
 .superpowers/
 
-# Claude Code worktrees (nested git worktrees, tracked under their own branch)
-.claude/worktrees/
+# Claude Code local state (settings, worktrees)
+.claude/
+
+# Design docs, specs and plans are kept local, not versioned
+docs/
