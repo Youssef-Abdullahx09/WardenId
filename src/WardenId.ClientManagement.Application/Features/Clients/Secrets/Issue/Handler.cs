@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using FluentResults;
 using MediatR;
 using WardenId.ClientManagement.Application.Abstractions;
@@ -24,7 +23,7 @@ public sealed class Handler(
         var client = clientResult.Value;
 
         var plainTextSecret = GeneratePlainTextSecret();
-        var secret = ClientSecret.Create(Hash(plainTextSecret), request.Label.Trim(), expiresAt: null);
+        var secret = ClientSecret.Create(ClientSecretHasher.Hash(plainTextSecret), request.Label.Trim(), expiresAt: null);
 
         var now = DateTimeOffset.UtcNow;
         var hasActiveSecret = client.Secrets.Any(s => !s.IsExpired(now));
@@ -43,7 +42,4 @@ public sealed class Handler(
     private static string GeneratePlainTextSecret() =>
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
             .TrimEnd('=').Replace('+', '-').Replace('/', '_');
-
-    private static string Hash(string plainText) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(plainText)));
 }

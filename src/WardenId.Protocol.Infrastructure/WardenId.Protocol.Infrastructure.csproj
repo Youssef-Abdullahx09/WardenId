@@ -1,15 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-      <ProjectReference Include="..\WardenId.SharedKernel.Persistence\WardenId.SharedKernel.Persistence.csproj" />
-      <ProjectReference Include="..\WardenId.Protocol.Application\WardenId.Protocol.Application.csproj" />
-      <ProjectReference Include="..\WardenId.Tenancy.Application\WardenId.Tenancy.Application.csproj" />
+      <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" />
+      <ProjectReference Include="..\WardenId.SharedKernel.Persistence\WardenId.SharedKernel.Persistence.csproj" />
+      <ProjectReference Include="..\WardenId.Protocol.Application\WardenId.Protocol.Application.csproj" />
+      <ProjectReference Include="..\WardenId.Tenancy.Application\WardenId.Tenancy.Application.csproj" />
+      <ProjectReference Include="..\WardenId.ClientManagement.Integration.Command\WardenId.ClientManagement.Integration.Command.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
       <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+      <PackageReference Include="OpenIddict.AspNetCore" />
+      <PackageReference Include="OpenIddict.EntityFrameworkCore" />
+      <PackageReference Include="OpenIddict.Server.DataProtection" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     </ItemGroup>
 
 </Project>

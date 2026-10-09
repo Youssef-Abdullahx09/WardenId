@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WardenId.Protocol.Application.Abstractions;
+using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.Protocol.Infrastructure.Persistence;
 using WardenId.SharedKernel.Persistence;
 
@@ -21,15 +22,30 @@ public static class DependencyInjection
             options.AddSharedInterceptors(serviceProvider);
         });
 
+        // No AddSharedInterceptors: OpenIddict rows aren't aggregates (no CAP outbox, no audit capture).
+        services.AddDbContext<OpenIddictDbContext>(options =>
+        {
+            options.UseNpgsql(
+                configuration.GetConnectionString(AppConfigurationConstants.DbConnectionStringKey) ??
+                throw new InvalidOperationException(AppConfigurationConstants.NotFoundConnectionStringMessage),
+                postgresSql =>
+                    postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", OpenIddictDbContext.Schema));
+            options.UseOpenIddict();
+        });
+
+        services.AddProtocolOpenIddict(configuration);
+
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IJwtIssuer, JwtIssuer>();
+        services.AddSingleton<ITenantSigningCredentialsFactory, TenantSigningCredentialsFactory>();
 
         MigrateAsync(services).GetAwaiter().GetResult();
     }
 
     private static async Task MigrateAsync(IServiceCollection services)
     {
-        var context = services.BuildServiceProvider().GetRequiredService<ProtocolDbContext>();
-        await context.Database.MigrateAsync(CancellationToken.None);
+        var provider = services.BuildServiceProvider();
+        await provider.GetRequiredService<ProtocolDbContext>().Database.MigrateAsync(CancellationToken.None);
+        await provider.GetRequiredService<OpenIddictDbContext>().Database.MigrateAsync(CancellationToken.None);
     }
 }

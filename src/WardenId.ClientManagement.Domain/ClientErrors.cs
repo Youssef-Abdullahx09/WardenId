@@ -8,6 +8,11 @@ public static class ClientErrors
         new Error("Client not found.")
             .WithMetadata(ClientErrorCodes.MetadataKey, ClientErrorCodes.NotFound);
 
+    // One error for every verification failure so callers can't tell which check failed.
+    public static Error InvalidSecret() =>
+        new Error("Invalid client credentials.")
+            .WithMetadata(ClientErrorCodes.MetadataKey, ClientErrorCodes.InvalidCredentials);
+
     public static Error Validation(string reason)
         => new Error(reason)
             .WithMetadata(ClientErrorCodes.MetadataKey, ClientErrorCodes.Validation);

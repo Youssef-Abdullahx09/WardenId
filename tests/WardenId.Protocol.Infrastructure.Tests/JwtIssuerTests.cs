@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using WardenId.Protocol.Application;
+using WardenId.SharedKernel.Application;
 using WardenId.Tenancy.Application.Abstractions;
 
 namespace WardenId.Protocol.Infrastructure.Tests;
@@ -26,7 +28,7 @@ public class JwtIssuerTests
         var key = new ActiveSigningKey(Guid.NewGuid(), "ES256", encryptedPrivateKey, Slug);
 
         var issuer = new JwtIssuer(
-            dataProtectionProvider,
+            new TenantSigningCredentialsFactory(dataProtectionProvider),
             Options.Create(new ProtocolTokenOptions { IssuerBaseUri = issuerBaseUri }));
 
         // Only the public component is needed to verify signatures.
@@ -85,8 +87,8 @@ public class JwtIssuerTests
 
         Assert.Equal($"{IssuerBaseUri}/tenants/{Slug}", jwt.Issuer);
         Assert.Equal(userId.ToString(), jwt.Subject);
-        Assert.Equal(tenantId.ToString(), jwt.GetClaim("tenant_id").Value);
-        Assert.Equal("access", jwt.GetClaim("token_use").Value);
+        Assert.Equal(tenantId.ToString(), jwt.GetClaim(CustomClaimTypes.TenantId).Value);
+        Assert.Equal(TokenUse.Access, jwt.GetClaim(CustomClaimTypes.TokenUse).Value);
 
         Assert.True(jwt.TryGetPayloadValue<long>(JwtRegisteredClaimNames.Iat, out var iat));
         Assert.True(jwt.TryGetPayloadValue<long>(JwtRegisteredClaimNames.Nbf, out var nbf));
@@ -119,7 +121,7 @@ public class JwtIssuerTests
 
         Assert.Equal($"{IssuerBaseUri}/tenants/{Slug}", jwt.Issuer);
         Assert.Equal(userId.ToString(), jwt.Subject);
-        Assert.Equal("id", jwt.GetClaim("token_use").Value);
+        Assert.Equal(TokenUse.Id, jwt.GetClaim(CustomClaimTypes.TokenUse).Value);
         Assert.Equal("someone@example.com", jwt.GetClaim("email").Value);
         Assert.Equal("true", jwt.GetClaim("email_verified").Value);
         Assert.Equal("someone", jwt.GetClaim("preferred_username").Value);

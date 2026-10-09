@@ -22,12 +22,15 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors();
+// OpenIddict's server plugs in as an authentication request handler — without this it never sees
+// /tenants/{slug}/token. No default authenticate scheme is configured, so context.User stays the
+// unauthenticated principal for every other endpoint.
+app.UseAuthentication();
 app.UseAntiforgery();
 
 // Before endpoints so every handler runs with ambient audit context set — see
-// docs/audit/PLAN.md §3.4. No UseAuthentication()/UseAuthorization() exists yet anywhere
-// in the app (RBAC/JWT auth is greenfield), so context.User is the framework's default,
-// unauthenticated ClaimsPrincipal for every request until that lands.
+// docs/audit/PLAN.md §3.4. No API authentication scheme exists yet (RBAC/JWT auth is greenfield),
+// so context.User is the framework's default, unauthenticated ClaimsPrincipal for every request.
 app.UseMiddleware<AuditContextMiddleware>();
 
 app.MapEndpoints();

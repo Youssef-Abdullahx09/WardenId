@@ -6,4 +6,5 @@ public static class ClientErrorCodes
 
     public const string NotFound = "NotFound";
     public const string Validation = "Validation";
+    public const string InvalidCredentials = "InvalidCredentials";
 }

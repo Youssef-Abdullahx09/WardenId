@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.JsonWebTokens;
+using WardenId.SharedKernel.Application;
 using WardenId.SharedKernel.Presentation;
 
 namespace WardenId.Audit.Presentation.Tests;

@@ -10,6 +10,7 @@
     <Project Path="src/WardenId.ClientManagement.Application/WardenId.ClientManagement.Application.csproj" />
     <Project Path="src/WardenId.ClientManagement.Domain/WardenId.ClientManagement.Domain.csproj" />
     <Project Path="src/WardenId.ClientManagement.Infrastructure/WardenId.ClientManagement.Infrastructure.csproj" />
+    <Project Path="src/WardenId.ClientManagement.Integration.Command/WardenId.ClientManagement.Integration.Command.csproj" />
     <Project Path="src/WardenId.ClientManagement.Presentation/WardenId.ClientManagement.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.SharedKernel/">
@@ -47,12 +48,14 @@
     <Project Path="tests/WardenId.Audit.Domain.Tests/WardenId.Audit.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Audit.Infrastructure.Tests/WardenId.Audit.Infrastructure.Tests.csproj" />
     <Project Path="tests/WardenId.Audit.Presentation.Tests/WardenId.Audit.Presentation.Tests.csproj" />
+    <Project Path="tests/WardenId.ClientManagement.Application.Tests/WardenId.ClientManagement.Application.Tests.csproj" />
     <Project Path="tests/WardenId.ClientManagement.Domain.Tests/WardenId.ClientManagement.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Application.Tests/WardenId.Identity.Application.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Protocol.Application.Tests/WardenId.Protocol.Application.Tests.csproj" />
     <Project Path="tests/WardenId.Protocol.Domain.Tests/WardenId.Protocol.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Protocol.Infrastructure.Tests/WardenId.Protocol.Infrastructure.Tests.csproj" />
+    <Project Path="tests/WardenId.Protocol.Presentation.Tests/WardenId.Protocol.Presentation.Tests.csproj" />
     <Project Path="tests/WardenId.Tenancy.Application.Tests/WardenId.Tenancy.Application.Tests.csproj" />
   </Folder>
   <Project Path="WardenId.Gateway/WardenId.Gateway.csproj" />

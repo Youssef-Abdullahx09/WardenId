@@ -21,6 +21,9 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
             JwksUri: $"{issuer}/jwks",
             ResponseTypesSupported: ["code"],
             SubjectTypesSupported: ["public"],
-            IdTokenSigningAlgValuesSupported: ["ES256"]));
+            IdTokenSigningAlgValuesSupported: ["ES256"],
+            TokenEndpoint: $"{issuer}/token",
+            GrantTypesSupported: ["client_credentials"],
+            TokenEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post"]));
     }
 }
