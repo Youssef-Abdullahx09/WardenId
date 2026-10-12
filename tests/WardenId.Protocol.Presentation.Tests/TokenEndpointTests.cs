@@ -14,9 +14,9 @@ namespace WardenId.Protocol.Presentation.Tests;
 
 public class TokenEndpointTests : IAsyncLifetime
 {
-    private TokenTestHost _host = null!;
+    private ProtocolTestHost _host = null!;
 
-    public async Task InitializeAsync() => _host = await TokenTestHost.StartAsync();
+    public async Task InitializeAsync() => _host = await ProtocolTestHost.StartAsync();
 
     public async Task DisposeAsync() => await _host.DisposeAsync();
 
@@ -75,8 +75,8 @@ public class TokenEndpointTests : IAsyncLifetime
         publicKey.ImportSubjectPublicKeyInfo(tenant.Key.ExportSubjectPublicKeyInfo(), out _);
         return new TokenValidationParameters
         {
-            ValidIssuer = $"{TokenTestHost.IssuerBase}/tenants/{tenant.Slug}",
-            ValidAudience = $"{TokenTestHost.IssuerBase}/tenants/{tenant.Slug}/api",
+            ValidIssuer = $"{ProtocolTestHost.IssuerBase}/tenants/{tenant.Slug}",
+            ValidAudience = $"{ProtocolTestHost.IssuerBase}/tenants/{tenant.Slug}/api",
             IssuerSigningKey = new ECDsaSecurityKey(publicKey) { KeyId = tenant.KeyId.ToString("N") },
             ValidTypes = ["at+jwt"]
         };
@@ -295,7 +295,17 @@ public class TokenEndpointTests : IAsyncLifetime
         var advertisedAuth = discovery.GetProperty("token_endpoint_auth_methods_supported").EnumerateArray().Select(e => e.GetString()!).ToHashSet();
 
         Assert.True(advertisedGrants.SetEquals(serverOptions.GrantTypes), string.Join(",", serverOptions.GrantTypes));
+        // Public (PKCE) clients authenticate with no client secret (RFC 8414 "none"); OpenIddict doesn't list "none" as a method.
+        Assert.Contains("none", advertisedAuth);
+        advertisedAuth.Remove("none");
         Assert.True(advertisedAuth.SetEquals(serverOptions.ClientAuthenticationMethods), string.Join(",", serverOptions.ClientAuthenticationMethods));
+        static HashSet<string> Strings(JsonElement doc, string name) =>
+            doc.GetProperty(name).EnumerateArray().Select(e => e.GetString()!).ToHashSet();
+
+        Assert.True(Strings(discovery, "response_types_supported").SetEquals(serverOptions.ResponseTypes), string.Join(",", serverOptions.ResponseTypes));
+        Assert.True(Strings(discovery, "code_challenge_methods_supported").SetEquals(serverOptions.CodeChallengeMethods), string.Join(",", serverOptions.CodeChallengeMethods));
+        Assert.True(Strings(discovery, "scopes_supported").SetEquals(serverOptions.Scopes), string.Join(",", serverOptions.Scopes));
+        Assert.Equal("https://wardenid.test/tenants/acme/authorize", discovery.GetProperty("authorization_endpoint").GetString());
         Assert.Equal("https://wardenid.test/tenants/acme/token", discovery.GetProperty("token_endpoint").GetString());
     }
 

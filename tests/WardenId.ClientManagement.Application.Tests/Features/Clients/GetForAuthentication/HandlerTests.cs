@@ -83,6 +83,35 @@ public class HandlerTests
         AssertNotFound(result);
     }
 
+    [Fact]
+    public async Task Handle_MapsRedirectUris_AndRequirePkce_ForPublicClient()
+    {
+        var client = ClientBuilder.Public(TenantId);
+        client.AddRedirectUri(RedirectUri.Create("https://spa.example/cb").Value);
+        client.AddRedirectUri(RedirectUri.Create("https://spa.example/silent").Value);
+        await using var db = await ClientBuilder.SeedAsync(client);
+
+        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(
+            new[] { "https://spa.example/cb", "https://spa.example/silent" },
+            result.Value.RedirectUris.OrderBy(u => u, StringComparer.Ordinal));
+        Assert.True(result.Value.RequirePkce);
+    }
+
+    [Fact]
+    public async Task Handle_ConfidentialClient_DoesNotRequirePkce_AndHasNoRedirectUris()
+    {
+        var client = ClientBuilder.Confidential(TenantId);
+        await using var db = await ClientBuilder.SeedAsync(client);
+
+        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
+
+        Assert.False(result.Value.RequirePkce);
+        Assert.Empty(result.Value.RedirectUris);
+    }
+
     private static void AssertNotFound(Result<ClientForAuthentication> result)
     {
         Assert.True(result.IsFailed);

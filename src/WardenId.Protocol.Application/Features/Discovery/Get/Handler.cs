@@ -23,7 +23,11 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
             SubjectTypesSupported: ["public"],
             IdTokenSigningAlgValuesSupported: ["ES256"],
             TokenEndpoint: $"{issuer}/token",
-            GrantTypesSupported: ["client_credentials"],
-            TokenEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post"]));
+            GrantTypesSupported: ["authorization_code", "client_credentials"],
+            TokenEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post", "none"],
+            AuthorizationEndpoint: $"{issuer}/authorize",
+            ScopesSupported: OidcScopes.Supported,
+            CodeChallengeMethodsSupported: ["S256"],
+            AuthorizationResponseIssParameterSupported: true));
     }
 }

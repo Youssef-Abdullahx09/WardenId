@@ -14,8 +14,7 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
         if (clientResult.IsFailed) return Result.Fail<ClientCredentialsGrant>(clientResult.Errors);
 
         var settings = options.Value;
-        var issuer = IssuerUri.For(settings.IssuerBaseUri, request.Slug);
-        var audience = settings.DefaultAudience.Replace("{issuer}", issuer, StringComparison.Ordinal);
+        var audience = settings.AudienceFor(request.Slug);
         var lifetime = clientResult.Value.AccessTokenLifetimeSeconds is { } seconds
             ? TimeSpan.FromSeconds(seconds)
             : settings.AccessTokenLifetime;

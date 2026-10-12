@@ -6,4 +6,9 @@ public static class ConfigurationKeys
     {
         public const string Section = "ProtocolToken";
     }
+
+    public static class ProtocolSession
+    {
+        public const string Section = "ProtocolSession";
+    }
 }

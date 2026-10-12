@@ -1,13 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+  </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Asp.Versioning.Http" />
     <PackageReference Include="OpenIddict.Server.AspNetCore" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WardenId.SharedKernel.Presentation\WardenId.SharedKernel.Presentation.csproj" />
     <ProjectReference Include="..\WardenId.Protocol.Application\WardenId.Protocol.Application.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Templates\**\*.html" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

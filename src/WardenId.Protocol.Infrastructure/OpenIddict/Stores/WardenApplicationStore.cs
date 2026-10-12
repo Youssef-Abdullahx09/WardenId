@@ -1,4 +1,3 @@
-using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -35,7 +34,7 @@ public sealed class WardenApplicationStore(
         var result = await sender.Send(new GetForAuthenticationQuery(tenantId, identifier), cancellationToken);
         if (result.IsFailed || !result.Value.Enabled) return null;
 
-        var application = Map(result.Value);
+        var application = ClientApplicationMapper.Map(result.Value);
         _resolved[application.Id!] = application;
         return application;
     }
@@ -54,24 +53,4 @@ public sealed class WardenApplicationStore(
         throw ReadOnly();
 
     private static NotSupportedException ReadOnly() => new("Clients are owned by the ClientManagement module.");
-
-    private static OpenIddictEntityFrameworkCoreApplication Map(ClientForAuthentication client)
-    {
-        var permissions = new List<string> { Permissions.Endpoints.Token };
-        if (client.AllowedGrants.Contains(AllowedGrant.ClientCredentials))
-            permissions.Add(Permissions.GrantTypes.ClientCredentials);
-
-        var confidential = client.Kind == ClientKind.Confidential;
-
-        return new OpenIddictEntityFrameworkCoreApplication
-        {
-            Id = client.Id.ToString(),
-            ClientId = client.ClientId,
-            ClientType = confidential ? ClientTypes.Confidential : ClientTypes.Public,
-            // Non-null marks the client as having a secret; the real check is WardenApplicationManager.
-            ClientSecret = confidential ? "managed-by-ClientManagement" : null,
-            Permissions = JsonSerializer.Serialize(permissions),
-            ConcurrencyToken = client.Id.ToString()
-        };
-    }
 }

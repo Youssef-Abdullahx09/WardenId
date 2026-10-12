@@ -2,12 +2,16 @@ using FluentResults;
 using MediatR;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
+using WardenId.Identity.Integration.Command.Features.Users.GetForSignIn;
 using TenancyActiveSigningKey = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.ActiveSigningKey;
 using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys;
+using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
+using ResolveForIssuanceQuery = WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance.Query;
 using AuthenticateCommand = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
 using GetActiveForSigningQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.Query;
 using GetForAuthenticationQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication.Query;
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
+using GetForSignInQuery = WardenId.Identity.Integration.Command.Features.Users.GetForSignIn.Query;
 
 namespace WardenId.Protocol.Application.Tests.Fakes;
 
@@ -18,6 +22,10 @@ public sealed class FakeSender : ISender
     public Result<TenantPublicKeys>? PublicKeysResponse { get; set; }
 
     public Result<ClientForAuthentication>? ClientResponse { get; set; }
+
+    public Result<SignInUser>? SignInUserResponse { get; set; }
+
+    public Result<TenantForIssuance>? ResolveForIssuanceResponse { get; set; }
 
     public List<object> Sent { get; } = [];
 
@@ -34,6 +42,10 @@ public sealed class FakeSender : ISender
                 PublicKeysResponse ?? throw new InvalidOperationException("PublicKeysResponse not configured.")),
             GetForAuthenticationQuery => (Task<TResponse>)(object)Task.FromResult(
                 ClientResponse ?? throw new InvalidOperationException("ClientResponse not configured.")),
+            GetForSignInQuery => (Task<TResponse>)(object)Task.FromResult(
+                SignInUserResponse ?? throw new InvalidOperationException("SignInUserResponse not configured.")),
+            ResolveForIssuanceQuery => (Task<TResponse>)(object)Task.FromResult(
+                ResolveForIssuanceResponse ?? throw new InvalidOperationException("ResolveForIssuanceResponse not configured.")),
             _ => throw new NotSupportedException($"Unexpected request type: {request.GetType()}")
         };
     }

@@ -22,9 +22,9 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors();
-// OpenIddict's server plugs in as an authentication request handler — without this it never sees
-// /tenants/{slug}/token. No default authenticate scheme is configured, so context.User stays the
-// unauthenticated principal for every other endpoint.
+// OpenIddict's server and the per-tenant session cookie (WardenId.TenantSession) plug in as authentication
+// handlers. No default authenticate scheme is configured, so context.User stays the unauthenticated
+// principal for every other endpoint.
 app.UseAuthentication();
 app.UseAntiforgery();
 
@@ -34,6 +34,9 @@ app.UseAntiforgery();
 app.UseMiddleware<AuditContextMiddleware>();
 
 app.MapEndpoints();
+
+// Protocol login pages (Razor class library in WardenId.Protocol.Presentation).
+app.MapRazorPages();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

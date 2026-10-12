@@ -1,9 +1,13 @@
 using MediatR;
 using Microsoft.AspNetCore.DataProtection;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
+using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
+using WardenId.Identity.Integration.Command.Features.Users.GetForSignIn;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys;
 using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
+using AuthenticateCommand = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
+using GetForSignInQuery = WardenId.Identity.Integration.Command.Features.Users.GetForSignIn.Query;
 using GetActiveForSigningQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.Query;
 using GetForAuthenticationQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication.Query;
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
@@ -53,7 +57,7 @@ public sealed class GetForAuthenticationHandler(FakeDirectory directory)
 {
     public Task<Result<ClientForAuthentication>> Handle(GetForAuthenticationQuery request, CancellationToken cancellationToken) =>
         Task.FromResult(directory.FindClient(request.TenantId, request.ClientId) is { } c
-            ? Result.Ok(new ClientForAuthentication(c.Id, c.ClientId, c.Kind, c.Enabled, c.Grants, c.Auth, c.AccessTokenLifetimeSeconds))
+            ? Result.Ok(new ClientForAuthentication(c.Id, c.ClientId, c.Kind, c.Enabled, c.Grants, c.Auth, c.AccessTokenLifetimeSeconds, c.RedirectUris, c.RequirePkce))
             : Result.Fail<ClientForAuthentication>(Fail.NotFound));
 }
 
@@ -66,5 +70,33 @@ public sealed class VerifySecretHandler(FakeDirectory directory) : IRequestHandl
                  && request.PresentedSecret.Length > 0
                  && client.Secrets.Contains(request.PresentedSecret);
         return Task.FromResult(ok ? Result.Ok() : Result.Fail(new Error("Invalid client credentials.")));
+    }
+}
+
+public sealed class AuthenticateHandler(FakeDirectory directory)
+    : IRequestHandler<AuthenticateCommand, Result<AuthenticatedUser>>
+{
+    public Task<Result<AuthenticatedUser>> Handle(AuthenticateCommand request, CancellationToken cancellationToken)
+    {
+        var user = directory.Users.FirstOrDefault(u =>
+            u.TenantId == request.TenantId
+            && (u.Username == request.EmailOrUsername || u.Email == request.EmailOrUsername));
+        var ok = user is not null
+                 && request.Password == FakeDirectory.UserPassword
+                 && user.Status is not (UserStatus.Disabled or UserStatus.SoftDeleted or UserStatus.Locked);
+        return Task.FromResult(ok
+            ? Result.Ok(new AuthenticatedUser(user!.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray()))
+            : Result.Fail<AuthenticatedUser>(new Error("Invalid credentials.")));
+    }
+}
+
+public sealed class GetForSignInHandler(FakeDirectory directory) : IRequestHandler<GetForSignInQuery, Result<SignInUser>>
+{
+    public Task<Result<SignInUser>> Handle(GetForSignInQuery request, CancellationToken cancellationToken)
+    {
+        var user = directory.Users.FirstOrDefault(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
+        return Task.FromResult(user is not null && user.Status != UserStatus.SoftDeleted
+            ? Result.Ok(new SignInUser(user.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray()))
+            : Result.Fail<SignInUser>(Fail.NotFound));
     }
 }

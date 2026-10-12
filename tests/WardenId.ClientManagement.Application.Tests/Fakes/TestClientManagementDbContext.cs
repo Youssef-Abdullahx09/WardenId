@@ -30,7 +30,13 @@ public sealed class TestClientManagementDbContext(DbContextOptions<TestClientMan
                 o.Property(t => t.RefreshTokenSeconds);
             });
 
-            builder.Ignore(c => c.RedirectUris);
+            builder.OwnsMany(c => c.RedirectUris, b =>
+            {
+                b.WithOwner().HasForeignKey("OwnerId");
+                b.Property(r => r.Value);
+                b.HasKey("OwnerId", "Value");
+            });
+            builder.Navigation(c => c.RedirectUris).UsePropertyAccessMode(PropertyAccessMode.Field);
             builder.Ignore(c => c.PostLogoutRedirectUris);
             builder.Ignore(c => c.CorsOrigins);
             builder.Ignore(c => c.SigningKeys);

@@ -8,7 +8,7 @@ namespace WardenId.Protocol.Infrastructure;
 
 /// <summary>
 /// The only place a tenant's private signing key is decrypted (protected by Tenancy with the shared
-/// SigningKeyProtectionPurposes.PrivateKey purpose). Used by JwtIssuer (login) and by the OpenIddict
+/// SigningKeyProtectionPurposes.PrivateKey purpose). Used by the OpenIddict
 /// AttachTenantSigningCredentials handler (token endpoint).
 /// </summary>
 public sealed class TenantSigningCredentialsFactory(IDataProtectionProvider dataProtectionProvider)

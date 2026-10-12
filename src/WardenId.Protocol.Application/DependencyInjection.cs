@@ -10,5 +10,6 @@ public static class DependencyInjection
     {
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly()));
         services.Configure<ProtocolTokenOptions>(configuration.GetSection(ConfigurationKeys.ProtocolToken.Section));
+        services.Configure<ProtocolSessionOptions>(configuration.GetSection(ConfigurationKeys.ProtocolSession.Section));
     }
 }

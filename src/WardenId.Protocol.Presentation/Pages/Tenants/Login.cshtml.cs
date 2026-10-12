@@ -1,0 +1,85 @@
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.WebUtilities;
+using WardenId.Protocol.Application.Features.Authorize;
+using WardenId.Protocol.Application.Features.Authorize.SignIn;
+using ResolveTenantQuery = WardenId.Protocol.Application.Features.Authorize.ResolveTenant.Query;
+using SignInCommand = WardenId.Protocol.Application.Features.Authorize.SignIn.Command;
+
+namespace WardenId.Protocol.Presentation.Pages.Tenants;
+
+public sealed class LoginModel(ISender sender) : PageModel
+{
+    [BindProperty(SupportsGet = true)] public string? ReturnUrl { get; set; }
+    [BindProperty] public string EmailOrUsername { get; set; } = string.Empty;
+    [BindProperty] public string Password { get; set; } = string.Empty;
+
+    public string? ErrorMessage { get; private set; }
+    public string? BlockedMessage { get; private set; }
+    public bool SignedIn { get; private set; }
+    public ReturnToApplication? ReturnToApplication { get; private set; }
+
+    public async Task<IActionResult> OnGetAsync(string slug, CancellationToken cancellationToken)
+    {
+        if (await ResolveTenantAsync(slug, cancellationToken) is null) return NotFound();
+
+        ReturnToApplication = BuildReturnToApplication(slug);
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostAsync(string slug, CancellationToken cancellationToken)
+    {
+        if (await ResolveTenantAsync(slug, cancellationToken) is not { } tenantId) return NotFound();
+
+        ReturnToApplication = BuildReturnToApplication(slug);
+        var result = await sender.Send(new SignInCommand(tenantId, EmailOrUsername, Password), cancellationToken);
+        Password = string.Empty;
+
+        if (result.IsFailed)
+        {
+            ErrorMessage = result.Errors[0].Message;
+            return Page();
+        }
+
+        if (result.Value.BlockedReason is { } reason)
+        {
+            BlockedMessage = Describe(reason);
+            return Page();
+        }
+
+        await TenantSession.SignInAsync(HttpContext, tenantId, result.Value.UserId);
+
+        if (ReturnToApplication is not null) return LocalRedirect(ReturnUrl!);
+
+        SignedIn = true;
+        return Page();
+    }
+
+    private async Task<Guid?> ResolveTenantAsync(string slug, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ResolveTenantQuery(slug), cancellationToken);
+        return result.IsSuccess ? result.Value : null;
+    }
+
+    private ReturnToApplication? BuildReturnToApplication(string slug)
+    {
+        if (!AuthorizeReturnUrl.IsAllowed(ReturnUrl, slug)) return null;
+
+        var query = QueryHelpers.ParseQuery(new Uri("https://local" + ReturnUrl).Query);
+        var parameters = query
+            .SelectMany(p => p.Value.Select(v => KeyValuePair.Create(p.Key, v ?? string.Empty)))
+            .ToArray();
+        return new ReturnToApplication(slug, parameters, "Cancel");
+    }
+
+    private static string Describe(SignInBlockReason reason) => reason switch
+    {
+        SignInBlockReason.VerifyEmail or SignInBlockReason.PendingVerification =>
+            "Please verify your email address using the link we sent you, then try again.",
+        SignInBlockReason.ResetPassword => "You need to reset your password before you can sign in.",
+        SignInBlockReason.AcceptTos => "You need to accept the updated terms of service before you can sign in.",
+        SignInBlockReason.EnrollMfa => "You need to set up multi-factor authentication before you can sign in.",
+        _ => "Your account needs attention before you can sign in."
+    };
+}

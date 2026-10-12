@@ -1,0 +1,33 @@
+@page "/tenants/{slug}/login"
+@model LoginModel
+@{ ViewData["Title"] = "Sign in"; }
+
+@if (Model.BlockedMessage is { } message)
+{
+    <partial name="_SignInBlocked" model="new SignInBlockedView(message, Model.ReturnToApplication)" />
+}
+else if (Model.SignedIn)
+{
+    <h1>You are signed in</h1>
+    <p>You can close this window and return to the application.</p>
+}
+else
+{
+    <h1>Sign in</h1>
+    @if (Model.ErrorMessage is { } error)
+    {
+        <p class="error" role="alert">@error</p>
+    }
+    <form method="post">
+        <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+        <label for="EmailOrUsername">Email or username</label>
+        <input id="EmailOrUsername" name="EmailOrUsername" value="@Model.EmailOrUsername" autocomplete="username" required />
+        <label for="Password">Password</label>
+        <input id="Password" name="Password" type="password" autocomplete="current-password" required />
+        <button type="submit">Sign in</button>
+    </form>
+    @if (Model.ReturnToApplication is { } back)
+    {
+        <partial name="_ReturnToApplication" model="back" />
+    }
+}

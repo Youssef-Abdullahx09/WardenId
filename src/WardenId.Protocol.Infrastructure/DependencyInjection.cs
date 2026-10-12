@@ -36,7 +36,6 @@ public static class DependencyInjection
         services.AddProtocolOpenIddict(configuration);
 
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-        services.AddScoped<IJwtIssuer, JwtIssuer>();
         services.AddSingleton<ITenantSigningCredentialsFactory, TenantSigningCredentialsFactory>();
 
         MigrateAsync(services).GetAwaiter().GetResult();

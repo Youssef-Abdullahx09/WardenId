@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
 using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
 
@@ -15,7 +16,27 @@ public sealed class FakeDirectory
 
     public sealed record ClientEntry(
         Guid TenantId, Guid Id, string ClientId, ClientKind Kind, bool Enabled,
-        IReadOnlyList<AllowedGrant> Grants, ClientAuthMethod Auth, int? AccessTokenLifetimeSeconds, string[] Secrets);
+        IReadOnlyList<AllowedGrant> Grants, ClientAuthMethod Auth, int? AccessTokenLifetimeSeconds, string[] Secrets,
+        string[] RedirectUris, bool RequirePkce);
+
+    public const string WebRedirect = "https://app.example/cb";
+    public const string SpaRedirect = "https://spa.example/cb";
+
+    public const string UserPassword = "correct horse";
+
+    public sealed class UserEntry(Guid tenantId, string username, UserStatus status, params RequiredAction[] pendingActions)
+    {
+        public Guid TenantId { get; } = tenantId;
+        public Guid UserId { get; } = Guid.NewGuid();
+        public string Username { get; } = username;
+        public string Email => $"{Username}@example.test";
+        public UserStatus Status { get; set; } = status;
+        public List<RequiredAction> PendingActions { get; } = [.. pendingActions];
+    }
+
+    public List<UserEntry> Users { get; } = [];
+
+    public UserEntry User(string username) => Users.Single(u => u.Username == username);
 
     public Dictionary<string, TenantEntry> Tenants { get; } = new(StringComparer.Ordinal);
     public List<ClientEntry> Clients { get; } = [];
@@ -34,6 +55,13 @@ public sealed class FakeDirectory
         AddClient(acme, "disabled", enabled: false, secrets: [AcmeSecret]);
         AddClient(acme, "pkjwt", auth: ClientAuthMethod.PrivateKeyJwt, secrets: [AcmeSecret]);
         AddClient(acme, "public-app", kind: ClientKind.Public, secrets: []);
+        AddClient(acme, "web", grants: [AllowedGrant.AuthorizationCode], secrets: [AcmeSecret], redirectUris: [WebRedirect]);
+        AddClient(acme, "spa", kind: ClientKind.Public, grants: [AllowedGrant.AuthorizationCode], redirectUris: [SpaRedirect]);
+        AddClient(globex, "web", grants: [AllowedGrant.AuthorizationCode], secrets: [GlobexSecret], redirectUris: [WebRedirect]);
+
+        Users.Add(new UserEntry(acme.TenantId, "alice", UserStatus.Active));
+        Users.Add(new UserEntry(acme.TenantId, "bob", UserStatus.PendingVerification, RequiredAction.VerifyEmail));
+        Users.Add(new UserEntry(acme.TenantId, "carol", UserStatus.Disabled));
     }
 
     public TenantEntry Tenant(string slug) => Tenants[slug];
@@ -52,8 +80,9 @@ public sealed class FakeDirectory
         TenantEntry tenant, string clientId,
         ClientKind kind = ClientKind.Confidential, bool enabled = true,
         AllowedGrant[]? grants = null, ClientAuthMethod auth = ClientAuthMethod.SharedSecret,
-        int? lifetime = null, string[]? secrets = null) =>
+        int? lifetime = null, string[]? secrets = null, string[]? redirectUris = null, bool? requirePkce = null) =>
         Clients.Add(new ClientEntry(
             tenant.TenantId, Guid.NewGuid(), clientId, kind, enabled,
-            grants ?? [AllowedGrant.ClientCredentials], auth, lifetime, secrets ?? []));
+            grants ?? [AllowedGrant.ClientCredentials], auth, lifetime, secrets ?? [],
+            redirectUris ?? [], requirePkce ?? kind == ClientKind.Public));
 }

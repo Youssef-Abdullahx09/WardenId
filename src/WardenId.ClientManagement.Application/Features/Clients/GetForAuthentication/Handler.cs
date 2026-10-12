@@ -32,7 +32,9 @@ public sealed class Handler(IClientManagementDbContext dbContext)
             client.ClientAuthenticationMethod == ClientAuthenticationMethod.PrivateKeyJwt
                 ? ClientAuthMethod.PrivateKeyJwt
                 : ClientAuthMethod.SharedSecret,
-            client.TokenLifetimeOverrides?.AccessTokenSeconds));
+            client.TokenLifetimeOverrides?.AccessTokenSeconds,
+            client.RedirectUris.Select(r => r.Value).ToArray(),
+            client.RequirePkce));
     }
 
     private static List<AllowedGrant> MapGrants(GrantType grants)
