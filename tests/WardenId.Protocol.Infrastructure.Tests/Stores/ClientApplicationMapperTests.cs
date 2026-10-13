@@ -37,7 +37,31 @@ public class ClientApplicationMapperTests
         var app = ClientApplicationMapper.Map(Client(ClientKind.Confidential, [AllowedGrant.ClientCredentials]));
 
         var permissions = Json(app.Permissions);
-        Assert.Equal(new[] { Permissions.Endpoints.Token, Permissions.GrantTypes.ClientCredentials }, permissions);
+        Assert.Equal(new[]
+        {
+            Permissions.Endpoints.Token, Permissions.GrantTypes.ClientCredentials,
+            Permissions.Endpoints.Revocation, Permissions.Endpoints.Introspection
+        }, permissions);
+    }
+
+    [Fact]
+    public void ConfidentialClient_MayRevokeAndIntrospect()
+    {
+        var permissions = Json(ClientApplicationMapper.Map(Client(
+            ClientKind.Confidential, [AllowedGrant.AuthorizationCode], false, "https://app.example/cb")).Permissions);
+
+        Assert.Contains(Permissions.Endpoints.Revocation, permissions);
+        Assert.Contains(Permissions.Endpoints.Introspection, permissions);
+    }
+
+    [Fact]
+    public void PublicClient_MayRevoke_ButNotIntrospect()
+    {
+        var permissions = Json(ClientApplicationMapper.Map(Client(
+            ClientKind.Public, [AllowedGrant.AuthorizationCode], true, "https://spa.example/cb")).Permissions);
+
+        Assert.Contains(Permissions.Endpoints.Revocation, permissions);
+        Assert.DoesNotContain(Permissions.Endpoints.Introspection, permissions);
     }
 
     [Fact]

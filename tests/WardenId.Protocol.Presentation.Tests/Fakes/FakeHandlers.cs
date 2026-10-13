@@ -36,7 +36,7 @@ public sealed class GetPublicKeysHandler(FakeDirectory directory)
 {
     public Task<Result<TenantPublicKeys>> Handle(GetPublicKeysQuery request, CancellationToken cancellationToken) =>
         Task.FromResult(directory.Tenants.TryGetValue(request.Slug, out var t)
-            ? Result.Ok(new TenantPublicKeys(t.TenantId, t.Slug, []))
+            ? Result.Ok(new TenantPublicKeys(t.TenantId, t.Slug, [FakeDirectory.PublicJwk(t)]))
             : Result.Fail<TenantPublicKeys>(Fail.NotFound));
 }
 

@@ -78,6 +78,7 @@ public sealed class ProtocolTestHost : IAsyncDisposable
         new Features.Token.Endpoint().MapEndpoint(app);
         new Features.Discovery.Get.Endpoint().MapEndpoint(app);
         new Features.Authorize.Endpoint().MapEndpoint(app);
+        new Features.UserInfo.Endpoint().MapEndpoint(app);
         app.MapRazorPages();
 
         await app.StartAsync();

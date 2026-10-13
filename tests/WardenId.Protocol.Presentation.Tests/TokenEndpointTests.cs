@@ -307,6 +307,18 @@ public class TokenEndpointTests : IAsyncLifetime
         Assert.True(Strings(discovery, "scopes_supported").SetEquals(serverOptions.Scopes), string.Join(",", serverOptions.Scopes));
         Assert.Equal("https://wardenid.test/tenants/acme/authorize", discovery.GetProperty("authorization_endpoint").GetString());
         Assert.Equal("https://wardenid.test/tenants/acme/token", discovery.GetProperty("token_endpoint").GetString());
+        Assert.Equal("https://wardenid.test/tenants/acme/introspect", discovery.GetProperty("introspection_endpoint").GetString());
+        Assert.Equal("https://wardenid.test/tenants/acme/revoke", discovery.GetProperty("revocation_endpoint").GetString());
+        Assert.Equal("https://wardenid.test/tenants/acme/userinfo", discovery.GetProperty("userinfo_endpoint").GetString());
+        Assert.True(Strings(discovery, "introspection_endpoint_auth_methods_supported").SetEquals(serverOptions.ClientAuthenticationMethods),
+            string.Join(",", serverOptions.ClientAuthenticationMethods));
+        var revocationAuth = Strings(discovery, "revocation_endpoint_auth_methods_supported");
+        // Public clients revoke with client_id only (RFC 7009 §2.1).
+        Assert.True(revocationAuth.Remove("none"));
+        Assert.True(revocationAuth.SetEquals(serverOptions.ClientAuthenticationMethods), string.Join(",", serverOptions.ClientAuthenticationMethods));
+        Assert.Contains(serverOptions.IntrospectionEndpointUris, uri => uri.OriginalString == "introspect");
+        Assert.Contains(serverOptions.RevocationEndpointUris, uri => uri.OriginalString == "revoke");
+        Assert.Contains(serverOptions.UserInfoEndpointUris, uri => uri.OriginalString == "userinfo");
     }
 
     [Fact]

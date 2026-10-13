@@ -13,7 +13,7 @@ public static class ProtocolOpenIddictExtensions
 {
     /// <summary>
     /// OpenIddict as protocol plumbing (ADR-01). Expects OpenIddictDbContext to be registered by the
-    /// caller (Npgsql in AddProtocolInfrastructure; InMemory in tests). Authorization and token endpoints are
+    /// caller (Npgsql in AddProtocolInfrastructure; InMemory in tests). Authorization, token, introspection, revocation and userinfo endpoints are
     /// enabled — discovery and JWKS stay WardenId endpoints.
     /// </summary>
     public static void AddProtocolOpenIddict(this IServiceCollection services, IConfiguration configuration)
@@ -37,7 +37,10 @@ public static class ProtocolOpenIddictExtensions
             {
                 // Relative: resolved per request against BaseUri = tenant issuer (ResolveTenantFromPath).
                 options.SetAuthorizationEndpointUris("authorize")
-                       .SetTokenEndpointUris("token");
+                       .SetTokenEndpointUris("token")
+                       .SetIntrospectionEndpointUris("introspect")
+                       .SetRevocationEndpointUris("revoke")
+                       .SetUserInfoEndpointUris("userinfo");
                 options.AllowAuthorizationCodeFlow()
                        .AllowClientCredentialsFlow()
                        .AllowRefreshTokenFlow();
@@ -73,7 +76,10 @@ public static class ProtocolOpenIddictExtensions
                 options.AddEventHandler(ResolveTenantFromPath.Descriptor)
                        .AddEventHandler(ValidateTenantForIssuance.Descriptor)
                        .AddEventHandler(AttachTenantSigningCredentials.Descriptor)
-                       .AddEventHandler(RejectRefreshScopeBeyondGrant.Descriptor);
+                       .AddEventHandler(AttachTenantValidationKeys.Descriptor)
+                       .AddEventHandler(ValidateTokenTenant.Descriptor)
+                       .AddEventHandler(RejectRefreshScopeBeyondGrant.Descriptor)
+                       .AddEventHandler(RevokeTokenFamily.Descriptor);
 
                 // OpenIddict's authorize-time grant check rejects offline_access (no refresh permission) locally
                 // with invalid_request; the Authorize endpoint redirects invalid_scope instead (Duende-style).
@@ -81,9 +87,12 @@ public static class ProtocolOpenIddictExtensions
                 // token endpoint's own grant-type check still enforces refresh_token at redemption.
                 options.RemoveEventHandler(OpenIddictServerHandlers.Authentication.ValidateGrantTypePermissions.Descriptor);
 
+                // Introspection and revocation are answered by OpenIddict itself; userinfo passes through
+                // to Protocol.Presentation/Features/UserInfo so claims come fresh from Identity.
                 var aspNetCore = options.UseAspNetCore()
                     .EnableAuthorizationEndpointPassthrough()
-                    .EnableTokenEndpointPassthrough();
+                    .EnableTokenEndpointPassthrough()
+                    .EnableUserInfoEndpointPassthrough();
                 if (configuration.GetValue<bool>(ConfigurationKeys.ProtocolOpenIddict.DisableTransportSecurityRequirement))
                     aspNetCore.DisableTransportSecurityRequirement();
             });

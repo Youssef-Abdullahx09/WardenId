@@ -18,4 +18,17 @@ internal static class OpenIddictResults
                 [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = description
             }),
             [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
+
+    /// <summary>
+    /// A bearer-token error for OpenIddict to render (WWW-Authenticate header): invalid_token → 401,
+    /// insufficient_scope → 403. Used by the userinfo passthrough.
+    /// </summary>
+    public static IResult Challenge(string error, string description) =>
+        Results.Challenge(
+            new AuthenticationProperties(new Dictionary<string, string?>
+            {
+                [OpenIddictServerAspNetCoreConstants.Properties.Error] = error,
+                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = description
+            }),
+            [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
 }

@@ -11,6 +11,7 @@ public static class ClientApplicationMapper
     public static OpenIddictEntityFrameworkCoreApplication Map(ClientForAuthentication client)
     {
         var permissions = new List<string> { Permissions.Endpoints.Token };
+        var confidential = client.Kind == ClientKind.Confidential;
         if (client.AllowedGrants.Contains(AllowedGrant.ClientCredentials))
             permissions.Add(Permissions.GrantTypes.ClientCredentials);
         if (client.AllowedGrants.Contains(AllowedGrant.AuthorizationCode))
@@ -29,7 +30,12 @@ public static class ClientApplicationMapper
         if (client.AllowedGrants.Contains(AllowedGrant.RefreshToken))
             permissions.Add(Permissions.GrantTypes.RefreshToken);
 
-        var confidential = client.Kind == ClientKind.Confidential;
+        // Every client may revoke its own tokens (RFC 7009 — public clients by client_id alone). Only
+        // confidential clients may introspect: RFC 7662 requires the caller to authenticate.
+        permissions.Add(Permissions.Endpoints.Revocation);
+        if (confidential)
+            permissions.Add(Permissions.Endpoints.Introspection);
+
         string[] requirements = !confidential || client.RequirePkce
             ? [Requirements.Features.ProofKeyForCodeExchange]
             : [];

@@ -28,6 +28,12 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
             AuthorizationEndpoint: $"{issuer}/authorize",
             ScopesSupported: OidcScopes.Supported,
             CodeChallengeMethodsSupported: ["S256"],
-            AuthorizationResponseIssParameterSupported: true));
+            AuthorizationResponseIssParameterSupported: true,
+            IntrospectionEndpoint: $"{issuer}/introspect",
+            // Confidential clients only (RFC 7662 requires caller authentication).
+            IntrospectionEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post"],
+            RevocationEndpoint: $"{issuer}/revoke",
+            RevocationEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post", "none"],
+            UserInfoEndpoint: $"{issuer}/userinfo"));
     }
 }

@@ -1,4 +1,6 @@
 using System.Security.Cryptography;
+using System.Text.Json;
+using Microsoft.IdentityModel.Tokens;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
 using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
@@ -75,6 +77,22 @@ public sealed class FakeDirectory
     }
 
     public TenantEntry Tenant(string slug) => Tenants[slug];
+
+    /// <summary>The tenant's public key as the stored JWK JSON Tenancy serves (EC P-256, public members only).</summary>
+    public static string PublicJwk(TenantEntry tenant)
+    {
+        var q = tenant.Key.ExportParameters(includePrivateParameters: false).Q;
+        return JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["kty"] = "EC",
+            ["crv"] = "P-256",
+            ["use"] = "sig",
+            ["alg"] = "ES256",
+            ["kid"] = tenant.KeyId.ToString("N"),
+            ["x"] = Base64UrlEncoder.Encode(q.X!),
+            ["y"] = Base64UrlEncoder.Encode(q.Y!)
+        });
+    }
 
     public ClientEntry? FindClient(Guid tenantId, string clientId) =>
         Clients.FirstOrDefault(c => c.TenantId == tenantId && c.ClientId == clientId);

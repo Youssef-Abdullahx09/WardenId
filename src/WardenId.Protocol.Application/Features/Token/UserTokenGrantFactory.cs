@@ -47,8 +47,7 @@ public sealed class UserTokenGrantFactory(ISender sender, IOptions<ProtocolToken
             refreshLifetime = remaining < sliding ? remaining : sliding;
         }
 
-        var profile = claimScopes.Contains(OidcScopes.Profile);
-        var email = claimScopes.Contains(OidcScopes.Email);
+        var claims = ScopedUserClaims.From(user, claimScopes);
 
         return Result.Ok(new UserTokenGrant(
             Subject: user.UserId.ToString(),
@@ -59,9 +58,8 @@ public sealed class UserTokenGrantFactory(ISender sender, IOptions<ProtocolToken
                 : settings.AccessTokenLifetime,
             IdTokenLifetime: settings.IdTokenLifetime,
             RefreshTokenLifetime: refreshLifetime,
-            PreferredUsername: profile ? user.Username : null,
-            Email: email ? user.Email : null,
-            // Active with no pending actions => the address was verified (VerifyEmail is what activates).
-            EmailVerified: email ? true : null));
+            PreferredUsername: claims.PreferredUsername,
+            Email: claims.Email,
+            EmailVerified: claims.EmailVerified));
     }
 }

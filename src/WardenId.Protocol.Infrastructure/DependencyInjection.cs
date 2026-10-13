@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.SharedKernel.Persistence;
 
@@ -24,6 +25,13 @@ public static class DependencyInjection
         services.AddProtocolOpenIddict(configuration);
 
         services.AddSingleton<ITenantSigningCredentialsFactory, TenantSigningCredentialsFactory>();
+
+        // Production only: the test host calls AddProtocolOpenIddict directly and must not prune InMemory.
+        services.Configure<ProtocolOpenIddictPruningOptions>(configuration.GetSection(ConfigurationKeys.ProtocolOpenIddict.Section));
+        services.AddSingleton<IValidateOptions<ProtocolOpenIddictPruningOptions>, ProtocolOpenIddictPruningOptionsValidator>();
+        services.AddOptions<ProtocolOpenIddictPruningOptions>().ValidateOnStart();
+        services.AddScoped<IOpenIddictPruner, OpenIddictPruner>();
+        services.AddHostedService<OpenIddictPruningService>();
 
         MigrateAsync(services).GetAwaiter().GetResult();
     }
