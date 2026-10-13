@@ -11,7 +11,7 @@ public class HandlerTests
     public async Task Handle_ReturnsClient_WithMappedFields()
     {
         var client = ClientBuilder.Confidential(TenantId, GrantType.ClientCredentials | GrantType.RefreshToken);
-        client.UpdateTokenLifetimeOverrides(TokenLifetimeOverrides.Create(600, null, null).Value);
+        client.UpdateTokenLifetimeOverrides(TokenLifetimeOverrides.Create(600, null, 86400).Value);
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
@@ -25,6 +25,7 @@ public class HandlerTests
         Assert.Equal(new[] { AllowedGrant.ClientCredentials, AllowedGrant.RefreshToken }, value.AllowedGrants);
         Assert.Equal(ClientAuthMethod.SharedSecret, value.AuthenticationMethod);
         Assert.Equal(600, value.AccessTokenLifetimeSeconds);
+        Assert.Equal(86400, value.RefreshTokenLifetimeSeconds);
     }
 
     [Fact]

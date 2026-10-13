@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Security.Claims;
+using FluentResults;
 using MediatR;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -7,11 +10,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using WardenId.Protocol.Domain;
 using WardenId.SharedKernel.Application;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Presentation;
 using AuthorizationCodeCommand = WardenId.Protocol.Application.Features.Token.AuthorizationCode.Command;
 using ClientCredentialsCommand = WardenId.Protocol.Application.Features.Token.ClientCredentials.Command;
+using RefreshTokenCommand = WardenId.Protocol.Application.Features.Token.RefreshToken.Command;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace WardenId.Protocol.Presentation.Features.Token;
@@ -22,6 +27,23 @@ namespace WardenId.Protocol.Presentation.Features.Token;
 /// </summary>
 public sealed class Endpoint : IEndpoint
 {
+    private static bool TryGetAuthTime(ClaimsPrincipal principal, out DateTimeOffset authTime)
+    {
+        authTime = default;
+        if (!long.TryParse(principal.GetClaim(Claims.AuthenticationTime), NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds))
+            return false;
+        authTime = DateTimeOffset.FromUnixTimeSeconds(seconds);
+        return true;
+    }
+
+    // Same message for every user/client state (no enumeration); only the absolute cap is told apart.
+    private static string Describe(IResultBase result) =>
+        result.Errors.Count > 0
+        && result.Errors[0].Metadata.TryGetValue(ProtocolErrorCodes.MetadataKey, out var code)
+        && code as string == ProtocolErrorCodes.SessionExpired
+            ? "The session has expired."
+            : "The user can no longer sign in.";
+
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app) =>
         app.MapPost(ProtocolRoutes.TenantIssuer + "/token", async (
                 HttpContext httpContext,
@@ -47,19 +69,51 @@ public sealed class Endpoint : IEndpoint
                     var code = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
                     if (code.Principal is not { } codePrincipal
                         || codePrincipal.GetClaim(CustomClaimTypes.TenantId) != tenantId.ToString()
-                        || !Guid.TryParse(codePrincipal.GetClaim(Claims.Subject), out var userId))
+                        || !Guid.TryParse(codePrincipal.GetClaim(Claims.Subject), out var userId)
+                        || !TryGetAuthTime(codePrincipal, out var authTime))
                     {
                         return OpenIddictResults.Forbid(Errors.InvalidGrant, "The authorization code is not valid.");
                     }
 
                     var grant = await sender.Send(
-                        new AuthorizationCodeCommand(tenantId, slug, request.ClientId!, userId, codePrincipal.GetScopes()),
+                        new AuthorizationCodeCommand(tenantId, slug, request.ClientId!, userId, codePrincipal.GetScopes(), authTime),
                         cancellationToken);
                     if (grant.IsFailed)
-                        return OpenIddictResults.Forbid(Errors.InvalidGrant, "The user can no longer sign in.");
+                        return OpenIddictResults.Forbid(Errors.InvalidGrant, Describe(grant));
 
                     return Results.SignIn(
                         grant.Value.ToPrincipal(codePrincipal),
+                        authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+                }
+
+                if (request.IsRefreshTokenGrantType())
+                {
+                    // OpenIddict already verified the refresh token (format, expiry, presenter = this client,
+                    // single use with leeway 0 — a replay revokes the whole authorization). The tenant check
+                    // stops a token from one tenant being redeemed at another with the same client_id.
+                    var refresh = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+                    if (refresh.Principal is not { } refreshPrincipal
+                        || refreshPrincipal.GetClaim(CustomClaimTypes.TenantId) != tenantId.ToString()
+                        || !Guid.TryParse(refreshPrincipal.GetClaim(Claims.Subject), out var refreshUserId)
+                        || !TryGetAuthTime(refreshPrincipal, out var refreshAuthTime))
+                    {
+                        return OpenIddictResults.Forbid(Errors.InvalidGrant, "The refresh token is not valid.");
+                    }
+
+                    // RFC 6749 §6: an optional narrower scope. Scopes beyond the original grant are rejected
+                    // (invalid_scope) before passthrough by RejectRefreshScopeBeyondGrant. The principal keeps the
+                    // original scopes so the rotated refresh token is identical in scope; OpenIddict narrows the
+                    // access token itself (PrepareAccessTokenPrincipal), and the requested scopes filter user claims.
+                    var requestedScopes = request.GetScopes();
+
+                    var refreshed = await sender.Send(
+                        new RefreshTokenCommand(tenantId, slug, request.ClientId!, refreshUserId, refreshPrincipal.GetScopes(), requestedScopes, refreshAuthTime),
+                        cancellationToken);
+                    if (refreshed.IsFailed)
+                        return OpenIddictResults.Forbid(Errors.InvalidGrant, Describe(refreshed));
+
+                    return Results.SignIn(
+                        refreshed.Value.ToPrincipal(refreshPrincipal),
                         authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
                 }
 
@@ -76,6 +130,6 @@ public sealed class Endpoint : IEndpoint
             })
             .AllowAnonymous()
             .WithTags("Protocol - Token")
-            .WithSummary("OAuth 2.0 token endpoint (authorization_code, client_credentials)")
+            .WithSummary("OAuth 2.0 token endpoint (authorization_code, refresh_token, client_credentials)")
             .ExcludeFromDescription();
 }

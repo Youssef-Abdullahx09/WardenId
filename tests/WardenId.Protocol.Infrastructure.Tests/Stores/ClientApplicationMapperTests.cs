@@ -9,7 +9,7 @@ public class ClientApplicationMapperTests
 {
     private static ClientForAuthentication Client(
         ClientKind kind, AllowedGrant[] grants, bool requirePkce = false, params string[] redirectUris) =>
-        new(Guid.NewGuid(), "web", kind, true, grants, ClientAuthMethod.SharedSecret, null, redirectUris, requirePkce);
+        new(Guid.NewGuid(), "web", kind, true, grants, ClientAuthMethod.SharedSecret, null, null, redirectUris, requirePkce);
 
     private static string[] Json(string? value) =>
         value is null ? [] : JsonSerializer.Deserialize<string[]>(value)!;
@@ -65,5 +65,48 @@ public class ClientApplicationMapperTests
 
         Assert.Empty(Json(app.Requirements));
         Assert.Equal(ClientTypes.Confidential, app.ClientType);
+    }
+
+    [Fact]
+    public void RefreshTokenGrant_AddsRefreshTokenPermission()
+    {
+        var app = ClientApplicationMapper.Map(Client(
+            ClientKind.Confidential, [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken], false, "https://app.example/cb"));
+
+        Assert.Contains(Permissions.GrantTypes.RefreshToken, Json(app.Permissions));
+    }
+
+    [Fact]
+    public void WithoutRefreshTokenGrant_HasNoRefreshTokenPermission()
+    {
+        var app = ClientApplicationMapper.Map(Client(
+            ClientKind.Confidential, [AllowedGrant.AuthorizationCode], false, "https://app.example/cb"));
+
+        Assert.DoesNotContain(Permissions.GrantTypes.RefreshToken, Json(app.Permissions));
+    }
+
+    // OpenIddict's authorize-time grant check (ValidateGrantTypePermissions, ID2047) is removed; the code flow is
+    // then gated only by the authorization endpoint + code response type permissions. They must travel with the
+    // authorization_code grant permission: all three or none.
+    public static TheoryData<AllowedGrant[], bool> CodeFlowGrantSets => new()
+    {
+        { [AllowedGrant.AuthorizationCode], true },
+        { [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken], true },
+        { [AllowedGrant.AuthorizationCode, AllowedGrant.ClientCredentials, AllowedGrant.RefreshToken], true },
+        { [AllowedGrant.ClientCredentials], false },
+        { [AllowedGrant.RefreshToken], false },
+        { [AllowedGrant.ClientCredentials, AllowedGrant.RefreshToken], false }
+    };
+
+    [Theory]
+    [MemberData(nameof(CodeFlowGrantSets))]
+    public void CodeFlowPermissions_AreAllPresentOrAllAbsent(AllowedGrant[] grants, bool codeFlow)
+    {
+        var permissions = Json(ClientApplicationMapper.Map(Client(ClientKind.Confidential, grants)).Permissions);
+
+        string[] codeFlowPermissions =
+            [Permissions.Endpoints.Authorization, Permissions.ResponseTypes.Code, Permissions.GrantTypes.AuthorizationCode];
+        foreach (var permission in codeFlowPermissions)
+            Assert.Equal(codeFlow, permissions.Contains(permission));
     }
 }

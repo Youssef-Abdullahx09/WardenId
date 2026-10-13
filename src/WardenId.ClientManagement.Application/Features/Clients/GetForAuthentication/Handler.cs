@@ -33,6 +33,7 @@ public sealed class Handler(IClientManagementDbContext dbContext)
                 ? ClientAuthMethod.PrivateKeyJwt
                 : ClientAuthMethod.SharedSecret,
             client.TokenLifetimeOverrides?.AccessTokenSeconds,
+            client.TokenLifetimeOverrides?.RefreshTokenSeconds,
             client.RedirectUris.Select(r => r.Value).ToArray(),
             client.RequirePkce));
     }

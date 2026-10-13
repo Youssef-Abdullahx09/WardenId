@@ -7,10 +7,6 @@ public static class ProtocolErrors
     public static Error Validation(string reason)
         => new Error(reason).WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.Validation);
 
-    public static Error TokenHashRequired() => Validation("Refresh token hash is required.");
-
-    public static Error RefreshTokenExpiryMustBeFuture() => Validation("Refresh token expiry must be in the future.");
-
     public static Error TenantNotFound()
         => new Error("Tenant not found.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.NotFound);
 
@@ -20,4 +16,8 @@ public static class ProtocolErrors
 
     public static Error InvalidGrant()
         => new Error("The grant is not valid.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.InvalidGrant);
+
+    // Refresh/code redemption past ProtocolToken:RefreshTokenAbsoluteLifetime (from auth_time).
+    public static Error SessionExpired()
+        => new Error("The session has expired.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.SessionExpired);
 }

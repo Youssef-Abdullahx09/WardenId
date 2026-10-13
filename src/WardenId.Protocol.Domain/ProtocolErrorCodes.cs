@@ -8,4 +8,5 @@ public static class ProtocolErrorCodes
     public const string NotFound = "NotFound";
     public const string InvalidCredentials = "InvalidCredentials";
     public const string InvalidGrant = "InvalidGrant";
+    public const string SessionExpired = "SessionExpired";
 }

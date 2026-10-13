@@ -29,10 +29,10 @@ public class HandlerTests
         Assert.Equal(new[] { "public" }, doc.SubjectTypesSupported);
         Assert.Equal(new[] { "ES256" }, doc.IdTokenSigningAlgValuesSupported);
         Assert.Equal("https://wardenid.test/tenants/acme/token", doc.TokenEndpoint);
-        Assert.Equal(new[] { "authorization_code", "client_credentials" }, doc.GrantTypesSupported);
+        Assert.Equal(new[] { "authorization_code", "client_credentials", "refresh_token" }, doc.GrantTypesSupported);
         Assert.Equal(new[] { "client_secret_basic", "client_secret_post", "none" }, doc.TokenEndpointAuthMethodsSupported);
         Assert.Equal("https://wardenid.test/tenants/acme/authorize", doc.AuthorizationEndpoint);
-        Assert.Equal(new[] { "openid", "profile", "email" }, doc.ScopesSupported);
+        Assert.Equal(new[] { "openid", "profile", "email", "offline_access" }, doc.ScopesSupported);
         Assert.Equal(new[] { "S256" }, doc.CodeChallengeMethodsSupported);
         Assert.True(doc.AuthorizationResponseIssParameterSupported);
         Assert.Equal("acme", Assert.IsType<GetPublicKeysQuery>(Assert.Single(sender.Sent)).Slug);

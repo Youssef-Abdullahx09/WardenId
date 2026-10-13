@@ -16,11 +16,13 @@ public sealed class FakeDirectory
 
     public sealed record ClientEntry(
         Guid TenantId, Guid Id, string ClientId, ClientKind Kind, bool Enabled,
-        IReadOnlyList<AllowedGrant> Grants, ClientAuthMethod Auth, int? AccessTokenLifetimeSeconds, string[] Secrets,
-        string[] RedirectUris, bool RequirePkce);
+        IReadOnlyList<AllowedGrant> Grants, ClientAuthMethod Auth, int? AccessTokenLifetimeSeconds,
+        int? RefreshTokenLifetimeSeconds, string[] Secrets, string[] RedirectUris, bool RequirePkce);
 
     public const string WebRedirect = "https://app.example/cb";
     public const string SpaRedirect = "https://spa.example/cb";
+
+    public const string SpaRtRedirect = "https://spa-rt.example/cb";
 
     public const string UserPassword = "correct horse";
 
@@ -58,6 +60,14 @@ public sealed class FakeDirectory
         AddClient(acme, "web", grants: [AllowedGrant.AuthorizationCode], secrets: [AcmeSecret], redirectUris: [WebRedirect]);
         AddClient(acme, "spa", kind: ClientKind.Public, grants: [AllowedGrant.AuthorizationCode], redirectUris: [SpaRedirect]);
         AddClient(globex, "web", grants: [AllowedGrant.AuthorizationCode], secrets: [GlobexSecret], redirectUris: [WebRedirect]);
+        AddClient(acme, "web-rt", grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
+            secrets: [AcmeSecret], redirectUris: [WebRedirect]);
+        AddClient(acme, "web-rt-other", grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
+            secrets: [AcmeSecret], redirectUris: [WebRedirect]);
+        AddClient(acme, "spa-rt", kind: ClientKind.Public, grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
+            redirectUris: [SpaRtRedirect]);
+        AddClient(globex, "web-rt", grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
+            secrets: [GlobexSecret], redirectUris: [WebRedirect]);
 
         Users.Add(new UserEntry(acme.TenantId, "alice", UserStatus.Active));
         Users.Add(new UserEntry(acme.TenantId, "bob", UserStatus.PendingVerification, RequiredAction.VerifyEmail));
@@ -80,9 +90,10 @@ public sealed class FakeDirectory
         TenantEntry tenant, string clientId,
         ClientKind kind = ClientKind.Confidential, bool enabled = true,
         AllowedGrant[]? grants = null, ClientAuthMethod auth = ClientAuthMethod.SharedSecret,
-        int? lifetime = null, string[]? secrets = null, string[]? redirectUris = null, bool? requirePkce = null) =>
+        int? lifetime = null, string[]? secrets = null, string[]? redirectUris = null, bool? requirePkce = null,
+        int? refreshLifetime = null) =>
         Clients.Add(new ClientEntry(
             tenant.TenantId, Guid.NewGuid(), clientId, kind, enabled,
-            grants ?? [AllowedGrant.ClientCredentials], auth, lifetime, secrets ?? [],
+            grants ?? [AllowedGrant.ClientCredentials], auth, lifetime, refreshLifetime, secrets ?? [],
             redirectUris ?? [], requirePkce ?? kind == ClientKind.Public));
 }

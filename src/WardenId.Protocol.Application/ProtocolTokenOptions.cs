@@ -13,6 +13,10 @@ public sealed class ProtocolTokenOptions
 
     public TimeSpan AccessTokenLifetime { get; init; } = TimeSpan.FromMinutes(15);
     public TimeSpan IdTokenLifetime { get; init; } = TimeSpan.FromMinutes(15);
+    /// <summary>Sliding: each rotated refresh token gets this (or the client override), never past the absolute cap.</summary>
     public TimeSpan RefreshTokenLifetime { get; init; } = TimeSpan.FromDays(30);
+
+    /// <summary>Hard session limit measured from auth_time; no refresh token outlives it.</summary>
+    public TimeSpan RefreshTokenAbsoluteLifetime { get; init; } = TimeSpan.FromDays(90);
     public TimeSpan AuthorizationCodeLifetime { get; init; } = TimeSpan.FromMinutes(5);
 }

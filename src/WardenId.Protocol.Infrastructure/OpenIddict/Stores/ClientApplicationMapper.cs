@@ -26,6 +26,9 @@ public static class ClientApplicationMapper
             ]);
         }
 
+        if (client.AllowedGrants.Contains(AllowedGrant.RefreshToken))
+            permissions.Add(Permissions.GrantTypes.RefreshToken);
+
         var confidential = client.Kind == ClientKind.Confidential;
         string[] requirements = !confidential || client.RequirePkce
             ? [Requirements.Features.ProofKeyForCodeExchange]

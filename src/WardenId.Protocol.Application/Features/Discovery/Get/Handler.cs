@@ -23,7 +23,7 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
             SubjectTypesSupported: ["public"],
             IdTokenSigningAlgValuesSupported: ["ES256"],
             TokenEndpoint: $"{issuer}/token",
-            GrantTypesSupported: ["authorization_code", "client_credentials"],
+            GrantTypesSupported: ["authorization_code", "client_credentials", "refresh_token"],
             TokenEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post", "none"],
             AuthorizationEndpoint: $"{issuer}/authorize",
             ScopesSupported: OidcScopes.Supported,

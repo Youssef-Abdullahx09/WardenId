@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.EntityFrameworkCore.Models;
+using OpenIddict.Server;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Infrastructure.OpenIddict.Handlers;
 using WardenId.Protocol.Infrastructure.OpenIddict.Stores;
@@ -38,10 +39,17 @@ public static class ProtocolOpenIddictExtensions
                 options.SetAuthorizationEndpointUris("authorize")
                        .SetTokenEndpointUris("token");
                 options.AllowAuthorizationCodeFlow()
-                       .AllowClientCredentialsFlow();
+                       .AllowClientCredentialsFlow()
+                       .AllowRefreshTokenFlow();
                 // Hard-coded OIDC scopes until per-client scopes (FR-CM-04); discovery advertises the same set.
-                options.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email);
+                // offline_access is honoured only for clients allowed the RefreshToken grant (Authorize endpoint).
+                options.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess);
                 options.SetAuthorizationCodeLifetime(tokenOptions.AuthorizationCodeLifetime);
+                // Rolling (default) + sliding: each redemption issues a new refresh token; the Token endpoint
+                // sets each token's lifetime, clamped to the absolute cap. This is only the default ceiling.
+                options.SetRefreshTokenLifetime(tokenOptions.RefreshTokenLifetime);
+                // Strict reuse detection (FR-PC-03, ADR-01): any second redemption revokes the whole family.
+                options.SetRefreshTokenReuseLeeway(TimeSpan.Zero);
                 // WardenId owns discovery and JWKS (ADR-01/D4); clear OpenIddict's default relative
                 // configuration/JWKS endpoints so they are not served under every tenant path.
                 options.SetConfigurationEndpointUris(Array.Empty<Uri>());
@@ -64,7 +72,14 @@ public static class ProtocolOpenIddictExtensions
 
                 options.AddEventHandler(ResolveTenantFromPath.Descriptor)
                        .AddEventHandler(ValidateTenantForIssuance.Descriptor)
-                       .AddEventHandler(AttachTenantSigningCredentials.Descriptor);
+                       .AddEventHandler(AttachTenantSigningCredentials.Descriptor)
+                       .AddEventHandler(RejectRefreshScopeBeyondGrant.Descriptor);
+
+                // OpenIddict's authorize-time grant check rejects offline_access (no refresh permission) locally
+                // with invalid_request; the Authorize endpoint redirects invalid_scope instead (Duende-style).
+                // Code flow stays gated by ValidateEndpointPermissions + ValidateResponseTypePermissions, and the
+                // token endpoint's own grant-type check still enforces refresh_token at redemption.
+                options.RemoveEventHandler(OpenIddictServerHandlers.Authentication.ValidateGrantTypePermissions.Descriptor);
 
                 var aspNetCore = options.UseAspNetCore()
                     .EnableAuthorizationEndpointPassthrough()

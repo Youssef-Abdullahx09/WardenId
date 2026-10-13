@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OpenIddict.EntityFrameworkCore;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Infrastructure;
 using WardenId.Protocol.Infrastructure.OpenIddict;
@@ -32,16 +33,24 @@ public sealed class ProtocolTestHost : IAsyncDisposable
     /// <summary>A cookie-carrying "browser" over https (the session cookie is Secure).</summary>
     public BrowserClient CreateBrowser() => new(App.GetTestServer());
 
-    public static async Task<ProtocolTestHost> StartAsync()
+    public static async Task<ProtocolTestHost> StartAsync(
+        TimeProvider? timeProvider = null, IDictionary<string, string?>? settings = null)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Logging.ClearProviders();
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        var configuration = new Dictionary<string, string?>
         {
             ["ProtocolToken:IssuerBaseUri"] = IssuerBase,
             [ConfigurationKeys.ProtocolOpenIddict.DisableTransportSecurityRequirement] = "true"
-        });
+        };
+        foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
+            configuration[key] = value;
+        builder.Configuration.AddInMemoryCollection(configuration);
+
+        // Before AddProtocolPresentation (TryAdd) — OpenIddict and the grant factory share this clock.
+        if (timeProvider is not null)
+            builder.Services.AddSingleton(timeProvider);
 
         var directory = new FakeDirectory();
         builder.Services.AddSingleton(directory);
@@ -53,6 +62,9 @@ public sealed class ProtocolTestHost : IAsyncDisposable
             options.UseInMemoryDatabase(databaseName);
             options.UseOpenIddict();
         });
+
+        // OpenIddict revokes token families with ExecuteUpdate, which EF InMemory doesn't support.
+        builder.Services.Configure<OpenIddictEntityFrameworkCoreOptions>(options => options.DisableBulkOperations = true);
 
         builder.Services.AddSharedKernelPresentation();
         builder.Services.AddProtocolPresentation(builder.Configuration);

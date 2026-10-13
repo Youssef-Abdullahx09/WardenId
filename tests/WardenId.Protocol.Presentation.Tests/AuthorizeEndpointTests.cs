@@ -202,8 +202,8 @@ public class AuthorizeEndpointTests : IAsyncLifetime
 
     [Theory]
     [InlineData("profile email", "invalid_scope")]
-    // OpenIddict (ID2035) rejects offline_access itself, locally, when the refresh-token flow is not enabled.
-    [InlineData("openid offline_access", "invalid_request")]
+    // "web" lacks the RefreshToken grant: our endpoint answers invalid_scope, redirected (Duende-style).
+    [InlineData("openid offline_access", "invalid_scope")]
     [InlineData("openid api.read", "invalid_scope")]
     public async Task MissingOpenIdOrUnsupportedScope_IsRejected(string scope, string expectedError)
     {
@@ -277,5 +277,27 @@ public class AuthorizeEndpointTests : IAsyncLifetime
 
         Assert.Null(response.Headers.Location);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task OfflineAccess_ClientWithoutRefreshGrant_RedirectsInvalidScopeWithState()
+    {
+        var response = await _host.CreateBrowser().GetAsync(
+            OidcFlow.AuthorizeUrl("acme", OidcFlow.AuthorizeParameters(
+                "web", FakeDirectory.WebRedirect, OidcFlow.NewPkce(), "openid offline_access")));
+
+        var query = OidcFlow.RedirectQuery(response, FakeDirectory.WebRedirect);
+        Assert.Equal("invalid_scope", query["error"]);
+        Assert.Equal("xyz", query["state"]);
+    }
+
+    [Fact]
+    public async Task OfflineAccess_ClientWithRefreshGrant_IssuesCode()
+    {
+        var code = await OidcFlow.CodeAsync(_host.CreateBrowser(), "acme",
+            OidcFlow.AuthorizeParameters("web-rt", FakeDirectory.WebRedirect, OidcFlow.NewPkce(), "openid offline_access"),
+            FakeDirectory.WebRedirect);
+
+        Assert.False(string.IsNullOrEmpty(code));
     }
 }

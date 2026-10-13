@@ -2,22 +2,23 @@ using System.Security.Claims;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using WardenId.Protocol.Application;
-using WardenId.Protocol.Application.Features.Token.AuthorizationCode;
+using WardenId.Protocol.Application.Features.Token;
 using WardenId.SharedKernel.Application;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace WardenId.Protocol.Presentation.Features.Token;
 
 /// <summary>
-/// Rebuilds the principal from the redeemed code (keeping OpenIddict's private claims: scopes,
-/// presenters, nonce, authorization id) and applies fresh user claims and destinations.
+/// Rebuilds the principal from the redeemed code or refresh token (keeping OpenIddict's private claims:
+/// scopes, presenters, nonce, authorization id, and auth_time for the absolute cap) and applies fresh
+/// user claims, destinations and lifetimes.
 /// </summary>
-public static class AuthorizationCodeGrantExtensions
+public static class UserTokenGrantExtensions
 {
-    public static ClaimsPrincipal ToPrincipal(this AuthorizationCodeGrant grant, ClaimsPrincipal codePrincipal)
+    public static ClaimsPrincipal ToPrincipal(this UserTokenGrant grant, ClaimsPrincipal sourcePrincipal)
     {
         var identity = new ClaimsIdentity(
-            codePrincipal.Claims, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, Claims.Name, Claims.Role);
+            sourcePrincipal.Claims, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, Claims.Name, Claims.Role);
         identity.SetClaim(Claims.Subject, grant.Subject);
         identity.SetClaim(CustomClaimTypes.TenantId, grant.TenantId.ToString());
         identity.SetClaim(CustomClaimTypes.TokenUse, TokenUse.Access);
@@ -40,6 +41,13 @@ public static class AuthorizationCodeGrantExtensions
         principal.SetResources(grant.Audience);
         principal.SetAccessTokenLifetime(grant.AccessTokenLifetime);
         principal.SetIdentityTokenLifetime(grant.IdTokenLifetime);
+        // OpenIddict issues a refresh token whenever offline_access is among the principal's scopes (falling
+        // back to its global lifetime), so a grant without a refresh lifetime (e.g. the client lost the refresh
+        // grant after /authorize) must drop offline_access to suppress it.
+        if (grant.RefreshTokenLifetime is { } refreshLifetime)
+            principal.SetRefreshTokenLifetime(refreshLifetime);
+        else if (principal.HasScope(Scopes.OfflineAccess))
+            principal.SetScopes(principal.GetScopes().Remove(Scopes.OfflineAccess));
         return principal;
     }
 }

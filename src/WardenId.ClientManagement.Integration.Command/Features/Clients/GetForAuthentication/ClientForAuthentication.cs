@@ -12,5 +12,6 @@ public sealed record ClientForAuthentication(
     IReadOnlyList<AllowedGrant> AllowedGrants,
     ClientAuthMethod AuthenticationMethod,
     int? AccessTokenLifetimeSeconds,
+    int? RefreshTokenLifetimeSeconds,
     IReadOnlyList<string> RedirectUris,
     bool RequirePkce);

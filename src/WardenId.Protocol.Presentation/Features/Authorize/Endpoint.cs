@@ -20,8 +20,8 @@ namespace WardenId.Protocol.Presentation.Features.Authorize;
 
 /// <summary>
 /// OpenIddict passthrough target: by the time this runs OpenIddict has validated the tenant, the
-/// client, the exact redirect_uri, response_type, scopes and PKCE. This only decides who the user
-/// is (tenant session cookie) and signs in so OpenIddict issues the code.
+/// client, the exact redirect_uri, response_type, scopes and PKCE. This decides offline_access
+/// eligibility and who the user is (tenant session cookie), and signs in so OpenIddict issues the code.
 /// </summary>
 public sealed class Endpoint : IEndpoint
 {
@@ -31,6 +31,7 @@ public sealed class Endpoint : IEndpoint
                 [FromServices] ITenantContext tenantContext,
                 [FromServices] IAntiforgery antiforgery,
                 [FromServices] ISender sender,
+                [FromServices] IOpenIddictApplicationManager applicationManager,
                 CancellationToken cancellationToken) =>
             {
                 // Null when OpenIddict didn't handle the request (e.g. mixed-case slug).
@@ -52,6 +53,15 @@ public sealed class Endpoint : IEndpoint
 
                 if (!request.HasScope(Scopes.OpenId))
                     return OpenIddictResults.Forbid(Errors.InvalidScope, "The 'openid' scope is required.");
+
+                // Duende-style: offline_access from a client without the RefreshToken grant is a redirected
+                // invalid_scope, before any login. (OpenIddict's own check is removed — it answers locally.)
+                if (request.HasScope(Scopes.OfflineAccess)
+                    && (await applicationManager.FindByClientIdAsync(request.ClientId!, cancellationToken) is not { } application
+                        || !await applicationManager.HasPermissionAsync(application, Permissions.GrantTypes.RefreshToken, cancellationToken)))
+                {
+                    return OpenIddictResults.Forbid(Errors.InvalidScope, "The client is not allowed to request offline access.");
+                }
 
                 var session = await TenantSession.ReadAsync(httpContext, tenantId);
 

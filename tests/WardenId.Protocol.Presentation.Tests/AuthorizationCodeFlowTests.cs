@@ -62,6 +62,7 @@ public class AuthorizationCodeFlowTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await JsonAsync(response);
+        // No offline_access requested.
         Assert.False(body.TryGetProperty("refresh_token", out _));
 
         var access = new JsonWebTokenHandler().ReadJsonWebToken(body.GetProperty("access_token").GetString()!);
