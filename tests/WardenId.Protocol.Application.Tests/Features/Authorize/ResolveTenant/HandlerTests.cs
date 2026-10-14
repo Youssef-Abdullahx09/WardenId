@@ -1,6 +1,6 @@
 using WardenId.Protocol.Application.Features.Authorize.ResolveTenant;
 using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
-using Query = WardenId.Protocol.Application.Features.Authorize.ResolveTenant.Query;
+using ResolveTenantQuery = WardenId.Protocol.Application.Features.Authorize.ResolveTenant.Query;
 
 namespace WardenId.Protocol.Application.Tests.Features.Authorize.ResolveTenant;
 
@@ -16,7 +16,7 @@ public class HandlerTests
             ResolveForIssuanceResponse = Result.Ok(new TenantForIssuance(TenantId, "acme", TenantIssuanceStatus.Active))
         };
 
-        var result = await new Handler(sender).Handle(new Query("acme"), CancellationToken.None);
+        var result = await new Handler(sender).Handle(new ResolveTenantQuery("acme"), CancellationToken.None);
 
         Assert.Equal(TenantId, result.Value);
     }
@@ -29,7 +29,7 @@ public class HandlerTests
             ResolveForIssuanceResponse = Result.Ok(new TenantForIssuance(TenantId, "acme", TenantIssuanceStatus.Suspended))
         };
 
-        var result = await new Handler(sender).Handle(new Query("acme"), CancellationToken.None);
+        var result = await new Handler(sender).Handle(new ResolveTenantQuery("acme"), CancellationToken.None);
 
         Assert.Equal(ProtocolErrorCodes.NotFound, result.Errors[0].Metadata[ProtocolErrorCodes.MetadataKey]);
     }
@@ -39,7 +39,7 @@ public class HandlerTests
     {
         var sender = new FakeSender { ResolveForIssuanceResponse = Result.Fail<TenantForIssuance>("nope") };
 
-        var result = await new Handler(sender).Handle(new Query("acme"), CancellationToken.None);
+        var result = await new Handler(sender).Handle(new ResolveTenantQuery("acme"), CancellationToken.None);
 
         Assert.Equal(ProtocolErrorCodes.NotFound, result.Errors[0].Metadata[ProtocolErrorCodes.MetadataKey]);
     }
@@ -52,7 +52,7 @@ public class HandlerTests
     {
         var sender = new FakeSender();
 
-        var result = await new Handler(sender).Handle(new Query(slug), CancellationToken.None);
+        var result = await new Handler(sender).Handle(new ResolveTenantQuery(slug), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Empty(sender.Sent);

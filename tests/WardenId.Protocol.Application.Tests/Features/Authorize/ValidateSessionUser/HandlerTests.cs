@@ -1,6 +1,7 @@
 using FluentResults;
 using SignInUser = WardenId.Identity.Integration.Command.Features.Users.GetForSignIn.SignInUser;
 using WardenId.Protocol.Application.Features.Authorize.ValidateSessionUser;
+using ValidateSessionUserQuery = WardenId.Protocol.Application.Features.Authorize.ValidateSessionUser.Query;
 using WardenId.Protocol.Domain;
 using RequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
 using UserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
@@ -16,7 +17,7 @@ public class HandlerTests
         Result.Ok(new SignInUser(UserId, "alice@acme.test", "alice", status, actions));
 
     private static Task<Result> HandleAsync(Result<SignInUser> user) =>
-        new Handler(new FakeSender { SignInUserResponse = user }).Handle(new Query(TenantId, UserId), CancellationToken.None);
+        new Handler(new FakeSender { SignInUserResponse = user }).Handle(new ValidateSessionUserQuery(TenantId, UserId), CancellationToken.None);
 
     [Fact]
     public async Task Handle_ActiveUser_Succeeds() => Assert.True((await HandleAsync(User())).IsSuccess);

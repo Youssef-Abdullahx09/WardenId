@@ -3,7 +3,7 @@ using WardenId.Protocol.Application.Features.UserInfo;
 using RequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
 using UserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
 using GetForSignInQuery = WardenId.Identity.Integration.Command.Features.Users.GetForSignIn.Query;
-using Query = WardenId.Protocol.Application.Features.UserInfo.Query;
+using UserInfoQuery = WardenId.Protocol.Application.Features.UserInfo.Query;
 
 namespace WardenId.Protocol.Application.Tests.Features.UserInfo;
 
@@ -16,7 +16,7 @@ public class HandlerTests
         Result.Ok(new SignInUser(UserId, "alice@acme.test", "alice", status, actions));
 
     private static Task<Result<UserInfoClaims>> HandleAsync(FakeSender sender, params string[] scopes) =>
-        new Handler(sender).Handle(new Query(TenantId, UserId, scopes), CancellationToken.None);
+        new Handler(sender).Handle(new UserInfoQuery(TenantId, UserId, scopes), CancellationToken.None);
 
     [Fact]
     public async Task ActiveUser_ReturnsSubjectAndScopedClaims()

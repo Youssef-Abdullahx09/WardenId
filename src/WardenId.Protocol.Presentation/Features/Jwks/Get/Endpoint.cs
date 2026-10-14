@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using WardenId.Protocol.Application.Features.Jwks.Get;
+using JwksQuery = WardenId.Protocol.Application.Features.Jwks.Get.Query;
 using WardenId.SharedKernel.Presentation;
 
 namespace WardenId.Protocol.Presentation.Features.Jwks.Get;
@@ -17,7 +18,7 @@ public sealed class Endpoint : IEndpoint
                 HttpContext httpContext,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(new Query(slug), cancellationToken);
+                var result = await sender.Send(new JwksQuery(slug), cancellationToken);
 
                 if (result.IsFailed)
                 {

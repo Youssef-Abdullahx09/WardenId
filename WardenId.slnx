@@ -42,6 +42,8 @@
     <Project Path="src/WardenId.Protocol.Domain/WardenId.Protocol.Domain.csproj" />
     <Project Path="src/WardenId.Protocol.Infrastructure/WardenId.Protocol.Infrastructure.csproj" />
     <Project Path="src/WardenId.Protocol.Presentation/WardenId.Protocol.Presentation.csproj" />
+    <Project Path="src/WardenId.Protocol.Query/WardenId.Protocol.Query.csproj" />
+    <Project Path="src/WardenId.Protocol.Query.Contracts/WardenId.Protocol.Query.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WardenId.Audit.Application.Tests/WardenId.Audit.Application.Tests.csproj" />

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application.Features.Discovery.Get;
 using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys;
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
-using Query = WardenId.Protocol.Application.Features.Discovery.Get.Query;
+using DiscoveryQuery = WardenId.Protocol.Application.Features.Discovery.Get.Query;
 
 namespace WardenId.Protocol.Application.Tests.Features.Discovery;
 
@@ -19,7 +19,7 @@ public class HandlerTests
     {
         var sender = new FakeSender { PublicKeysResponse = Servable("acme") };
 
-        var result = await CreateHandler(sender).Handle(new Query("acme"), CancellationToken.None);
+        var result = await CreateHandler(sender).Handle(new DiscoveryQuery("acme"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         var doc = result.Value;
@@ -48,7 +48,7 @@ public class HandlerTests
     {
         var sender = new FakeSender { PublicKeysResponse = Servable("acme") };
 
-        var result = await CreateHandler(sender, "https://wardenid.test/").Handle(new Query("acme"), CancellationToken.None);
+        var result = await CreateHandler(sender, "https://wardenid.test/").Handle(new DiscoveryQuery("acme"), CancellationToken.None);
 
         Assert.Equal("https://wardenid.test/tenants/acme", result.Value.Issuer);
         Assert.Equal("https://wardenid.test/tenants/acme/jwks", result.Value.JwksUri);
@@ -60,7 +60,7 @@ public class HandlerTests
         var notFound = new Error("Tenant not found.").WithMetadata("ErrorCode", "NotFound");
         var sender = new FakeSender { PublicKeysResponse = Result.Fail<TenantPublicKeys>(notFound) };
 
-        var result = await CreateHandler(sender).Handle(new Query("acme"), CancellationToken.None);
+        var result = await CreateHandler(sender).Handle(new DiscoveryQuery("acme"), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal("NotFound", result.Errors[0].Metadata["ErrorCode"]);

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using WardenId.Protocol.Application.Features.Jwks.Get;
 using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys;
-using Query = WardenId.Protocol.Application.Features.Jwks.Get.Query;
+using JwksQuery = WardenId.Protocol.Application.Features.Jwks.Get.Query;
 
 namespace WardenId.Protocol.Application.Tests.Features.Jwks;
 
@@ -16,7 +16,7 @@ public class HandlerTests
     [Fact]
     public async Task Handle_ReturnsStoredJwksVerbatim()
     {
-        var result = await new Handler(SenderWith(Jwk1, Jwk2)).Handle(new Query("acme"), CancellationToken.None);
+        var result = await new Handler(SenderWith(Jwk1, Jwk2)).Handle(new JwksQuery("acme"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(
@@ -27,7 +27,7 @@ public class HandlerTests
     [Fact]
     public async Task Handle_ReturnsEmptySet_WhenTenantHasNoKeys()
     {
-        var result = await new Handler(SenderWith()).Handle(new Query("acme"), CancellationToken.None);
+        var result = await new Handler(SenderWith()).Handle(new JwksQuery("acme"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Empty(result.Value.Keys);
@@ -39,7 +39,7 @@ public class HandlerTests
         var notFound = new Error("Tenant not found.").WithMetadata("ErrorCode", "NotFound");
         var sender = new FakeSender { PublicKeysResponse = Result.Fail<TenantPublicKeys>(notFound) };
 
-        var result = await new Handler(sender).Handle(new Query("acme"), CancellationToken.None);
+        var result = await new Handler(sender).Handle(new JwksQuery("acme"), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal("NotFound", result.Errors[0].Metadata["ErrorCode"]);
@@ -50,7 +50,7 @@ public class HandlerTests
     {
         var handler = new Handler(SenderWith(Jwk1, "{not json"));
 
-        await Assert.ThrowsAnyAsync<JsonException>(() => handler.Handle(new Query("acme"), CancellationToken.None));
+        await Assert.ThrowsAnyAsync<JsonException>(() => handler.Handle(new JwksQuery("acme"), CancellationToken.None));
     }
 
     [Fact]
@@ -59,6 +59,6 @@ public class HandlerTests
         const string privateJwk = """{"kty":"EC","crv":"P-256","x":"a","y":"b","d":"secret","kid":"k1"}""";
         var handler = new Handler(SenderWith(privateJwk));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(new Query("acme"), CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(new JwksQuery("acme"), CancellationToken.None));
     }
 }

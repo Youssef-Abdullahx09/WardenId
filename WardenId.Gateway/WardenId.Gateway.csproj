@@ -15,6 +15,7 @@
       <ProjectReference Include="..\src\WardenId.Identity.Presentation\WardenId.Identity.Presentation.csproj" />
       <ProjectReference Include="..\src\WardenId.Protocol.Infrastructure\WardenId.Protocol.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.Protocol.Presentation\WardenId.Protocol.Presentation.csproj" />
+      <ProjectReference Include="..\src\WardenId.Protocol.Query\WardenId.Protocol.Query.csproj" />
       <ProjectReference Include="..\src\WardenId.SharedKernel.Infrastructure\WardenId.SharedKernel.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.SharedKernel.Persistence\WardenId.SharedKernel.Persistence.csproj" />
       <ProjectReference Include="..\src\WardenId.SharedKernel.Presentation\WardenId.SharedKernel.Presentation.csproj" />

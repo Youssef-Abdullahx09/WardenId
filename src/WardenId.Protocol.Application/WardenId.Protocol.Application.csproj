@@ -3,6 +3,7 @@
     <ItemGroup>
       <ProjectReference Include="..\WardenId.SharedKernel.Application\WardenId.SharedKernel.Application.csproj" />
       <ProjectReference Include="..\WardenId.Protocol.Domain\WardenId.Protocol.Domain.csproj" />
+      <ProjectReference Include="..\WardenId.Protocol.Query.Contracts\WardenId.Protocol.Query.Contracts.csproj" />
       <ProjectReference Include="..\WardenId.Identity.Integration.Command\WardenId.Identity.Integration.Command.csproj" />
       <ProjectReference Include="..\WardenId.ClientManagement.Integration.Command\WardenId.ClientManagement.Integration.Command.csproj" />
       <ProjectReference Include="..\WardenId.Tenancy.Integration.Command\WardenId.Tenancy.Integration.Command.csproj" />
