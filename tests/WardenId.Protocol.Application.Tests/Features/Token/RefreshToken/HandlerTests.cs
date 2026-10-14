@@ -23,7 +23,7 @@ public class HandlerTests
         Result.Ok(new ClientForAuthentication(
             Guid.NewGuid(), "web", ClientKind.Confidential, true,
             [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
-            ClientAuthMethod.SharedSecret, null, refreshSeconds, ["https://app.example/cb"], false));
+            ClientAuthMethod.SharedSecret, null, refreshSeconds, ["https://app.example/cb"], false, [], null));
 
     private static Task<Result<UserTokenGrant>> HandleAsync(FakeSender sender, DateTimeOffset authTime, params string[] scopes) =>
         HandleAsync(sender, authTime, scopes, requestedScopes: []);
@@ -77,7 +77,7 @@ public class HandlerTests
             SignInUserResponse = User(),
             ClientResponse = Result.Ok(new ClientForAuthentication(
                 Guid.NewGuid(), "web", ClientKind.Confidential, true, [AllowedGrant.AuthorizationCode],
-                ClientAuthMethod.SharedSecret, null, null, ["https://app.example/cb"], false))
+                ClientAuthMethod.SharedSecret, null, null, ["https://app.example/cb"], false, [], null))
         };
 
         var result = await HandleAsync(sender, Now.AddDays(-1), "openid", "offline_access");

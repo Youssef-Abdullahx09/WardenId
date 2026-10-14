@@ -58,4 +58,10 @@ public static class ClientErrors
 
     public static Error SigningKeyRequiresPrivateKeyJwt()
         => Validation("Signing keys can only be added to clients using the PrivateKeyJwt authentication method.");
+
+    public static Error BackchannelLogoutUriInvalid()
+        => Validation("Back-channel logout URI must be an absolute URI without a fragment.");
+
+    public static Error BackchannelLogoutUriMustBeHttps()
+        => Validation("Back-channel logout URI must use https (http is allowed only for loopback hosts).");
 }

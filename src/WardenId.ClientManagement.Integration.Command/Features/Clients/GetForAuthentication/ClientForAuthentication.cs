@@ -3,6 +3,8 @@ namespace WardenId.ClientManagement.Integration.Command.Features.Clients.GetForA
 /// <summary>
 /// What the protocol layer needs to authenticate and authorize a client. Deliberately carries
 /// no secret material — secrets are verified inside ClientManagement via VerifySecret.
+/// <see cref="PostLogoutRedirectUris"/> feed OpenIddict's exact-match end-session validation;
+/// <see cref="BackchannelLogoutUri"/> is null when the client does not take back-channel logout.
 /// </summary>
 public sealed record ClientForAuthentication(
     Guid Id,
@@ -14,4 +16,6 @@ public sealed record ClientForAuthentication(
     int? AccessTokenLifetimeSeconds,
     int? RefreshTokenLifetimeSeconds,
     IReadOnlyList<string> RedirectUris,
-    bool RequirePkce);
+    bool RequirePkce,
+    IReadOnlyList<string> PostLogoutRedirectUris,
+    string? BackchannelLogoutUri);

@@ -11,10 +11,11 @@ public static class TokenFlow
 
     public static async Task<JsonElement> CodeTokensAsync(
         ProtocolTestHost host, string clientId = "web-rt", string? secret = FakeDirectory.AcmeSecret,
-        string redirectUri = FakeDirectory.WebRedirect, string scope = "openid profile email offline_access")
+        string redirectUri = FakeDirectory.WebRedirect, string scope = "openid profile email offline_access",
+        BrowserClient? browser = null)
     {
         var pkce = OidcFlow.NewPkce();
-        var code = await OidcFlow.CodeAsync(host.CreateBrowser(), "acme",
+        var code = await OidcFlow.CodeAsync(browser ?? host.CreateBrowser(), "acme",
             OidcFlow.AuthorizeParameters(clientId, redirectUri, pkce, scope), redirectUri);
         var form = new Dictionary<string, string>
         {

@@ -34,6 +34,7 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
             IntrospectionEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post"],
             RevocationEndpoint: $"{issuer}/revoke",
             RevocationEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post", "none"],
-            UserInfoEndpoint: $"{issuer}/userinfo"));
+            UserInfoEndpoint: $"{issuer}/userinfo",
+            EndSessionEndpoint: $"{issuer}/endsession"));
     }
 }

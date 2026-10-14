@@ -11,7 +11,7 @@ public class HandlerTests
     private static Result<ClientForAuthentication> Client(int? lifetimeSeconds = null) =>
         Result.Ok(new ClientForAuthentication(
             Guid.NewGuid(), "svc", ClientKind.Confidential, true, [AllowedGrant.ClientCredentials],
-            ClientAuthMethod.SharedSecret, lifetimeSeconds, null, [], false));
+            ClientAuthMethod.SharedSecret, lifetimeSeconds, null, [], false, [], null));
 
     private static Handler CreateHandler(FakeSender sender, ProtocolTokenOptions? options = null) =>
         new(sender, Options.Create(options ?? new ProtocolTokenOptions { IssuerBaseUri = "https://wardenid.test" }));

@@ -32,7 +32,9 @@ public static class UserTokenGrantExtensions
         {
             Claims.Subject => [Destinations.AccessToken, Destinations.IdentityToken],
             CustomClaimTypes.TenantId or CustomClaimTypes.TokenUse => [Destinations.AccessToken],
+            // sid (OIDC Back-Channel Logout §2.1) is copied from the code/refresh principal like auth_time.
             Claims.AuthenticationTime or Claims.PreferredUsername or Claims.Email or Claims.EmailVerified
+                or SessionClaimTypes.SessionId
                 => [Destinations.IdentityToken],
             _ => []
         });

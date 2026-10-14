@@ -1,6 +1,13 @@
+using System.Globalization;
 using System.Net;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.DependencyInjection;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
+using WardenId.SharedKernel.Application;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace WardenId.Protocol.Presentation.Tests;
 
@@ -299,5 +306,41 @@ public class AuthorizeEndpointTests : IAsyncLifetime
             FakeDirectory.WebRedirect);
 
         Assert.False(string.IsNullOrEmpty(code));
+    }
+
+    // Review focus: cookies issued before server-side sessions carry no sid — no session, never a 500.
+    [Fact]
+    public async Task Authorize_WithLegacyCookieWithoutSid_RedirectsToLogin()
+    {
+        var alice = _host.Directory.User("alice");
+        string setCookie;
+        using (var scope = _host.App.Services.CreateScope())
+        {
+            // Same scheme, data-protection keys and claims as the pre-session cookie — just no sid.
+            var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+            context.Request.Scheme = "https";
+            context.Request.Host = new HostString("wardenid.test");
+            context.Request.Path = "/tenants/acme/login";
+            var identity = new ClaimsIdentity(TenantSession.Scheme, Claims.Subject, Claims.Role);
+            identity.AddClaim(new Claim(Claims.Subject, alice.UserId.ToString()));
+            identity.AddClaim(new Claim(CustomClaimTypes.TenantId, _host.Directory.Tenant("acme").TenantId.ToString()));
+            identity.AddClaim(new Claim(
+                Claims.AuthenticationTime,
+                DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
+                ClaimValueTypes.Integer64));
+            identity.AddClaim(new Claim(Claims.AuthenticationMethodReference, "pwd"));
+            await context.SignInAsync(TenantSession.Scheme, new ClaimsPrincipal(identity));
+            setCookie = context.Response.Headers.SetCookie.Single(c => c!.StartsWith(TenantSession.Scheme + "="))!;
+        }
+
+        var browser = _host.CreateBrowser();
+        browser.Cookies.SetCookies(new Uri("https://wardenid.test/tenants/acme/login"), setCookie);
+        Assert.Contains(browser.Cookies.GetAllCookies(), c => c.Name == TenantSession.Scheme);
+
+        var response = await browser.GetAsync(OidcFlow.AuthorizeUrl("acme", Web(OidcFlow.NewPkce())));
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith("/tenants/acme/login?ReturnUrl=", response.Headers.Location!.OriginalString);
+        AssertSessionCookieCleared(response);
     }
 }

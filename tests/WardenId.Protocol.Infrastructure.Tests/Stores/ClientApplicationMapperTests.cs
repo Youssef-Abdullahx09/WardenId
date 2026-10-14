@@ -9,7 +9,8 @@ public class ClientApplicationMapperTests
 {
     private static ClientForAuthentication Client(
         ClientKind kind, AllowedGrant[] grants, bool requirePkce = false, params string[] redirectUris) =>
-        new(Guid.NewGuid(), "web", kind, true, grants, ClientAuthMethod.SharedSecret, null, null, redirectUris, requirePkce);
+        new(Guid.NewGuid(), "web", kind, true, grants, ClientAuthMethod.SharedSecret, null, null, redirectUris, requirePkce,
+            [], null);
 
     private static string[] Json(string? value) =>
         value is null ? [] : JsonSerializer.Deserialize<string[]>(value)!;
@@ -109,6 +110,46 @@ public class ClientApplicationMapperTests
         Assert.DoesNotContain(Permissions.GrantTypes.RefreshToken, Json(app.Permissions));
     }
 
+    [Fact]
+    public void AuthorizationCodeClient_GetsEndSessionPermission()
+    {
+        var app = ClientApplicationMapper.Map(Client(
+            ClientKind.Public, [AllowedGrant.AuthorizationCode], true, "https://spa.example/cb"));
+
+        Assert.Contains(Permissions.Endpoints.EndSession, Json(app.Permissions));
+    }
+
+    [Fact]
+    public void ClientCredentialsOnlyClient_HasNoEndSessionPermission()
+    {
+        var app = ClientApplicationMapper.Map(Client(ClientKind.Confidential, [AllowedGrant.ClientCredentials]));
+
+        Assert.DoesNotContain(Permissions.Endpoints.EndSession, Json(app.Permissions));
+    }
+
+    [Fact]
+    public void PostLogoutRedirectUris_AreSerialized()
+    {
+        var client = Client(ClientKind.Confidential, [AllowedGrant.AuthorizationCode], false, "https://app.example/cb") with
+        {
+            PostLogoutRedirectUris = ["https://app.example/logged-out", "https://app.example/bye"]
+        };
+
+        var app = ClientApplicationMapper.Map(client);
+
+        Assert.Equal(new[] { "https://app.example/logged-out", "https://app.example/bye" }, Json(app.PostLogoutRedirectUris));
+        Assert.Equal(new[] { "https://app.example/cb" }, Json(app.RedirectUris));
+    }
+
+    [Fact]
+    public void NoPostLogoutRedirectUris_SerializesEmptyArray()
+    {
+        var app = ClientApplicationMapper.Map(Client(
+            ClientKind.Confidential, [AllowedGrant.AuthorizationCode], false, "https://app.example/cb"));
+
+        Assert.Equal("[]", app.PostLogoutRedirectUris);
+    }
+
     // OpenIddict's authorize-time grant check (ValidateGrantTypePermissions, ID2047) is removed; the code flow is
     // then gated only by the authorization endpoint + code response type permissions. They must travel with the
     // authorization_code grant permission: all three or none.
@@ -129,7 +170,10 @@ public class ClientApplicationMapperTests
         var permissions = Json(ClientApplicationMapper.Map(Client(ClientKind.Confidential, grants)).Permissions);
 
         string[] codeFlowPermissions =
-            [Permissions.Endpoints.Authorization, Permissions.ResponseTypes.Code, Permissions.GrantTypes.AuthorizationCode];
+        [
+            Permissions.Endpoints.Authorization, Permissions.ResponseTypes.Code, Permissions.GrantTypes.AuthorizationCode,
+            Permissions.Endpoints.EndSession
+        ];
         foreach (var permission in codeFlowPermissions)
             Assert.Equal(codeFlow, permissions.Contains(permission));
     }

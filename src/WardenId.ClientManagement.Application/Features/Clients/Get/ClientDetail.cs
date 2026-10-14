@@ -27,4 +27,5 @@ public sealed record ClientDetail(
     string[] CorsOrigins,
     ClientSecretSummary[] Secrets,
     ClientSigningKeySummary[] SigningKeys,
-    Guid[] AssignedScopeIds);
+    Guid[] AssignedScopeIds,
+    string? BackchannelLogoutUri);

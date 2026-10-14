@@ -42,7 +42,8 @@ public sealed class Handler(
             client.CorsOrigins.Select(o => o.Value).ToArray(),
             client.Secrets.Select(s => new ClientSecretSummary(s.Id, s.Label, s.ExpiresAt)).ToArray(),
             client.SigningKeys.Select(k => new ClientSigningKeySummary(k.Id, k.Kid, k.Algorithm, k.ExpiresAt)).ToArray(),
-            client.AssignedScopeIds.ToArray());
+            client.AssignedScopeIds.ToArray(),
+            client.BackchannelLogoutUri?.Value);
 
         return Result.Ok(detail);
     }

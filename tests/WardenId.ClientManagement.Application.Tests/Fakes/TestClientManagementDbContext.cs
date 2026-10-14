@@ -23,6 +23,8 @@ public sealed class TestClientManagementDbContext(DbContextOptions<TestClientMan
             builder.Ignore(c => c.DomainEvents);
             builder.Property(c => c.ClientId)
                 .HasConversion(id => id.Value, value => ClientId.FromTrustedSource(value));
+            builder.Property(c => c.BackchannelLogoutUri)
+                .HasConversion(uri => uri!.Value, value => BackchannelLogoutUri.FromTrustedSource(value));
             builder.OwnsOne(c => c.TokenLifetimeOverrides, o =>
             {
                 o.Property(t => t.AccessTokenSeconds);
@@ -37,7 +39,15 @@ public sealed class TestClientManagementDbContext(DbContextOptions<TestClientMan
                 b.HasKey("OwnerId", "Value");
             });
             builder.Navigation(c => c.RedirectUris).UsePropertyAccessMode(PropertyAccessMode.Field);
-            builder.Ignore(c => c.PostLogoutRedirectUris);
+
+            builder.OwnsMany(c => c.PostLogoutRedirectUris, b =>
+            {
+                b.WithOwner().HasForeignKey("OwnerId");
+                b.Property(r => r.Value);
+                b.HasKey("OwnerId", "Value");
+            });
+            builder.Navigation(c => c.PostLogoutRedirectUris).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             builder.Ignore(c => c.CorsOrigins);
             builder.Ignore(c => c.SigningKeys);
             builder.Ignore(c => c.AssignedScopeIds);

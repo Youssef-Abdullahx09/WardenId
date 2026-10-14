@@ -4,7 +4,7 @@ namespace WardenId.Protocol.Application.Features.Discovery.Get;
 
 /// <summary>
 /// OIDC Discovery 1.0 metadata. Honest subset: only fields that are true today. Later passes
-/// append end_session_endpoint, etc. Grant types, response types, code challenge methods and scopes must equal what
+/// append backchannel_logout_*, etc. Grant types, response types, code challenge methods and scopes must equal what
 /// OpenIddict has enabled; endpoint auth methods must equal OpenIddict's client authentication methods (+ "none"
 /// where public clients are allowed). Pinned by a drift test.
 /// </summary>
@@ -25,4 +25,5 @@ public sealed record DiscoveryDocument(
     [property: JsonPropertyName("introspection_endpoint_auth_methods_supported")] IReadOnlyList<string> IntrospectionEndpointAuthMethodsSupported,
     [property: JsonPropertyName("revocation_endpoint")] string RevocationEndpoint,
     [property: JsonPropertyName("revocation_endpoint_auth_methods_supported")] IReadOnlyList<string> RevocationEndpointAuthMethodsSupported,
-    [property: JsonPropertyName("userinfo_endpoint")] string UserInfoEndpoint);
+    [property: JsonPropertyName("userinfo_endpoint")] string UserInfoEndpoint,
+    [property: JsonPropertyName("end_session_endpoint")] string EndSessionEndpoint);

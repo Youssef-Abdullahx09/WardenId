@@ -40,6 +40,7 @@ public class HandlerTests
         Assert.Equal("https://wardenid.test/tenants/acme/revoke", doc.RevocationEndpoint);
         Assert.Equal(new[] { "client_secret_basic", "client_secret_post", "none" }, doc.RevocationEndpointAuthMethodsSupported);
         Assert.Equal("https://wardenid.test/tenants/acme/userinfo", doc.UserInfoEndpoint);
+        Assert.Equal("https://wardenid.test/tenants/acme/endsession", doc.EndSessionEndpoint);
         Assert.Equal("acme", Assert.IsType<GetPublicKeysQuery>(Assert.Single(sender.Sent)).Slug);
     }
 
@@ -71,12 +72,12 @@ public class HandlerTests
     {
         var doc = new DiscoveryDocument(
             "i", "j", ["code"], ["public"], ["ES256"], "t", ["client_credentials"], ["client_secret_basic"],
-            "a", ["openid"], ["S256"], true, "in", ["client_secret_basic"], "r", ["none"], "u");
+            "a", ["openid"], ["S256"], true, "in", ["client_secret_basic"], "r", ["none"], "u", "e");
 
         var json = System.Text.Json.JsonSerializer.Serialize(doc);
 
         Assert.Equal(
-            """{"issuer":"i","jwks_uri":"j","response_types_supported":["code"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["ES256"],"token_endpoint":"t","grant_types_supported":["client_credentials"],"token_endpoint_auth_methods_supported":["client_secret_basic"],"authorization_endpoint":"a","scopes_supported":["openid"],"code_challenge_methods_supported":["S256"],"authorization_response_iss_parameter_supported":true,"introspection_endpoint":"in","introspection_endpoint_auth_methods_supported":["client_secret_basic"],"revocation_endpoint":"r","revocation_endpoint_auth_methods_supported":["none"],"userinfo_endpoint":"u"}""",
+            """{"issuer":"i","jwks_uri":"j","response_types_supported":["code"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["ES256"],"token_endpoint":"t","grant_types_supported":["client_credentials"],"token_endpoint_auth_methods_supported":["client_secret_basic"],"authorization_endpoint":"a","scopes_supported":["openid"],"code_challenge_methods_supported":["S256"],"authorization_response_iss_parameter_supported":true,"introspection_endpoint":"in","introspection_endpoint_auth_methods_supported":["client_secret_basic"],"revocation_endpoint":"r","revocation_endpoint_auth_methods_supported":["none"],"userinfo_endpoint":"u","end_session_endpoint":"e"}""",
             json);
     }
 }

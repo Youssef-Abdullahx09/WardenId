@@ -19,12 +19,15 @@ public sealed class FakeDirectory
     public sealed record ClientEntry(
         Guid TenantId, Guid Id, string ClientId, ClientKind Kind, bool Enabled,
         IReadOnlyList<AllowedGrant> Grants, ClientAuthMethod Auth, int? AccessTokenLifetimeSeconds,
-        int? RefreshTokenLifetimeSeconds, string[] Secrets, string[] RedirectUris, bool RequirePkce);
+        int? RefreshTokenLifetimeSeconds, string[] Secrets, string[] RedirectUris, bool RequirePkce,
+        string[] PostLogoutRedirectUris, string? BackchannelLogoutUri);
 
     public const string WebRedirect = "https://app.example/cb";
     public const string SpaRedirect = "https://spa.example/cb";
 
     public const string SpaRtRedirect = "https://spa-rt.example/cb";
+
+    public const string WebLoggedOut = "https://app.example/logged-out";
 
     public const string UserPassword = "correct horse";
 
@@ -63,7 +66,8 @@ public sealed class FakeDirectory
         AddClient(acme, "spa", kind: ClientKind.Public, grants: [AllowedGrant.AuthorizationCode], redirectUris: [SpaRedirect]);
         AddClient(globex, "web", grants: [AllowedGrant.AuthorizationCode], secrets: [GlobexSecret], redirectUris: [WebRedirect]);
         AddClient(acme, "web-rt", grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
-            secrets: [AcmeSecret], redirectUris: [WebRedirect]);
+            secrets: [AcmeSecret], redirectUris: [WebRedirect],
+            postLogoutRedirectUris: [WebLoggedOut], backchannelLogoutUri: "https://app.example/bcl");
         AddClient(acme, "web-rt-other", grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
             secrets: [AcmeSecret], redirectUris: [WebRedirect]);
         AddClient(acme, "spa-rt", kind: ClientKind.Public, grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
@@ -72,6 +76,7 @@ public sealed class FakeDirectory
             secrets: [GlobexSecret], redirectUris: [WebRedirect]);
 
         Users.Add(new UserEntry(acme.TenantId, "alice", UserStatus.Active));
+        Users.Add(new UserEntry(acme.TenantId, "dave", UserStatus.Active));
         Users.Add(new UserEntry(acme.TenantId, "bob", UserStatus.PendingVerification, RequiredAction.VerifyEmail));
         Users.Add(new UserEntry(acme.TenantId, "carol", UserStatus.Disabled));
     }
@@ -109,9 +114,10 @@ public sealed class FakeDirectory
         ClientKind kind = ClientKind.Confidential, bool enabled = true,
         AllowedGrant[]? grants = null, ClientAuthMethod auth = ClientAuthMethod.SharedSecret,
         int? lifetime = null, string[]? secrets = null, string[]? redirectUris = null, bool? requirePkce = null,
-        int? refreshLifetime = null) =>
+        int? refreshLifetime = null, string[]? postLogoutRedirectUris = null, string? backchannelLogoutUri = null) =>
         Clients.Add(new ClientEntry(
             tenant.TenantId, Guid.NewGuid(), clientId, kind, enabled,
             grants ?? [AllowedGrant.ClientCredentials], auth, lifetime, refreshLifetime, secrets ?? [],
-            redirectUris ?? [], requirePkce ?? kind == ClientKind.Public));
+            redirectUris ?? [], requirePkce ?? kind == ClientKind.Public,
+            postLogoutRedirectUris ?? [], backchannelLogoutUri));
 }

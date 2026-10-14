@@ -48,6 +48,12 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.RequirePkce).IsRequired();
         builder.Property(c => c.ConsentRequired).IsRequired();
 
+        builder.Property(c => c.BackchannelLogoutUri)
+            .HasConversion(
+                uri => uri!.Value,
+                value => BackchannelLogoutUri.FromTrustedSource(value))
+            .HasMaxLength(2000);
+
         builder.OwnsOne(c => c.TokenLifetimeOverrides, o =>
         {
             o.Property(t => t.AccessTokenSeconds).HasColumnName("AccessTokenSeconds");

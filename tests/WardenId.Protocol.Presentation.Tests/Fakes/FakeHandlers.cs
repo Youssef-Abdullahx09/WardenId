@@ -58,7 +58,8 @@ public sealed class GetForAuthenticationHandler(FakeDirectory directory)
     public Task<Result<ClientForAuthentication>> Handle(GetForAuthenticationQuery request, CancellationToken cancellationToken) =>
         Task.FromResult(directory.FindClient(request.TenantId, request.ClientId) is { } c
             ? Result.Ok(new ClientForAuthentication(c.Id, c.ClientId, c.Kind, c.Enabled, c.Grants, c.Auth,
-                c.AccessTokenLifetimeSeconds, c.RefreshTokenLifetimeSeconds, c.RedirectUris, c.RequirePkce))
+                c.AccessTokenLifetimeSeconds, c.RefreshTokenLifetimeSeconds, c.RedirectUris, c.RequirePkce,
+                c.PostLogoutRedirectUris, c.BackchannelLogoutUri))
             : Result.Fail<ClientForAuthentication>(Fail.NotFound));
 }
 

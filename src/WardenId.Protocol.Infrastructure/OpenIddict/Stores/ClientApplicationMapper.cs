@@ -17,9 +17,11 @@ public static class ClientApplicationMapper
         if (client.AllowedGrants.Contains(AllowedGrant.AuthorizationCode))
         {
             // "openid" needs no permission; profile/email are the hard-coded scopes until FR-CM-04.
+            // End session travels with the code flow: only clients holding an ID token can log a user out.
             permissions.AddRange(
             [
                 Permissions.Endpoints.Authorization,
+                Permissions.Endpoints.EndSession,
                 Permissions.GrantTypes.AuthorizationCode,
                 Permissions.ResponseTypes.Code,
                 Permissions.Scopes.Profile,
@@ -49,6 +51,8 @@ public static class ClientApplicationMapper
             ClientSecret = confidential ? "managed-by-ClientManagement" : null,
             Permissions = JsonSerializer.Serialize(permissions),
             RedirectUris = JsonSerializer.Serialize(client.RedirectUris),
+            // OpenIddict exact-matches post_logout_redirect_uri against this list (ValidatePostLogoutRedirectUriAsync).
+            PostLogoutRedirectUris = JsonSerializer.Serialize(client.PostLogoutRedirectUris),
             Requirements = requirements.Length > 0 ? JsonSerializer.Serialize(requirements) : null,
             ConcurrencyToken = client.Id.ToString()
         };

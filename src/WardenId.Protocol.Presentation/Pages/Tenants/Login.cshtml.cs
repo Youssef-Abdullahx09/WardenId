@@ -4,13 +4,19 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using WardenId.Protocol.Application.Features.Authorize;
 using WardenId.Protocol.Application.Features.Authorize.SignIn;
+using WardenId.Protocol.Domain.Sessions;
 using ResolveTenantQuery = WardenId.Protocol.Application.Features.Authorize.ResolveTenant.Query;
 using SignInCommand = WardenId.Protocol.Application.Features.Authorize.SignIn.Command;
+using EndSessionCommand = WardenId.Protocol.Application.Features.Sessions.End.Command;
+using StartSessionCommand = WardenId.Protocol.Application.Features.Sessions.Start.Command;
 
 namespace WardenId.Protocol.Presentation.Pages.Tenants;
 
 public sealed class LoginModel(ISender sender) : PageModel
 {
+    // Session.Start failing is an operational fault, not the user's credentials: no detail, no cookie.
+    private const string SessionStartFailed = "Sign-in failed. Please try again.";
+
     [BindProperty(SupportsGet = true)] public string? ReturnUrl { get; set; }
     [BindProperty] public string EmailOrUsername { get; set; } = string.Empty;
     [BindProperty] public string Password { get; set; } = string.Empty;
@@ -48,7 +54,30 @@ public sealed class LoginModel(ISender sender) : PageModel
             return Page();
         }
 
-        await TenantSession.SignInAsync(HttpContext, tenantId, result.Value.UserId);
+        var userId = result.Value.UserId;
+        var existing = await TenantSession.ReadAsync(HttpContext, tenantId, sender, cancellationToken);
+        if (existing is not null && existing.UserId == userId)
+        {
+            // Same user already signed in here: keep the one session row, just re-issue the cookie.
+            await TenantSession.SignInAsync(HttpContext, tenantId, userId, existing.Sid, existing.AuthTime);
+        }
+        else
+        {
+            // A different user's session must not be orphaned (live row with no cookie).
+            if (existing is not null)
+                await sender.Send(
+                    new EndSessionCommand(tenantId, existing.Sid, EndReason.UserLogout, RequireExisting: false),
+                    cancellationToken);
+
+            var started = await sender.Send(new StartSessionCommand(tenantId, userId), cancellationToken);
+            if (started.IsFailed)
+            {
+                ErrorMessage = SessionStartFailed;
+                return Page();
+            }
+
+            await TenantSession.SignInAsync(HttpContext, tenantId, userId, started.Value.Sid, started.Value.AuthTime);
+        }
 
         if (ReturnToApplication is not null) return LocalRedirect(ReturnUrl!);
 

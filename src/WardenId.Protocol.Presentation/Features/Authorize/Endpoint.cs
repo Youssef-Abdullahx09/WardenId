@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using WardenId.Protocol.Application;
 using WardenId.SharedKernel.Application;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Presentation;
@@ -63,7 +64,8 @@ public sealed class Endpoint : IEndpoint
                     return OpenIddictResults.Forbid(Errors.InvalidScope, "The client is not allowed to request offline access.");
                 }
 
-                var session = await TenantSession.ReadAsync(httpContext, tenantId);
+                // Cookie + live Session row; an ended/expired row or a pre-session cookie (no sid) is no session.
+                var session = await TenantSession.ReadAsync(httpContext, tenantId, sender, cancellationToken);
 
                 // The user may have been disabled/locked or given a required action since signing in.
                 if (session is not null
@@ -86,6 +88,9 @@ public sealed class Endpoint : IEndpoint
                     OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, Claims.Name, Claims.Role);
                 identity.SetClaim(Claims.Subject, session.UserId.ToString());
                 identity.SetClaim(CustomClaimTypes.TenantId, tenantId.ToString());
+                // Persisted in the code/refresh principals; RecordSessionAuthorization links the ad-hoc
+                // authorization to this session, the Token endpoint copies it into the ID token.
+                identity.SetClaim(SessionClaimTypes.SessionId, session.Sid.ToString());
                 identity.AddClaim(new Claim(
                     Claims.AuthenticationTime,
                     session.AuthTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),

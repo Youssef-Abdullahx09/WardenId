@@ -1,4 +1,5 @@
 using System.Net;
+using WardenId.Protocol.Domain.Sessions;
 
 namespace WardenId.Protocol.Presentation.Tests;
 
@@ -119,5 +120,60 @@ public class LoginPageTests : IAsyncLifetime
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_SessionStartFails_ShowsGenericError_NoCookie()
+    {
+        // A zero absolute lifetime makes Session.Start fail (expiresAt <= authTime). The options validator
+        // lives in AddProtocolInfrastructure, which this host does not call.
+        await using var host = await ProtocolTestHost.StartAsync(settings: new Dictionary<string, string?>
+        {
+            ["ProtocolSession:AbsoluteLifetime"] = "00:00:00"
+        });
+        var browser = host.CreateBrowser();
+
+        var response = await PostLoginAsync(browser, "acme", "alice", FakeDirectory.UserPassword);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Sign-in failed. Please try again.", await response.Content.ReadAsStringAsync());
+        Assert.False(HasSessionCookie(browser));
+        Assert.Empty(await host.SessionsOfAsync(host.Directory.User("alice").UserId));
+    }
+
+    [Fact]
+    public async Task Login_AgainAsSameUser_ReusesSession()
+    {
+        var browser = _host.CreateBrowser();
+        await PostLoginAsync(browser, "acme", "alice", FakeDirectory.UserPassword);
+        var first = Assert.Single(await _host.SessionsOfAsync(_host.Directory.User("alice").UserId));
+
+        var response = await PostLoginAsync(browser, "acme", "alice", FakeDirectory.UserPassword);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var only = Assert.Single(await _host.SessionsOfAsync(_host.Directory.User("alice").UserId));
+        Assert.Equal(first.Id, only.Id);
+        Assert.Null(only.EndedAt);
+        // The re-issued cookie still names that session: an authorization is recorded on it.
+        await OidcFlow.CodeAsync(browser, "acme",
+            OidcFlow.AuthorizeParameters("web", FakeDirectory.WebRedirect, OidcFlow.NewPkce(), "openid"), FakeDirectory.WebRedirect);
+        var used = Assert.Single(await _host.SessionsOfAsync(_host.Directory.User("alice").UserId));
+        Assert.Single(used.Authorizations);
+    }
+
+    [Fact]
+    public async Task Login_AsDifferentUser_EndsPreviousSession()
+    {
+        var browser = _host.CreateBrowser();
+        await PostLoginAsync(browser, "acme", "alice", FakeDirectory.UserPassword);
+        var alice = Assert.Single(await _host.SessionsOfAsync(_host.Directory.User("alice").UserId));
+
+        await PostLoginAsync(browser, "acme", "dave", FakeDirectory.UserPassword);
+
+        var ended = (await _host.FindSessionAsync(alice.Id))!;
+        Assert.NotNull(ended.EndedAt);
+        Assert.Equal(EndReason.UserLogout, ended.EndReason);
+        var dave = Assert.Single(await _host.SessionsOfAsync(_host.Directory.User("dave").UserId));
+        Assert.Null(dave.EndedAt);
     }
 }

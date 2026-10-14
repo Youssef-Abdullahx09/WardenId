@@ -1,5 +1,6 @@
 using WardenId.ClientManagement.Application.Features.Clients.GetForAuthentication;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
+using DomainBackchannelLogoutUri = WardenId.ClientManagement.Domain.BackchannelLogoutUri;
 
 namespace WardenId.ClientManagement.Application.Tests.Features.Clients.GetForAuthentication;
 
@@ -111,6 +112,38 @@ public class HandlerTests
 
         Assert.False(result.Value.RequirePkce);
         Assert.Empty(result.Value.RedirectUris);
+    }
+
+    [Fact]
+    public async Task Handle_MapsPostLogoutRedirectUris_AndBackchannelLogoutUri()
+    {
+        var client = ClientBuilder.Confidential(TenantId, GrantType.AuthorizationCode);
+        client.AddRedirectUri(RedirectUri.Create("https://app.example/cb").Value);
+        client.AddPostLogoutRedirectUri(RedirectUri.Create("https://app.example/logged-out").Value);
+        client.AddPostLogoutRedirectUri(RedirectUri.Create("https://app.example/bye").Value);
+        client.SetBackchannelLogoutUri(DomainBackchannelLogoutUri.Create("https://app.example/bcl").Value);
+        await using var db = await ClientBuilder.SeedAsync(client);
+
+        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(
+            new[] { "https://app.example/bye", "https://app.example/logged-out" },
+            result.Value.PostLogoutRedirectUris.OrderBy(u => u, StringComparer.Ordinal));
+        Assert.Equal(new[] { "https://app.example/cb" }, result.Value.RedirectUris);
+        Assert.Equal("https://app.example/bcl", result.Value.BackchannelLogoutUri);
+    }
+
+    [Fact]
+    public async Task Handle_ClientWithoutLogoutSettings_HasNoPostLogoutUris_AndNullBackchannelUri()
+    {
+        var client = ClientBuilder.Confidential(TenantId);
+        await using var db = await ClientBuilder.SeedAsync(client);
+
+        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
+
+        Assert.Empty(result.Value.PostLogoutRedirectUris);
+        Assert.Null(result.Value.BackchannelLogoutUri);
     }
 
     private static void AssertNotFound(Result<ClientForAuthentication> result)

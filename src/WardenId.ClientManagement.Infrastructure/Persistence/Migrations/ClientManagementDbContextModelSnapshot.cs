@@ -18,7 +18,7 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("ClientManagement")
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -32,6 +32,10 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]")
                         .HasColumnName("AssignedScopeIds");
+
+                    b.Property<string>("BackchannelLogoutUri")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("ClientAuthenticationMethod")
                         .IsRequired()
@@ -219,6 +223,43 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_ClientSigningKeys_Kid_Unique");
 
                     b.ToTable("ClientSigningKeys", "ClientManagement");
+                });
+
+            modelBuilder.Entity("WardenId.SharedKernel.Persistence.Audit.AuditEventRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<byte[]>("LeafHash")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("Payload")
+                        .HasColumnType("bytea");
+
+                    b.Property<long?>("Sequence")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id", "Channel");
+
+                    b.HasIndex("Channel", "Sequence");
+
+                    b.HasIndex("TenantId", "OccurredAt");
+
+                    b.ToTable("events", "audit", t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("WardenId.ClientManagement.Domain.Client", b =>

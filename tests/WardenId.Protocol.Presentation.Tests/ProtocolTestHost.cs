@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -8,8 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenIddict.EntityFrameworkCore;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Abstractions;
+using WardenId.Protocol.Domain.Sessions;
 using WardenId.Protocol.Infrastructure;
 using WardenId.Protocol.Infrastructure.OpenIddict;
+using WardenId.Protocol.Infrastructure.Persistence;
 using WardenId.SharedKernel.Presentation;
 using ConfigurationKeys = WardenId.Protocol.Infrastructure.ConfigurationKeys;
 
@@ -66,6 +70,12 @@ public sealed class ProtocolTestHost : IAsyncDisposable
         // OpenIddict revokes token families with ExecuteUpdate, which EF InMemory doesn't support.
         builder.Services.Configure<OpenIddictEntityFrameworkCoreOptions>(options => options.DisableBulkOperations = true);
 
+        // The real session handlers (Protocol.Application) run against InMemory; no shared interceptors,
+        // so domain events stay on the aggregate (no CAP in tests).
+        var sessionDatabaseName = "protocol-" + Guid.NewGuid();
+        builder.Services.AddDbContext<ProtocolDbContext>(options => options.UseInMemoryDatabase(sessionDatabaseName));
+        builder.Services.AddScoped<IProtocolDbContext>(sp => sp.GetRequiredService<ProtocolDbContext>());
+
         builder.Services.AddSharedKernelPresentation();
         builder.Services.AddProtocolPresentation(builder.Configuration);
         builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ProtocolTestHost).Assembly));
@@ -79,10 +89,35 @@ public sealed class ProtocolTestHost : IAsyncDisposable
         new Features.Discovery.Get.Endpoint().MapEndpoint(app);
         new Features.Authorize.Endpoint().MapEndpoint(app);
         new Features.UserInfo.Endpoint().MapEndpoint(app);
+        new Features.EndSession.Endpoint().MapEndpoint(app);
         app.MapRazorPages();
 
         await app.StartAsync();
         return new ProtocolTestHost(app, directory);
+    }
+
+    /// <summary>Sends through the app's mediator in a fresh scope (real Protocol handlers, fake directory).</summary>
+    public async Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request)
+    {
+        using var scope = App.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ISender>().Send(request);
+    }
+
+    public async Task<Session?> FindSessionAsync(Guid sid)
+    {
+        using var scope = App.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ProtocolDbContext>().Sessions
+            .AsNoTracking()
+            .SingleOrDefaultAsync(s => s.Id == sid);
+    }
+
+    public async Task<IReadOnlyList<Session>> SessionsOfAsync(Guid userId)
+    {
+        using var scope = App.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ProtocolDbContext>().Sessions
+            .AsNoTracking()
+            .Where(s => s.SubjectId == userId)
+            .ToListAsync();
     }
 
     public async ValueTask DisposeAsync() => await App.DisposeAsync();

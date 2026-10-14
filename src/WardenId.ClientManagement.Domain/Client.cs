@@ -43,6 +43,7 @@ public sealed class Client : AggregateRoot
     public TokenLifetimeOverrides? TokenLifetimeOverrides { get; private set; }
     public ClientAuthenticationMethod ClientAuthenticationMethod { get; private set; }
     public bool ConsentRequired { get; private set; }
+    public BackchannelLogoutUri? BackchannelLogoutUri { get; private set; }
 
     private readonly List<RedirectUri> _redirectUris = new();
     public IReadOnlyCollection<RedirectUri> RedirectUris => _redirectUris.AsReadOnly();
@@ -109,6 +110,26 @@ public sealed class Client : AggregateRoot
     }
 
     public void RemovePostLogoutRedirectUri(RedirectUri uri) => _postLogoutRedirectUris.Remove(uri);
+
+    // Diff instead of clear-and-add: removing and re-adding an equal owned entry in one SaveChanges would
+    // track two entities with the same (ClientId, Value) key.
+    public void ReplacePostLogoutRedirectUris(IReadOnlyCollection<RedirectUri> uris)
+    {
+        _postLogoutRedirectUris.RemoveAll(existing => !uris.Contains(existing));
+
+        foreach (var uri in uris)
+        {
+            AddPostLogoutRedirectUri(uri);
+        }
+    }
+
+    public void SetBackchannelLogoutUri(BackchannelLogoutUri? uri)
+    {
+        if (BackchannelLogoutUri == uri) return;
+
+        BackchannelLogoutUri = uri;
+        RaiseDomainEvent(new ClientBackchannelLogoutUriChangedDomainEvent(uri?.Value));
+    }
 
     public void AddCorsOrigin(CorsOrigin origin)
     {

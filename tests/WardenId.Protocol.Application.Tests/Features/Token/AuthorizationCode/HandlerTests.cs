@@ -23,7 +23,7 @@ public class HandlerTests
         Result.Ok(new ClientForAuthentication(
             Guid.NewGuid(), "web", ClientKind.Confidential, enabled,
             grants ?? [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
-            ClientAuthMethod.SharedSecret, lifetimeSeconds, refreshSeconds, ["https://app.example/cb"], false));
+            ClientAuthMethod.SharedSecret, lifetimeSeconds, refreshSeconds, ["https://app.example/cb"], false, [], null));
 
     private static Task<Result<UserTokenGrant>> HandleAsync(
         FakeSender sender, DateTimeOffset? authTime = null, params string[] scopes)

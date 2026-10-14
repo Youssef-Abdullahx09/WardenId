@@ -1,0 +1,22 @@
+@page "/tenants/{slug}/logout"
+@model LogoutModel
+@{ ViewData["Title"] = "Sign out"; }
+
+@if (Model.Cancelled)
+{
+    <h1>Sign-out cancelled</h1>
+    <p role="status">You are still signed in.</p>
+}
+else
+{
+    <h1>Sign out</h1>
+    <p>Do you want to sign out? You will be signed out of every application that uses this sign-in on this device.</p>
+    <form method="post" action="/tenants/@Model.Slug/endsession" asp-antiforgery="true">
+        @foreach (var parameter in Model.ForwardedParameters)
+        {
+            <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
+        }
+        <button type="submit" name="confirm" value="true">Sign out</button>
+        <button type="submit" name="cancel" value="true">Cancel</button>
+    </form>
+}
