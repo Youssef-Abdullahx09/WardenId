@@ -1,0 +1,11 @@
+namespace WardenId.Protocol.Domain.Sessions;
+
+/// <summary>Why a session ended. Persisted by name.</summary>
+public enum EndReason
+{
+    UserLogout = 1,
+    PasswordChanged = 2,
+    UserDisabled = 3,
+    UserDeleted = 4,
+    AdminEnded = 5
+}

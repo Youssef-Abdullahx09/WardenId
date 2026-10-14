@@ -2,7 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Infrastructure.OpenIddict;
+using WardenId.Protocol.Infrastructure.Persistence;
+using WardenId.Protocol.Infrastructure.Sessions;
 using WardenId.SharedKernel.Persistence;
 
 namespace WardenId.Protocol.Infrastructure;
@@ -22,9 +26,22 @@ public static class DependencyInjection
             options.UseOpenIddict();
         });
 
+        services.AddDbContext<IProtocolDbContext, ProtocolDbContext>((serviceProvider, options) =>
+        {
+            options.UseNpgsql(
+                configuration.GetConnectionString(AppConfigurationConstants.DbConnectionStringKey) ??
+                throw new InvalidOperationException(AppConfigurationConstants.NotFoundConnectionStringMessage),
+                postgresSql =>
+                    postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", ProtocolDbContext.Schema));
+            options.AddSharedInterceptors(serviceProvider);
+        });
+
         services.AddProtocolOpenIddict(configuration);
 
         services.AddSingleton<ITenantSigningCredentialsFactory, TenantSigningCredentialsFactory>();
+
+        services.AddSingleton<IValidateOptions<ProtocolSessionOptions>, ProtocolSessionOptionsValidator>();
+        services.AddOptions<ProtocolSessionOptions>().ValidateOnStart();
 
         // Production only: the test host calls AddProtocolOpenIddict directly and must not prune InMemory.
         services.Configure<ProtocolOpenIddictPruningOptions>(configuration.GetSection(ConfigurationKeys.ProtocolOpenIddict.Section));
@@ -32,6 +49,8 @@ public static class DependencyInjection
         services.AddOptions<ProtocolOpenIddictPruningOptions>().ValidateOnStart();
         services.AddScoped<IOpenIddictPruner, OpenIddictPruner>();
         services.AddHostedService<OpenIddictPruningService>();
+        services.AddScoped<ISessionPruner, SessionPruner>();
+        services.AddHostedService<SessionPruningService>();
 
         MigrateAsync(services).GetAwaiter().GetResult();
     }
@@ -39,6 +58,9 @@ public static class DependencyInjection
     private static async Task MigrateAsync(IServiceCollection services)
     {
         var provider = services.BuildServiceProvider();
+        // Order matters on a fresh database: OpenIddict's DropLegacyProtocolSchema migration drops schema
+        // "Protocol", which ProtocolDbContext then recreates.
         await provider.GetRequiredService<OpenIddictDbContext>().Database.MigrateAsync(CancellationToken.None);
+        await provider.GetRequiredService<ProtocolDbContext>().Database.MigrateAsync(CancellationToken.None);
     }
 }

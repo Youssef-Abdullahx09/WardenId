@@ -55,6 +55,7 @@
     <Project Path="tests/WardenId.Identity.Application.Tests/WardenId.Identity.Application.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Protocol.Application.Tests/WardenId.Protocol.Application.Tests.csproj" />
+    <Project Path="tests/WardenId.Protocol.Domain.Tests/WardenId.Protocol.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Protocol.Infrastructure.Tests/WardenId.Protocol.Infrastructure.Tests.csproj" />
     <Project Path="tests/WardenId.Protocol.Presentation.Tests/WardenId.Protocol.Presentation.Tests.csproj" />
     <Project Path="tests/WardenId.Tenancy.Application.Tests/WardenId.Tenancy.Application.Tests.csproj" />
