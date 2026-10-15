@@ -9,4 +9,9 @@ public static class ConfigurationKeys
         /// <summary>Development/tests only: allow OpenIddict endpoints over plain HTTP.</summary>
         public const string DisableTransportSecurityRequirement = "ProtocolOpenIddict:DisableTransportSecurityRequirement";
     }
+
+    public static class ProtocolBackchannelLogout
+    {
+        public const string Section = "ProtocolBackchannelLogout";
+    }
 }

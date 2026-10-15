@@ -1,4 +1,5 @@
 using System.Reflection;
+using DotNetCore.CAP;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -16,5 +17,18 @@ public static class DependencyInjection
         // TryAdd: tests register a FakeTimeProvider first; OpenIddict resolves the same TimeProvider.
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<UserTokenGrantFactory>();
+        services.AddSubscribers();
+    }
+
+    // CAP discovers subscribers from the service collection: an unregistered ICapSubscribe class never runs.
+    private static void AddSubscribers(
+        this IServiceCollection services)
+    {
+        services.AddScoped<ICapSubscribe, Subscribers.SessionEndedDomainEvent.Subscriber>();
+        services.AddScoped<ICapSubscribe, Subscribers.BackchannelLogoutRequested.Subscriber>();
+        services.AddScoped<ICapSubscribe, Subscribers.PasswordChangedDomainEvent.Subscriber>();
+        services.AddScoped<ICapSubscribe, Subscribers.PasswordResetDomainEvent.Subscriber>();
+        services.AddScoped<ICapSubscribe, Subscribers.UserDisabledDomainEvent.Subscriber>();
+        services.AddScoped<ICapSubscribe, Subscribers.UserSoftDeletedDomainEvent.Subscriber>();
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Abstractions;
+using WardenId.Protocol.Infrastructure.BackchannelLogout;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.Protocol.Infrastructure.Persistence;
 using WardenId.Protocol.Infrastructure.Sessions;
@@ -39,6 +40,9 @@ public static class DependencyInjection
         services.AddProtocolOpenIddict(configuration);
 
         services.AddSingleton<ITenantSigningCredentialsFactory, TenantSigningCredentialsFactory>();
+
+        // Production only (CAP + Postgres outbox); the Presentation test host never ends sessions asynchronously.
+        services.AddProtocolBackchannelLogout(configuration);
 
         services.AddSingleton<IValidateOptions<ProtocolSessionOptions>, ProtocolSessionOptionsValidator>();
         services.AddOptions<ProtocolSessionOptions>().ValidateOnStart();

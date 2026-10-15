@@ -321,6 +321,8 @@ public class TokenEndpointTests : IAsyncLifetime
         Assert.Contains(serverOptions.UserInfoEndpointUris, uri => uri.OriginalString == "userinfo");
         Assert.Equal("https://wardenid.test/tenants/acme/endsession", discovery.GetProperty("end_session_endpoint").GetString());
         Assert.Contains(serverOptions.EndSessionEndpointUris, uri => uri.OriginalString == "endsession");
+        Assert.True(discovery.GetProperty("backchannel_logout_supported").GetBoolean());
+        Assert.True(discovery.GetProperty("backchannel_logout_session_supported").GetBoolean());
     }
 
     [Fact]

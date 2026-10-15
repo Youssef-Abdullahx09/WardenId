@@ -35,6 +35,9 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
             RevocationEndpoint: $"{issuer}/revoke",
             RevocationEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post", "none"],
             UserInfoEndpoint: $"{issuer}/userinfo",
-            EndSessionEndpoint: $"{issuer}/endsession"));
+            EndSessionEndpoint: $"{issuer}/endsession",
+            BackchannelLogoutSupported: true,
+            // logout_token always carries sid (no per-client backchannel_logout_session_required flag).
+            BackchannelLogoutSessionSupported: true));
     }
 }
