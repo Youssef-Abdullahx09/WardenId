@@ -71,7 +71,8 @@ public sealed class Client : AggregateRoot
         ClientAuthenticationMethod clientAuthenticationMethod,
         bool isFirstParty,
         bool consentRequired,
-        string? description = null)
+        string? description = null,
+        ClientId? clientId = null)
     {
         if (string.IsNullOrWhiteSpace(displayName)) return Result.Fail(ClientErrors.ClientDisplayNameRequired());
 
@@ -83,7 +84,7 @@ public sealed class Client : AggregateRoot
 
         var client = new Client(
             tenantId,
-            ClientId.Generate(),
+            clientId ?? ClientId.Generate(),
             clientType,
             trimmed,
             description,

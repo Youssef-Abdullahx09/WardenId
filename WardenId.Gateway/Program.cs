@@ -56,11 +56,12 @@ if (app.Environment.IsDevelopment())
 }
 
 // Hosted services (including CAP's storage bootstrapper, which creates the "cap.published"
-// outbox table) only start here — start the host explicitly so both seeders, which publish
+// outbox table) only start here — start the host explicitly so the seeders, which publish
 // domain events through CAP, run after that table exists rather than racing it.
 await app.StartAsync(CancellationToken.None);
 
 await MasterTenantSeeder.SeedAsync(app);
 await MasterAdminSeeder.SeedAsync(app);
+await MasterClientSeeder.SeedAsync(app);
 
-await app.WaitForShutdownAsync(CancellationToken.None);
+await app.WaitForShutdownAsync(CancellationToken.None);

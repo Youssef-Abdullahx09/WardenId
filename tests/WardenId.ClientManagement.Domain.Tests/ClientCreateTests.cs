@@ -55,6 +55,19 @@ public class ClientCreateTests
     }
 
     [Fact]
+    public void Create_UsesTheGivenClientIdWhenProvided()
+    {
+        var clientId = ClientId.Create("warden-console").Value;
+
+        var result = Client.Create(
+            Guid.NewGuid(), ClientType.Public, "Console", GrantType.AuthorizationCode,
+            ClientAuthenticationMethod.SharedSecret, isFirstParty: true, consentRequired: false,
+            clientId: clientId);
+
+        Assert.Equal(clientId, result.Value.ClientId);
+    }
+
+    [Fact]
     public void Create_RaisesClientCreatedDomainEvent()
     {
         var result = Client.Create(

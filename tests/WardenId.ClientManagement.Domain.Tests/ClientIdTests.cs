@@ -32,4 +32,37 @@ public class ClientIdTests
 
         Assert.Equal("abc123", clientId.Value);
     }
+
+    [Theory]
+    [InlineData("warden-console")]
+    [InlineData("Admin_UI-01")]
+    public void Create_AcceptsValuesInTheAlphabet(string raw)
+    {
+        var result = ClientId.Create(raw);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(raw, result.Value.Value);
+    }
+
+    [Fact]
+    public void Create_TrimsSurroundingWhitespace()
+    {
+        var result = ClientId.Create("  warden-console  ");
+
+        Assert.Equal("warden-console", result.Value.Value);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("has space")]
+    [InlineData("warden.console")]
+    [InlineData("abcdefghijklmnopqrstuvwxyz0123456")]
+    public void Create_FailsOnEmptyOrInvalidValues(string? raw)
+    {
+        var result = ClientId.Create(raw);
+
+        Assert.True(result.IsFailed);
+    }
 }

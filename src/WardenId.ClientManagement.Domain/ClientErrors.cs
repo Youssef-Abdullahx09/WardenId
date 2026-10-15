@@ -47,6 +47,12 @@ public static class ClientErrors
     public static Error ClientDisplayNameTooLong()
         => Validation("Client display name cannot exceed 200 characters.");
 
+    public static Error ClientIdRequired()
+        => Validation("Client id is required.");
+
+    public static Error ClientIdInvalidFormat()
+        => Validation($"Client id must be at most {ClientId.Length} characters of A-Z, a-z, 0-9, '-' or '_'.");
+
     public static Error PublicClientCannotHaveSecret()
         => Validation("Public clients cannot have client secrets.");
 

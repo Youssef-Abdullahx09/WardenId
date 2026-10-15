@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using FluentResults;
 using WardenId.SharedKernel.Domain;
 
 namespace WardenId.ClientManagement.Domain;
@@ -25,6 +26,19 @@ public sealed class ClientId : ValueObject
         }
 
         return new ClientId(new string(chars));
+    }
+
+    // For operator-chosen ids (e.g. a seeded first-party client) — same alphabet and max length as generated ones.
+    public static Result<ClientId> Create(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return Result.Fail(ClientErrors.ClientIdRequired());
+
+        var candidate = raw.Trim();
+
+        if (candidate.Length > Length || candidate.Any(c => !Alphabet.Contains(c)))
+            return Result.Fail(ClientErrors.ClientIdInvalidFormat());
+
+        return Result.Ok(new ClientId(candidate));
     }
 
     public static ClientId FromTrustedSource(string value)
