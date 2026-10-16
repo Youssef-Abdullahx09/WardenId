@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -10,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using OpenIddict.EntityFrameworkCore;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Abstractions;
+using WardenId.Protocol.Infrastructure.Authentication;
 using WardenId.Protocol.Domain.Sessions;
 using WardenId.Protocol.Infrastructure;
 using WardenId.Protocol.Infrastructure.OpenIddict;
@@ -22,6 +25,7 @@ namespace WardenId.Protocol.Presentation.Tests;
 public sealed class ProtocolTestHost : IAsyncDisposable
 {
     public const string IssuerBase = "https://wardenid.test";
+    public const string AccessTokenProbePath = "/test/access-token";
 
     private ProtocolTestHost(WebApplication app, FakeDirectory directory)
     {
@@ -81,16 +85,28 @@ public sealed class ProtocolTestHost : IAsyncDisposable
         builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ProtocolTestHost).Assembly));
         builder.Services.AddSingleton<ITenantSigningCredentialsFactory, TenantSigningCredentialsFactory>();
         builder.Services.AddProtocolOpenIddict(builder.Configuration);
+        builder.Services.AddAccessTokenAuthentication();
+        builder.Services.AddAuthorization();
 
         var app = builder.Build();
         app.UseCors();
         app.UseAuthentication();
+        app.UseAuthorization();
         new Features.Token.Endpoint().MapEndpoint(app);
         new Features.Discovery.Get.Endpoint().MapEndpoint(app);
         new Features.Authorize.Endpoint().MapEndpoint(app);
         new Features.UserInfo.Endpoint().MapEndpoint(app);
         new Features.EndSession.Endpoint().MapEndpoint(app);
         app.MapRazorPages();
+        // Stands in for a REST endpoint protected by WardenId access tokens.
+        app.MapGet(AccessTokenProbePath, (ClaimsPrincipal user) => Results.Ok(new
+            {
+                sub = user.FindFirstValue("sub"),
+                tenant_id = user.FindFirstValue("tenant_id"),
+            }))
+            .RequireAuthorization(policy => policy
+                .AddAuthenticationSchemes(AccessTokenAuthenticationDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser());
 
         await app.StartAsync();
         return new ProtocolTestHost(app, directory);

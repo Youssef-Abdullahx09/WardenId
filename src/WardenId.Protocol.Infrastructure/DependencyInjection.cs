@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Abstractions;
+using WardenId.Protocol.Infrastructure.Authentication;
 using WardenId.Protocol.Infrastructure.BackchannelLogout;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.Protocol.Infrastructure.Persistence;
@@ -38,6 +39,7 @@ public static class DependencyInjection
         });
 
         services.AddProtocolOpenIddict(configuration);
+        services.AddAccessTokenAuthentication();
 
         services.AddSingleton<ITenantSigningCredentialsFactory, TenantSigningCredentialsFactory>();
 

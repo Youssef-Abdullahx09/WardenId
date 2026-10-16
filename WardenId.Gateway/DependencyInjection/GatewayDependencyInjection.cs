@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Microsoft.OpenApi;
+using WardenId.Gateway.Authorization;
 using WardenId.Gateway.Utilities;
 using WardenId.SharedKernel.Presentation;
 
@@ -20,6 +21,7 @@ public static class GatewayDependencyInjection
         services.AddSwaggerDocumentation();
         services.AddCorsConfiguration();
         services.AddAntiforgery();
+        services.AddAdminApiAuthorization(configuration);
     }
 
     private static void AddApiVersioningConfiguration(this IServiceCollection services)

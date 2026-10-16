@@ -22,15 +22,16 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors();
-// OpenIddict's server and the per-tenant session cookie (WardenId.TenantSession) plug in as authentication
-// handlers. No default authenticate scheme is configured, so context.User stays the unauthenticated
-// principal for every other endpoint.
+// WardenId access tokens are the default scheme (AdminApiAuthorization), so context.User is the caller
+// on REST endpoints. OpenIddict's server and the per-tenant session cookie (WardenId.TenantSession)
+// are named explicitly by the protocol endpoints and login pages.
 app.UseAuthentication();
 app.UseAntiforgery();
 
 // Before endpoints so every handler runs with ambient audit context set — see
-// docs/audit/PLAN.md §3.4. No API authentication scheme exists yet (RBAC/JWT auth is greenfield),
-// so context.User is the framework's default, unauthenticated ClaimsPrincipal for every request.
+// docs/audit/PLAN.md §3.4. context.User is the access token's caller when one was sent, otherwise
+// the unauthenticated principal. Roles don't exist yet (B2); the admin API allows platform admins
+// from configuration (AdminApi) and the seeded master admin.
 app.UseMiddleware<AuditContextMiddleware>();
 
 app.MapEndpoints();
