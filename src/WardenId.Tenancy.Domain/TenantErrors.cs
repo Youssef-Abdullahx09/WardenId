@@ -40,6 +40,19 @@ public static class TenantErrors
     public static Error TenantSigningKeyAlreadyAssigned()
         => Validation("Tenant already has a signing key; use a rotation operation instead.");
 
+    public static Error SigningKeyNotFound =>
+        new Error("Signing key not found.")
+            .WithMetadata(TenantErrorCodes.MetadataKey, TenantErrorCodes.NotFound);
+
+    public static Error SigningKeyNotNew()
+        => Validation("The new signing key must be active and not already belong to the tenant.");
+
+    public static Error SigningKeyActiveCannotBeRetired()
+        => Validation("The active signing key cannot be retired; rotate to a new key first.");
+
+    public static Error SigningKeyAlreadyRetired()
+        => Validation("Signing key is already retired.");
+
     public static Error TenantInvalidTransition(Status status)
         => Validation($"Transition not allowed a tenant in '{status}' status.");
 

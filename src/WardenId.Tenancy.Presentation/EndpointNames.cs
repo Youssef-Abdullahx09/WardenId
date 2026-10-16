@@ -18,4 +18,10 @@ public static class EndpointNames
         public const string Reactivate = "ReactivateTenant";
         public const string Archive = "ArchiveTenant";
     }
+
+    public static class SigningKeys
+    {
+        public const string Rotate = "RotateTenantSigningKey";
+        public const string Retire = "RetireTenantSigningKey";
+    }
 }

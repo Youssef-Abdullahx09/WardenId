@@ -18,7 +18,7 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("Tenancy")
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -84,6 +84,9 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Algorithm")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -105,9 +108,6 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                         .IsRequired()
                         .HasColumnType("bytea");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -121,8 +121,19 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<DateTimeOffset?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("RetiringSince")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("SigningKeyId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uuid");
@@ -134,7 +145,7 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                     b.HasIndex("TenantId")
                         .IsUnique()
                         .HasDatabaseName("IX_TenantSigningKeys_TenantId_ActiveUnique")
-                        .HasFilter("\"IsActive\" = true");
+                        .HasFilter("\"Status\" = 'Active'");
 
                     b.ToTable("SigningKeys", "Tenancy");
                 });

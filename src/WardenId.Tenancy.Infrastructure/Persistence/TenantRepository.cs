@@ -21,7 +21,7 @@ public sealed class TenantRepository(
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await dbContext.Tenants.Where(x => x.Id == tenantId
+        var tenant = await dbContext.Tenants.Include(t => t.SigningKeys).Where(x => x.Id == tenantId
                                                         && !x.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -40,7 +40,7 @@ public sealed class TenantRepository(
         Slug slug,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await dbContext.Tenants.Where(x => x.Slug == slug
+        var tenant = await dbContext.Tenants.Include(t => t.SigningKeys).Where(x => x.Slug == slug
                                                         && !x.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
         

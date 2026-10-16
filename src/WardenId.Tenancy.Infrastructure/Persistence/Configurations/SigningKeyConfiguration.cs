@@ -20,13 +20,26 @@ public sealed class SigningKeyConfiguration: IEntityTypeConfiguration<SigningKey
  
         builder.Property(k => k.EncryptedPrivateKey)
             .IsRequired();
+
+        builder.Property(k => k.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(k => k.ActivatedAt);
+        builder.Property(k => k.RetiringSince);
+        builder.Property(k => k.RetiredAt);
+
+        // Computed from Status; not columns.
+        builder.Ignore(k => k.IsActive);
+        builder.Ignore(k => k.IsPublished);
         
         builder.HasIndex("TenantId")
             .HasDatabaseName("IX_TenantSigningKeys_TenantId");
         
         builder.HasIndex("TenantId")
             .IsUnique()
-            .HasFilter($"\"{nameof(SigningKey.IsActive)}\" = true")
+            .HasFilter($"\"{nameof(SigningKey.Status)}\" = '{nameof(SigningKeyStatus.Active)}'")
             .HasDatabaseName("IX_TenantSigningKeys_TenantId_ActiveUnique");
     }
 }

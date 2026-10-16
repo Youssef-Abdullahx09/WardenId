@@ -29,9 +29,10 @@ public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query
 
         if (tenant is null) return Result.Fail(TenantErrors.NotFound);
 
-        // Inactive keys stay published so rotation can keep the previous key verifiable.
+        // Retiring keys stay published so tokens signed before a rotation still verify;
+        // Retired keys are withdrawn.
         var jwks = tenant.SigningKeys
-            .Where(k => !k.IsDeleted)
+            .Where(k => !k.IsDeleted && k.IsPublished)
             .Select(k => k.PublicKeyJwk)
             .ToList();
 

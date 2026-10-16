@@ -22,9 +22,29 @@ public sealed record TenantDetail(
         tenant.CreatedAt,
         tenant.SigningKeys
             .OrderByDescending(k => k.CreatedAt)
-            .Select(k => new SigningKeySummary(k.SigningKeyId, k.Algorithm, k.IsActive, k.CreatedAt))
+            .Select(k => new SigningKeySummary(
+                k.SigningKeyId,
+                k.Algorithm,
+                k.Status,
+                k.IsActive,
+                k.CreatedAt,
+                k.ActivatedAt,
+                k.RetiringSince,
+                k.RetiredAt))
             .ToArray());
 }
 
-/// <summary>Public metadata only; key material stays in Tenancy.</summary>
-public sealed record SigningKeySummary(Guid KeyId, string Algorithm, bool IsActive, DateTimeOffset CreatedAt);
+/// <summary>
+/// Public metadata only; key material stays in Tenancy. IsActive is Status == Active, kept for
+/// existing clients. RetiringSince is when the key stopped signing — retire it only once the
+/// longest token lifetime has passed since then.
+/// </summary>
+public sealed record SigningKeySummary(
+    Guid KeyId,
+    string Algorithm,
+    SigningKeyStatus Status,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset ActivatedAt,
+    DateTimeOffset? RetiringSince,
+    DateTimeOffset? RetiredAt);

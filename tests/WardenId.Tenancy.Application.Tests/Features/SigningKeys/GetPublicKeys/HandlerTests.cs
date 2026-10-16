@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using WardenId.Tenancy.Application.Features.SigningKeys.GetPublicKeys;
 using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys;
 
@@ -92,21 +91,28 @@ public class HandlerTests
     }
 
     [Fact]
-    public async Task Handle_IncludesInactiveKeys()
+    public async Task Handle_PublishesTheActiveAndRetiringKeys_ButNotRetiredOnes()
     {
-        var (tenant, key) = TenantBuilder.Create("acme", Status.Active);
+        var (tenant, first) = TenantBuilder.Create("acme", Status.Active);
+        var second = NewKey();
+        var third = NewKey();
+        Assert.True(tenant.RotateSigningKey(second).IsSuccess);
+        Assert.True(tenant.RotateSigningKey(third).IsSuccess);
+        Assert.True(tenant.RetireSigningKey(first.SigningKeyId).IsSuccess);
         await using var db = await SeedAsync(tenant);
-
-        // No domain operation deactivates a key yet (rotation is a future pass) — flip it through EF.
-        var stored = await db.Tenants.Include(t => t.SigningKeys).SingleAsync();
-        db.Entry(stored.SigningKeys.Single()).Property(nameof(SigningKey.IsActive)).CurrentValue = false;
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
 
         var result = await new Handler(db).Handle(new Query("acme"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(new[] { key.PublicKeyJwk }, result.Value.PublicKeyJwks);
+        Assert.Equal(
+            new[] { second.PublicKeyJwk, third.PublicKeyJwk }.Order(),
+            result.Value.PublicKeyJwks.Order());
+    }
+
+    private static SigningKey NewKey()
+    {
+        var keyId = Guid.NewGuid();
+        return SigningKey.CreateEs256(keyId, TenantBuilder.Jwk(keyId), [1]);
     }
 
     private static void AssertNotFound(Result<TenantPublicKeys> result)

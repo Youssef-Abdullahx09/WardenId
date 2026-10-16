@@ -28,6 +28,10 @@ public sealed class TestTenancyDbContext(DbContextOptions<TestTenancyDbContext> 
             builder.HasMany(t => t.SigningKeys).WithOne().OnDelete(DeleteBehavior.Cascade);
             builder.Navigation(t => t.SigningKeys).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
+
+        // Mirrors DbContextBase.ApplyValueGeneratedNeverOnId: a key added to a loaded tenant
+        // (rotation) carries its own Guid, so EF must insert it rather than update it.
+        modelBuilder.Entity<SigningKey>().Property(k => k.Id).ValueGeneratedNever();
     }
 
     public static TestTenancyDbContext CreateNew(string databaseName) =>
