@@ -5,6 +5,7 @@ using DotNetCore.CAP;
 using WardenId.Protocol.Application.Features.BackchannelLogout;
 using WardenId.Protocol.Domain.Sessions;
 using WardenId.SharedKernel.Domain;
+using AccountLockedOut = WardenId.Protocol.Application.Subscribers.AccountLockedOutDomainEvent;
 using BackchannelLogout = WardenId.Protocol.Application.Subscribers.BackchannelLogoutRequested;
 using IdentityEvents = WardenId.Identity.Domain.Events;
 using PasswordChanged = WardenId.Protocol.Application.Subscribers.PasswordChangedDomainEvent;
@@ -39,7 +40,7 @@ public class SubscriberContractTests
     {
         var subscriptions = Subscriptions().Values.ToList();
 
-        Assert.Equal(6, subscriptions.Count);
+        Assert.Equal(7, subscriptions.Count);
         Assert.All(subscriptions, subscription => Assert.Equal("protocol." + subscription.Name, subscription.Group));
         Assert.Equal(subscriptions.Count, subscriptions.Select(subscription => (subscription.Name, subscription.Group)).Distinct().Count());
     }
@@ -56,6 +57,7 @@ public class SubscriberContractTests
         Assert.Equal(nameof(IdentityEvents.UserSoftDeletedDomainEvent), subscriptions[typeof(UserSoftDeleted.Subscriber)].Name);
         Assert.Equal(nameof(ProtocolEvents.SessionEndedDomainEvent), subscriptions[typeof(SessionEnded.Subscriber)].Name);
         Assert.Equal(BackchannelLogoutRequested.Topic, subscriptions[typeof(BackchannelLogout.Subscriber)].Name);
+        Assert.Equal(nameof(IdentityEvents.AccountLockedOutDomainEvent), subscriptions[typeof(AccountLockedOut.Subscriber)].Name);
     }
 
     [Fact]
@@ -72,6 +74,16 @@ public class SubscriberContractTests
     }
 
     [Fact]
+    public void AccountLockedOutDomainEventJson_BindsToAccountLockedOutMessage()
+    {
+        var userId = Guid.CreateVersion7();
+        DomainEvent published = new IdentityEvents.AccountLockedOutDomainEvent(DateTimeOffset.UtcNow.AddMinutes(15));
+        published.SetAggregateId(userId);
+
+        Assert.Equal(userId, RoundTrip<AccountLockedOut.Message>(published).AggregateId);
+    }
+
+    [Fact]
     public void SessionEndedDomainEventJson_BindsToSessionEndedMessage()
     {
         var published = new ProtocolEvents.SessionEndedDomainEvent(
@@ -85,6 +97,8 @@ public class SubscriberContractTests
         Assert.Equal(published.SubjectId, received.SubjectId);
         Assert.Equal(published.Reason, received.Reason);
         Assert.Equal(published.Authorizations, received.Authorizations);
+        // The audit trail's session-end time.
+        Assert.Equal(published.OccurredOnUtc, received.OccurredOnUtc);
     }
 
     [Fact]

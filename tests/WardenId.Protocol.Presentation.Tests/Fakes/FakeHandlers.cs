@@ -14,6 +14,7 @@ using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.Signing
 using ResolveForIssuanceQuery = WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance.Query;
 using TenancyActiveSigningKey = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.ActiveSigningKey;
 using VerifySecretQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.VerifySecret.Query;
+using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Events.Record.Command;
 
 namespace WardenId.Protocol.Presentation.Tests.Fakes;
 
@@ -83,12 +84,20 @@ public sealed class AuthenticateHandler(FakeDirectory directory)
         var user = directory.Users.FirstOrDefault(u =>
             u.TenantId == request.TenantId
             && (u.Username == request.EmailOrUsername || u.Email == request.EmailOrUsername));
-        var ok = user is not null
-                 && request.Password == FakeDirectory.UserPassword
-                 && user.Status is not (UserStatus.Disabled or UserStatus.SoftDeleted or UserStatus.Locked);
-        return Task.FromResult(ok
+        // Tagged like Identity's handler, so Protocol can audit why.
+        FailureReason? failure = user switch
+        {
+            null => FailureReason.UnknownUser,
+            { Status: UserStatus.Locked } => FailureReason.Locked,
+            { Status: UserStatus.Disabled } => FailureReason.Disabled,
+            { Status: UserStatus.SoftDeleted } => FailureReason.Deleted,
+            _ when request.Password != FakeDirectory.UserPassword => FailureReason.InvalidPassword,
+            _ => null
+        };
+        return Task.FromResult(failure is null
             ? Result.Ok(new AuthenticatedUser(user!.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray()))
-            : Result.Fail<AuthenticatedUser>(new Error("Invalid credentials.")));
+            : Result.Fail<AuthenticatedUser>(
+                AuthenticationFailure.Tag(new Error("Invalid credentials."), failure.Value, user?.UserId)));
     }
 }
 
@@ -100,5 +109,14 @@ public sealed class GetForSignInHandler(FakeDirectory directory) : IRequestHandl
         return Task.FromResult(user is not null && user.Status != UserStatus.SoftDeleted
             ? Result.Ok(new SignInUser(user.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray()))
             : Result.Fail<SignInUser>(Fail.NotFound));
+    }
+}
+
+public sealed class RecordAuditEventHandler(FakeAuditLog log) : IRequestHandler<RecordAuditEventCommand, Result>
+{
+    public Task<Result> Handle(RecordAuditEventCommand request, CancellationToken cancellationToken)
+    {
+        log.Add(request);
+        return Task.FromResult(Result.Ok());
     }
 }

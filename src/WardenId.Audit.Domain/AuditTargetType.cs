@@ -29,10 +29,22 @@ public sealed class AuditTargetType : Enumeration<AuditTargetType>
     public static readonly AuditTargetType Tenant = new(1, nameof(Tenant), "tenant");
     public static readonly AuditTargetType User = new(2, nameof(User), "user");
 
+    /// <summary>A login session; the id is the OIDC sid.</summary>
+    public static readonly AuditTargetType Session = new(3, nameof(Session), "session");
+
+    /// <summary>An OAuth client; the id is its public client_id.</summary>
+    public static readonly AuditTargetType OAuthClient = new(4, nameof(OAuthClient), "oauth_client");
+
+    /// <summary>A grant's token family; the id is the OpenIddict authorization id.</summary>
+    public static readonly AuditTargetType TokenFamily = new(5, nameof(TokenFamily), "token_family");
+
     public static readonly IReadOnlyList<AuditTargetType> All =
     [
         Tenant,
-        User
+        User,
+        Session,
+        OAuthClient,
+        TokenFamily
     ];
 
     /// <summary>Resolves a catalog entry from its persisted taxonomy string — canonical deserialization only.</summary>

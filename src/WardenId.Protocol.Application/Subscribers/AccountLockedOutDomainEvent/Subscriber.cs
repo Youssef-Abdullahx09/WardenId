@@ -1,0 +1,27 @@
+using MediatR;
+using WardenId.Protocol.Domain.Sessions;
+using WardenId.SharedKernel.Application.CapPublisher;
+using EndForUserCommand = WardenId.Protocol.Application.Features.Sessions.EndForUser.Command;
+
+namespace WardenId.Protocol.Application.Subscribers.AccountLockedOutDomainEvent;
+
+/// <summary>
+/// A locked-out user loses every session, like a disabled one: the lockout means someone may be guessing the
+/// password, so sessions that are already signed in must not outlive it.
+/// </summary>
+public sealed class Subscriber(ISender sender) : ICapSubscriber<Message>
+{
+    // Group is explicit: CAP silently drops one of two subscriptions sharing (topic, group).
+    [CapSubscriber(nameof(AccountLockedOutDomainEvent), Group = "protocol." + nameof(AccountLockedOutDomainEvent))]
+    public async Task OnReceive(Message message)
+    {
+        // Every unended session of the user across tenants: Identity events carry no tenant and user ids are
+        // globally unique.
+        var result = await sender.Send(new EndForUserCommand(message.AggregateId, EndReason.AccountLocked, null));
+
+        // Throwing makes CAP retry (CapPublisher:RetryCount / RetryInterval).
+        if (result.IsFailed)
+            throw new InvalidOperationException(
+                $"Ending the sessions of user {message.AggregateId} failed: {string.Join("; ", result.Errors.Select(error => error.Message))}");
+    }
+}

@@ -87,7 +87,11 @@ public static class ProtocolOpenIddictExtensions
                        .AddEventHandler(RevokeTokenFamily.Descriptor)
                        .AddEventHandler(RecordSessionAuthorization.Descriptor)
                        .AddEventHandler(StampAuthorizationOwner.Descriptor)
-                       .AddEventHandler(InferClientIdFromHint.Descriptor);
+                       .AddEventHandler(InferClientIdFromHint.Descriptor)
+                       // Audit trail (W24): token issuance, revocation and refresh-token replay.
+                       .AddEventHandler(RecordTokenIssuance.Descriptor)
+                       .AddEventHandler(RecordTokenRevocation.Descriptor)
+                       .AddEventHandler(RecordRefreshTokenReplay.Descriptor);
 
                 // OpenIddict's authorize-time grant check rejects offline_access (no refresh permission) locally
                 // with invalid_request; the Authorize endpoint redirects invalid_scope instead (Duende-style).

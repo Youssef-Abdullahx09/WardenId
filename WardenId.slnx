@@ -4,6 +4,7 @@
     <Project Path="src/WardenId.Audit.Application/WardenId.Audit.Application.csproj" />
     <Project Path="src/WardenId.Audit.Domain/WardenId.Audit.Domain.csproj" />
     <Project Path="src/WardenId.Audit.Infrastructure/WardenId.Audit.Infrastructure.csproj" />
+    <Project Path="src/WardenId.Audit.Integration.Command/WardenId.Audit.Integration.Command.csproj" />
     <Project Path="src/WardenId.Audit.Presentation/WardenId.Audit.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.ClientManagement/">

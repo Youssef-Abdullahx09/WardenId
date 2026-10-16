@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Time.Testing;
+using WardenId.Audit.Integration.Command.Features.Events.Record;
 using WardenId.Protocol.Application.Features.BackchannelLogout;
 using WardenId.Protocol.Domain.Sessions;
 using SessionEnded = WardenId.Protocol.Application.Subscribers.SessionEndedDomainEvent;
@@ -9,15 +11,20 @@ public class SessionEndedSubscriberTests
     private static readonly Guid TenantId = Guid.NewGuid();
     private static readonly Guid Sid = Guid.NewGuid();
     private static readonly Guid SubjectId = Guid.NewGuid();
+    private static readonly DateTimeOffset EndedAt = SessionBuilder.Now.AddMinutes(-1);
 
     private static SessionEnded.Message Ended(params SessionAuthorizationSnapshot[] authorizations) =>
-        new(Sid, TenantId, SubjectId, EndReason.UserLogout, authorizations);
+        new(Sid, TenantId, SubjectId, EndReason.UserLogout, authorizations, EndedAt);
 
-    private static (SessionEnded.Subscriber Subscriber, FakeSessionAuthorizationRevoker Revoker, FakeBackchannelLogoutQueue Queue) Create()
+    private static (SessionEnded.Subscriber Subscriber, FakeSessionAuthorizationRevoker Revoker, FakeBackchannelLogoutQueue Queue) Create() =>
+        Create(new FakeAuthAuditTrail());
+
+    private static (SessionEnded.Subscriber Subscriber, FakeSessionAuthorizationRevoker Revoker, FakeBackchannelLogoutQueue Queue) Create(
+        FakeAuthAuditTrail audit)
     {
         var revoker = new FakeSessionAuthorizationRevoker();
         var queue = new FakeBackchannelLogoutQueue();
-        return (new SessionEnded.Subscriber(revoker, queue), revoker, queue);
+        return (new SessionEnded.Subscriber(revoker, queue, audit, new FakeTimeProvider(SessionBuilder.Now)), revoker, queue);
     }
 
     [Fact]
@@ -85,7 +92,7 @@ public class SessionEndedSubscriberTests
     }
 
     [Fact]
-    public async Task OnReceive_NoAuthorizations_DoesNothing()
+    public async Task OnReceive_NoAuthorizations_NeitherRevokesNorNotifies()
     {
         var (subscriber, revoker, queue) = Create();
 
@@ -105,5 +112,53 @@ public class SessionEndedSubscriberTests
             subscriber.OnReceive(Ended(new SessionAuthorizationSnapshot("a1", "web", false))));
 
         Assert.Empty(queue.Enqueued);
+    }
+
+    [Theory]
+    [InlineData(EndReason.UserLogout, OutcomeReason.UserLogout)]
+    [InlineData(EndReason.PasswordChanged, OutcomeReason.PasswordChanged)]
+    [InlineData(EndReason.UserDisabled, OutcomeReason.UserDisabled)]
+    [InlineData(EndReason.UserDeleted, OutcomeReason.UserDeleted)]
+    [InlineData(EndReason.AdminEnded, OutcomeReason.AdminEnded)]
+    [InlineData(EndReason.AccountLocked, OutcomeReason.AccountLocked)]
+    public async Task OnReceive_RecordsTheSessionEnd_WithItsReason(EndReason reason, OutcomeReason expected)
+    {
+        var audit = new FakeAuthAuditTrail();
+        var (subscriber, _, _) = Create(audit);
+
+        await subscriber.OnReceive(new SessionEnded.Message(Sid, TenantId, SubjectId, reason, [], EndedAt));
+
+        var recorded = Assert.Single(audit.Recorded);
+        Assert.Equal(SecurityEvent.SessionEnded, recorded.Event);
+        Assert.Equal(TenantId, recorded.TenantId);
+        Assert.Equal(EndedAt, recorded.OccurredAt);
+        Assert.Equal(Actor.System("protocol"), recorded.Actor);
+        Assert.Equal([Target.User(SubjectId), Target.Session(Sid)], recorded.Targets);
+        Assert.Equal(expected, recorded.Reason);
+        Assert.Equal(Sid, recorded.Session!.Sid);
+    }
+
+    [Fact]
+    public async Task OnReceive_MessageWithoutEndTime_RecordsTheReceiveTime()
+    {
+        var audit = new FakeAuthAuditTrail();
+        var (subscriber, _, _) = Create(audit);
+
+        await subscriber.OnReceive(new SessionEnded.Message(Sid, TenantId, SubjectId, EndReason.UserLogout, [], default));
+
+        Assert.Equal(SessionBuilder.Now, Assert.Single(audit.Recorded).OccurredAt);
+    }
+
+    [Fact]
+    public async Task OnReceive_RecordsAfterTheFanOut_SoARetriedMessageIsAuditedOnce()
+    {
+        var audit = new FakeAuthAuditTrail();
+        var (subscriber, revoker, _) = Create(audit);
+        revoker.Throw = new InvalidOperationException("db down");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            subscriber.OnReceive(Ended(new SessionAuthorizationSnapshot("a1", "web", false))));
+
+        Assert.Empty(audit.Recorded);
     }
 }

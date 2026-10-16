@@ -7,6 +7,7 @@
       <ProjectReference Include="..\WardenId.Identity.Integration.Command\WardenId.Identity.Integration.Command.csproj" />
       <ProjectReference Include="..\WardenId.ClientManagement.Integration.Command\WardenId.ClientManagement.Integration.Command.csproj" />
       <ProjectReference Include="..\WardenId.Tenancy.Integration.Command\WardenId.Tenancy.Integration.Command.csproj" />
+      <ProjectReference Include="..\WardenId.Audit.Integration.Command\WardenId.Audit.Integration.Command.csproj" />
     </ItemGroup>
 
     <ItemGroup>

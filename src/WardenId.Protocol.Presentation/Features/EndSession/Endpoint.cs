@@ -9,12 +9,15 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using WardenId.Audit.Integration.Command.Features.Events.Record;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Auditing;
 using WardenId.Protocol.Domain.Sessions;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Presentation;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using EndSessionCommand = WardenId.Protocol.Application.Features.Sessions.End.Command;
+using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Events.Record.Command;
 
 namespace WardenId.Protocol.Presentation.Features.EndSession;
 
@@ -43,6 +46,8 @@ public sealed class Endpoint : IEndpoint
                 [FromServices] ITenantContext tenantContext,
                 [FromServices] IAntiforgery antiforgery,
                 [FromServices] ISender sender,
+                [FromServices] IAuthAuditTrail audit,
+                [FromServices] TimeProvider timeProvider,
                 CancellationToken cancellationToken) =>
             {
                 // Null when OpenIddict didn't handle the request (e.g. mixed-case slug).
@@ -77,6 +82,18 @@ public sealed class Endpoint : IEndpoint
                         new EndSessionCommand(tenantId, session.Sid, EndReason.UserLogout, RequireExisting: false),
                         cancellationToken);
                     await httpContext.SignOutAsync(TenantSession.Scheme);
+
+                    // The user's own action; the session end itself is audited with its reason by the
+                    // SessionEndedDomainEvent subscriber. client_id is present when sent or inferred from the hint.
+                    List<Target> targets = [Target.User(session.UserId), Target.Session(session.Sid)];
+                    if (!string.IsNullOrEmpty(request.ClientId)) targets.Add(Target.Client(request.ClientId));
+                    await audit.RecordAsync(new RecordAuditEventCommand(
+                        SecurityEvent.SignedOut,
+                        tenantId,
+                        timeProvider.GetUtcNow(),
+                        Actor.User(session.UserId),
+                        targets,
+                        Session: new SessionContext(session.Sid, session.AuthTime)));
                 }
 
                 // A6: OpenIddict redirects to the validated post_logout_redirect_uri (+ state), or to RedirectUri.

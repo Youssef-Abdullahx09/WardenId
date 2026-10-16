@@ -3,6 +3,7 @@ using DotNetCore.CAP;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using WardenId.Protocol.Application.Auditing;
 using WardenId.Protocol.Application.Features.Token;
 
 namespace WardenId.Protocol.Application;
@@ -17,6 +18,7 @@ public static class DependencyInjection
         // TryAdd: tests register a FakeTimeProvider first; OpenIddict resolves the same TimeProvider.
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<UserTokenGrantFactory>();
+        services.AddScoped<IAuthAuditTrail, SenderAuthAuditTrail>();
         services.AddSubscribers();
     }
 
@@ -30,5 +32,6 @@ public static class DependencyInjection
         services.AddScoped<ICapSubscribe, Subscribers.PasswordResetDomainEvent.Subscriber>();
         services.AddScoped<ICapSubscribe, Subscribers.UserDisabledDomainEvent.Subscriber>();
         services.AddScoped<ICapSubscribe, Subscribers.UserSoftDeletedDomainEvent.Subscriber>();
+        services.AddScoped<ICapSubscribe, Subscribers.AccountLockedOutDomainEvent.Subscriber>();
     }
 }

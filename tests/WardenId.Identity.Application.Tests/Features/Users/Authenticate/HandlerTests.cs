@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Features.Users.Authenticate;
+using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
 using Command = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
+using UserStatus = WardenId.Identity.Domain.UserStatus;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.Authenticate;
 
@@ -142,5 +144,101 @@ public class HandlerTests
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
         Assert.True(result.IsFailed);
+    }
+
+    // The failure detail is for Protocol's audit trail only; the error the caller shows stays the same.
+    private static (FailureReason Reason, Guid? UserId) FailureOf(IResultBase result)
+    {
+        Assert.True(result.IsFailed);
+        var failure = AuthenticationFailure.Read(result.Errors);
+        Assert.NotNull(failure);
+        return failure.Value;
+    }
+
+    [Fact]
+    public async Task Failure_UnknownAccount_IsTaggedUnknownUser_WithoutUserId()
+    {
+        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(Guid.NewGuid(), "unknown@example.com", "whatever"), CancellationToken.None);
+
+        Assert.Equal((FailureReason.UnknownUser, (Guid?)null), FailureOf(result));
+        Assert.Equal(UserErrorCodes.InvalidCredentials, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+    }
+
+    [Fact]
+    public async Task Failure_InvalidUsernameFormat_IsTaggedUnknownUser()
+    {
+        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(Guid.NewGuid(), "!", "whatever"), CancellationToken.None);
+
+        Assert.Equal((FailureReason.UnknownUser, (Guid?)null), FailureOf(result));
+    }
+
+    [Fact]
+    public async Task Failure_WrongPassword_IsTaggedInvalidPassword_WithUserId()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", "wrong-password"), CancellationToken.None);
+
+        Assert.Equal((FailureReason.InvalidPassword, (Guid?)user.Id), FailureOf(result));
+        Assert.Equal(UserErrorCodes.InvalidCredentials, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+    }
+
+    [Fact]
+    public async Task Failure_WrongPasswordThatLocksTheAccount_IsTaggedLockedOut()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions { MaxFailedLoginAttempts = 1 }));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", "wrong-password"), CancellationToken.None);
+
+        Assert.Equal((FailureReason.LockedOut, (Guid?)user.Id), FailureOf(result));
+        Assert.Equal(UserErrorCodes.AccountLocked, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+    }
+
+    [Fact]
+    public async Task Failure_AlreadyLocked_IsTaggedLocked()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.RecordFailedLogin(1, TimeSpan.FromMinutes(15));
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.Equal((FailureReason.Locked, (Guid?)user.Id), FailureOf(result));
+    }
+
+    [Fact]
+    public async Task Failure_Disabled_IsTaggedDisabled()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.Disable("reason");
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.Equal((FailureReason.Disabled, (Guid?)user.Id), FailureOf(result));
+    }
+
+    [Fact]
+    public async Task Failure_SoftDeleted_IsTaggedDeleted()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.SoftDelete();
+        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.Equal((FailureReason.Deleted, (Guid?)user.Id), FailureOf(result));
+    }
+
+    [Fact]
+    public void Read_UntaggedErrors_IsNull()
+    {
+        Assert.Null(AuthenticationFailure.Read([new Error("boom")]));
     }
 }

@@ -7,5 +7,8 @@ public enum EndReason
     PasswordChanged = 2,
     UserDisabled = 3,
     UserDeleted = 4,
-    AdminEnded = 5
+    AdminEnded = 5,
+
+    /// <summary>Identity locked the account after too many failed sign-ins.</summary>
+    AccountLocked = 6
 }

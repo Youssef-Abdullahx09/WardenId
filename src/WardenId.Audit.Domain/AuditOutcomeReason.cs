@@ -34,11 +34,62 @@ public sealed class AuditOutcomeReason : Enumeration<AuditOutcomeReason>
 
     public static readonly AuditOutcomeReason PolicyDenied = new(3, nameof(PolicyDenied), "policy_denied");
 
+    public static readonly AuditOutcomeReason InvalidPassword = new(4, nameof(InvalidPassword), "invalid_password");
+
+    /// <summary>Wrong password, and this attempt locked the account.</summary>
+    public static readonly AuditOutcomeReason AccountLockedOut = new(5, nameof(AccountLockedOut), "account_locked_out");
+
+    /// <summary>Rejected because the account is locked; also the end reason of sessions ended by a lockout.</summary>
+    public static readonly AuditOutcomeReason AccountLocked = new(6, nameof(AccountLocked), "account_locked");
+
+    public static readonly AuditOutcomeReason AccountDisabled = new(7, nameof(AccountDisabled), "account_disabled");
+
+    public static readonly AuditOutcomeReason AccountDeleted = new(8, nameof(AccountDeleted), "account_deleted");
+
+    /// <summary>The credential check failed for a reason the identity store did not classify.</summary>
+    public static readonly AuditOutcomeReason InvalidCredentials = new(9, nameof(InvalidCredentials), "invalid_credentials");
+
+    public static readonly AuditOutcomeReason EmailNotVerified = new(10, nameof(EmailNotVerified), "email_not_verified");
+
+    public static readonly AuditOutcomeReason PasswordResetRequired = new(11, nameof(PasswordResetRequired), "password_reset_required");
+
+    public static readonly AuditOutcomeReason TermsNotAccepted = new(12, nameof(TermsNotAccepted), "terms_not_accepted");
+
+    public static readonly AuditOutcomeReason MfaEnrollmentRequired = new(13, nameof(MfaEnrollmentRequired), "mfa_enrollment_required");
+
+    public static readonly AuditOutcomeReason PendingVerification = new(14, nameof(PendingVerification), "pending_verification");
+
+    public static readonly AuditOutcomeReason UserLogout = new(15, nameof(UserLogout), "user_logout");
+
+    public static readonly AuditOutcomeReason PasswordChanged = new(16, nameof(PasswordChanged), "password_changed");
+
+    public static readonly AuditOutcomeReason UserDisabled = new(17, nameof(UserDisabled), "user_disabled");
+
+    public static readonly AuditOutcomeReason UserDeleted = new(18, nameof(UserDeleted), "user_deleted");
+
+    public static readonly AuditOutcomeReason AdminEnded = new(19, nameof(AdminEnded), "admin_ended");
+
     public static readonly IReadOnlyList<AuditOutcomeReason> All =
     [
         InvalidGrant,
         UnknownUsername,
-        PolicyDenied
+        PolicyDenied,
+        InvalidPassword,
+        AccountLockedOut,
+        AccountLocked,
+        AccountDisabled,
+        AccountDeleted,
+        InvalidCredentials,
+        EmailNotVerified,
+        PasswordResetRequired,
+        TermsNotAccepted,
+        MfaEnrollmentRequired,
+        PendingVerification,
+        UserLogout,
+        PasswordChanged,
+        UserDisabled,
+        UserDeleted,
+        AdminEnded
     ];
 
     /// <summary>Resolves a catalog entry from its persisted taxonomy string — canonical deserialization only.</summary>

@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using WardenId.Audit.Integration.Command.Features.Events.Record;
 using WardenId.Protocol.Application.Features.Sessions.Start;
+using Command = WardenId.Protocol.Application.Features.Sessions.Start.Command;
 
 namespace WardenId.Protocol.Application.Tests.Features.Sessions.Start;
 
@@ -10,8 +12,10 @@ public class HandlerTests
     private static readonly Guid TenantId = Guid.NewGuid();
     private static readonly Guid UserId = Guid.NewGuid();
 
-    private static Handler CreateHandler(TestProtocolDbContext db, TimeProvider clock, TimeSpan absoluteLifetime) =>
-        new(db, clock, Options.Create(new ProtocolSessionOptions { AbsoluteLifetime = absoluteLifetime }));
+    private static Handler CreateHandler(
+        TestProtocolDbContext db, TimeProvider clock, TimeSpan absoluteLifetime, FakeAuthAuditTrail? audit = null) =>
+        new(db, clock, Options.Create(new ProtocolSessionOptions { AbsoluteLifetime = absoluteLifetime }),
+            audit ?? new FakeAuthAuditTrail());
 
     [Fact]
     public async Task Start_PersistsLiveSession_WithAbsoluteExpiry()
@@ -57,5 +61,38 @@ public class HandlerTests
         Assert.True(result.IsFailed);
         Assert.Equal(ProtocolErrorCodes.Validation, result.Errors[0].Metadata[ProtocolErrorCodes.MetadataKey]);
         Assert.Empty(db.Sessions);
+    }
+
+    [Fact]
+    public async Task Start_RecordsTheInteractiveSignIn_WithSidAuthTimeAndPasswordAmr()
+    {
+        await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());
+        var audit = new FakeAuthAuditTrail();
+        var handler = CreateHandler(db, new FakeTimeProvider(SessionBuilder.Now), TimeSpan.FromHours(12), audit);
+
+        var result = await handler.Handle(new Command(TenantId, UserId), CancellationToken.None);
+
+        var recorded = Assert.Single(audit.Recorded);
+        Assert.Equal(SecurityEvent.SessionStarted, recorded.Event);
+        Assert.Equal(TenantId, recorded.TenantId);
+        Assert.Equal(SessionBuilder.Now, recorded.OccurredAt);
+        Assert.Equal(Actor.User(UserId), recorded.Actor);
+        Assert.Equal([Target.User(UserId), Target.Session(result.Value.Sid)], recorded.Targets);
+        Assert.Null(recorded.Reason);
+        Assert.Equal(result.Value.Sid, recorded.Session!.Sid);
+        Assert.Equal(SessionBuilder.Now, recorded.Session.AuthTime);
+        Assert.Equal(["pwd"], recorded.Session.Amr);
+    }
+
+    [Fact]
+    public async Task Start_Failure_RecordsNothing()
+    {
+        await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());
+        var audit = new FakeAuthAuditTrail();
+        var handler = CreateHandler(db, new FakeTimeProvider(SessionBuilder.Now), TimeSpan.Zero, audit);
+
+        await handler.Handle(new Command(TenantId, UserId), CancellationToken.None);
+
+        Assert.Empty(audit.Recorded);
     }
 }

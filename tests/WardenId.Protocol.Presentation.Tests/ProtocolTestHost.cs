@@ -29,15 +29,19 @@ public sealed class ProtocolTestHost : IAsyncDisposable
     public const string IssuerBase = "https://wardenid.test";
     public const string AccessTokenProbePath = "/test/access-token";
 
-    private ProtocolTestHost(WebApplication app, FakeDirectory directory)
+    private ProtocolTestHost(WebApplication app, FakeDirectory directory, FakeAuditLog auditLog)
     {
         App = app;
         Directory = directory;
+        AuditLog = auditLog;
         Client = app.GetTestClient();
     }
 
     public WebApplication App { get; }
     public FakeDirectory Directory { get; }
+
+    /// <summary>What Protocol sent to the Audit module (a fake handler for its Record command).</summary>
+    public FakeAuditLog AuditLog { get; }
     public HttpClient Client { get; }
 
     /// <summary>A cookie-carrying "browser" over https (the session cookie is Secure).</summary>
@@ -64,6 +68,8 @@ public sealed class ProtocolTestHost : IAsyncDisposable
 
         var directory = new FakeDirectory();
         builder.Services.AddSingleton(directory);
+        var auditLog = new FakeAuditLog();
+        builder.Services.AddSingleton(auditLog);
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
 
         var databaseName = "openiddict-" + Guid.NewGuid();
@@ -113,7 +119,7 @@ public sealed class ProtocolTestHost : IAsyncDisposable
                 .RequireAuthenticatedUser());
 
         await app.StartAsync();
-        return new ProtocolTestHost(app, directory);
+        return new ProtocolTestHost(app, directory, auditLog);
     }
 
     /// <summary>Sends through the app's mediator in a fresh scope (real Protocol handlers, fake directory).</summary>

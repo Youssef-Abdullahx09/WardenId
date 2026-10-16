@@ -4,6 +4,8 @@ using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Domain;
 using AuthenticatedUser = WardenId.Identity.Integration.Command.Features.Users.Authenticate.AuthenticatedUser;
+using AuthenticationFailure = WardenId.Identity.Integration.Command.Features.Users.Authenticate.AuthenticationFailure;
+using FailureReason = WardenId.Identity.Integration.Command.Features.Users.Authenticate.FailureReason;
 using Command = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
 
 namespace WardenId.Identity.Application.Features.Users.Authenticate;
@@ -28,13 +30,13 @@ public sealed class Handler(
         if (userResult.IsFailed)
         {
             passwordHasher.Verify(request.Password, DummyPasswordHash);
-            return Result.Fail(UserErrors.InvalidCredentials());
+            return Fail(UserErrors.InvalidCredentials(), FailureReason.UnknownUser, null);
         }
 
         var user = userResult.Value;
 
         if (user.Status == UserStatus.Locked && user.Lockout.LockedUntilUtc is { } lockedUntil && lockedUntil > DateTimeOffset.UtcNow)
-            return Result.Fail(UserErrors.AccountLocked(lockedUntil));
+            return Fail(UserErrors.AccountLocked(lockedUntil), FailureReason.Locked, user.Id);
 
         // Disabled/soft-deleted accounts must never authenticate, regardless of password
         // correctness — checked before the password verify so the response (incl. timing)
@@ -42,7 +44,10 @@ public sealed class Handler(
         if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
         {
             passwordHasher.Verify(request.Password, DummyPasswordHash);
-            return Result.Fail(UserErrors.InvalidCredentials());
+            return Fail(
+                UserErrors.InvalidCredentials(),
+                user.Status == UserStatus.Disabled ? FailureReason.Disabled : FailureReason.Deleted,
+                user.Id);
         }
 
         if (user.Credential is null || !passwordHasher.Verify(request.Password, user.Credential.Hash))
@@ -53,8 +58,8 @@ public sealed class Handler(
             await repository.UpdateAsync(user, user.Id, cancellationToken);
 
             return user.Status == UserStatus.Locked && user.Lockout.LockedUntilUtc is { } newLockedUntil
-                ? Result.Fail(UserErrors.AccountLocked(newLockedUntil))
-                : Result.Fail(UserErrors.InvalidCredentials());
+                ? Fail(UserErrors.AccountLocked(newLockedUntil), FailureReason.LockedOut, user.Id)
+                : Fail(UserErrors.InvalidCredentials(), FailureReason.InvalidPassword, user.Id);
         }
 
         if (user.Status == UserStatus.Locked)
@@ -79,6 +84,10 @@ public sealed class Handler(
             ContractMapping.MapStatus(user.Status),
             user.PendingActions.Select(ContractMapping.MapRequiredAction).ToArray()));
     }
+
+    // The tag is for the caller's audit trail; the error itself (message, code) is unchanged.
+    private static Result<AuthenticatedUser> Fail(Error error, FailureReason reason, Guid? userId) =>
+        Result.Fail(AuthenticationFailure.Tag(error, reason, userId));
 
     private async Task<Result<User>> LookupByUsernameAsync(Command request, CancellationToken cancellationToken)
     {

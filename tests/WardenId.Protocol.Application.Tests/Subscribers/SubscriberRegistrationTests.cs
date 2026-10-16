@@ -18,7 +18,7 @@ public class SubscriberRegistrationTests
             .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(ICapSubscribe).IsAssignableFrom(type))
             .ToList();
 
-        Assert.Equal(6, subscriberTypes.Count);
+        Assert.Equal(7, subscriberTypes.Count);
         Assert.All(subscriberTypes, type =>
             Assert.Contains(services, descriptor =>
                 descriptor.ServiceType == typeof(ICapSubscribe)

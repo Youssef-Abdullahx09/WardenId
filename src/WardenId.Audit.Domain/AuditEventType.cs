@@ -44,6 +44,31 @@ public sealed class AuditEventType : Enumeration<AuditEventType>
     public static readonly AuditEventType AdminEntityDelete =
         new(6, nameof(AdminEntityDelete), "admin.entity.delete");
 
+    /// <summary>RP-initiated logout (OIDC end session) by the signed-in user.</summary>
+    public static readonly AuditEventType UserLogout =
+        new(7, nameof(UserLogout), "user.logout");
+
+    /// <summary>A login session ended, for any reason (logout, password change, disable, lockout, admin); the reason is the outcome reason.</summary>
+    public static readonly AuditEventType UserSessionEnd =
+        new(8, nameof(UserSessionEnd), "user.session.end");
+
+    public static readonly AuditEventType TokenIssueAuthorizationCode =
+        new(9, nameof(TokenIssueAuthorizationCode), "token.issue.authorizationcode");
+
+    public static readonly AuditEventType TokenIssueRefreshToken =
+        new(10, nameof(TokenIssueRefreshToken), "token.issue.refreshtoken");
+
+    public static readonly AuditEventType TokenIssueClientCredentials =
+        new(11, nameof(TokenIssueClientCredentials), "token.issue.clientcredentials");
+
+    /// <summary>RFC 7009 revocation of a token (a refresh token's whole family with it).</summary>
+    public static readonly AuditEventType TokenRevoke =
+        new(12, nameof(TokenRevoke), "token.revoke");
+
+    /// <summary>An already-redeemed refresh token was presented again; its family was revoked.</summary>
+    public static readonly AuditEventType TokenRefreshReplay =
+        new(13, nameof(TokenRefreshReplay), "token.refresh.replay");
+
     public static readonly IReadOnlyList<AuditEventType> All =
     [
         UserSessionStart,
@@ -51,7 +76,14 @@ public sealed class AuditEventType : Enumeration<AuditEventType>
         AdminTenantSuspend,
         AdminEntityCreate,
         AdminEntityUpdate,
-        AdminEntityDelete
+        AdminEntityDelete,
+        UserLogout,
+        UserSessionEnd,
+        TokenIssueAuthorizationCode,
+        TokenIssueRefreshToken,
+        TokenIssueClientCredentials,
+        TokenRevoke,
+        TokenRefreshReplay
     ];
 
     /// <summary>Resolves a catalog entry from its persisted taxonomy string — canonical deserialization only.</summary>

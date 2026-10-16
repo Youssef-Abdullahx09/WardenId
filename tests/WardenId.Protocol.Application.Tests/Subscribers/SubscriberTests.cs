@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using WardenId.Protocol.Application.Features.BackchannelLogout;
 using WardenId.Protocol.Domain.Sessions;
+using AccountLockedOut = WardenId.Protocol.Application.Subscribers.AccountLockedOutDomainEvent;
 using BackchannelLogout = WardenId.Protocol.Application.Subscribers.BackchannelLogoutRequested;
 using DeliverCommand = WardenId.Protocol.Application.Features.BackchannelLogout.Deliver.Command;
 using EndForUserCommand = WardenId.Protocol.Application.Features.Sessions.EndForUser.Command;
@@ -94,6 +95,26 @@ public class SubscriberTests
         await new UserSoftDeleted.Subscriber(sender).OnReceive(new UserSoftDeleted.Message(userId));
 
         Assert.Equal(new EndForUserCommand(userId, EndReason.UserDeleted, null), Assert.Single(sender.Sent));
+    }
+
+    [Fact]
+    public async Task AccountLockedOut_EndsAllUserSessions_AsAccountLocked()
+    {
+        var sender = EndForUserSender();
+        var userId = Guid.NewGuid();
+
+        await new AccountLockedOut.Subscriber(sender).OnReceive(new AccountLockedOut.Message(userId));
+
+        Assert.Equal(new EndForUserCommand(userId, EndReason.AccountLocked, null), Assert.Single(sender.Sent));
+    }
+
+    [Fact]
+    public async Task AccountLockedOut_Throws_WhenEndForUserFails_SoCapRetries()
+    {
+        var sender = new StubSender().Returns<EndForUserCommand, Result>(Result.Fail("db down"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new AccountLockedOut.Subscriber(sender).OnReceive(new AccountLockedOut.Message(Guid.NewGuid())));
     }
 
     [Fact]
