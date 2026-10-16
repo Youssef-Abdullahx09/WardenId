@@ -21,4 +21,9 @@ public static class EndpointNames
         public const string Revoke = "RevokeUserGrant";
         public const string RevokeForUser = "RevokeUserGrants";
     }
+
+    public static class Policies
+    {
+        public const string GetTokens = "GetTokenPolicy";
+    }
 }

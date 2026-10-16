@@ -52,6 +52,7 @@
     <Project Path="tests/WardenId.Audit.Presentation.Tests/WardenId.Audit.Presentation.Tests.csproj" />
     <Project Path="tests/WardenId.ClientManagement.Application.Tests/WardenId.ClientManagement.Application.Tests.csproj" />
     <Project Path="tests/WardenId.ClientManagement.Domain.Tests/WardenId.ClientManagement.Domain.Tests.csproj" />
+    <Project Path="tests/WardenId.Gateway.Tests/WardenId.Gateway.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Application.Tests/WardenId.Identity.Application.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Domain.Tests/WardenId.Identity.Domain.Tests.csproj" />
     <Project Path="tests/WardenId.Identity.Infrastructure.Tests/WardenId.Identity.Infrastructure.Tests.csproj" />

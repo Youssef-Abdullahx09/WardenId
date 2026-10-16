@@ -2,6 +2,7 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using WardenId.Audit.Presentation;
 using WardenId.Gateway.Bootstrap;
 using WardenId.Gateway.DependencyInjection;
+using WardenId.Gateway.Health;
 using WardenId.SharedKernel.Infrastructure;
 using WardenId.SharedKernel.Presentation;
 
@@ -16,6 +17,7 @@ builder.Services.AddClientManagementModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddProtocolModule(builder.Configuration);
 builder.Services.AddGateway(builder.Configuration);
+builder.Services.AddGatewayHealthChecks(builder.Configuration);
 
 var app = builder.Build();
 
@@ -35,6 +37,9 @@ app.UseAntiforgery();
 app.UseMiddleware<AuditContextMiddleware>();
 
 app.MapEndpoints();
+
+// /health/live and /health/ready: anonymous, outside /api and Swagger (WardenId.Gateway/Health).
+app.MapGatewayHealthChecks();
 
 // Protocol login pages (Razor class library in WardenId.Protocol.Presentation).
 app.MapRazorPages();

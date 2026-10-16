@@ -33,4 +33,9 @@ public static class EndpointNames
         public const string VerifyEmail = "VerifyUserEmail";
         public const string VerifyMfaFactor = "VerifyUserMfaFactor";
     }
+
+    public static class Policies
+    {
+        public const string GetIdentity = "GetIdentityPolicy";
+    }
 }
