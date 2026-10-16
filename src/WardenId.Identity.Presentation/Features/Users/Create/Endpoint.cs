@@ -1,0 +1,50 @@
+using Asp.Versioning;
+using Asp.Versioning.Builder;
+using MediatR;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using WardenId.SharedKernel.Presentation;
+
+namespace WardenId.Identity.Presentation.Features.Users.Create;
+
+public sealed class Endpoint : IEndpoint
+{
+    public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
+    {
+        var apiVersionSet = app.NewApiVersionSet("Users")
+            .HasApiVersion(new ApiVersion(1))
+            .ReportApiVersions()
+            .Build();
+
+        return app.MapPost("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users", async (
+                [FromRoute] Guid tenantId,
+                [FromBody] Request request,
+                [FromServices] ISender sender,
+                [FromServices] ICurrentUser currentUser,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(request.ToCommand(tenantId, currentUser.UserId), cancellationToken);
+
+                return result.IsSuccess
+                    ? Results.Created(
+                        $"/api/v1/admin/tenants/{tenantId}/users/{result.Value.UserId}",
+                        new Response(result.Value.UserId))
+                    : result.HandleApiFailure();
+            })
+            .WithApiVersionSet(apiVersionSet)
+            .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.Create)
+            .RequireAuthorization()
+            .WithTags("Identity - Users")
+            .WithSummary("Create a user")
+            .WithDescription(
+                "Creates a user with a temporary password, checked against the password policy. The user still " +
+                "verifies their email (a code is sent), and by default must choose a new password at first sign-in.")
+            .Produces<Response>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+    }
+}

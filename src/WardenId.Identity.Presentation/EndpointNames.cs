@@ -16,6 +16,7 @@ public static class EndpointNames
         public const string Get = "GetUser";
         public const string List = "ListUsers";
         public const string Register = "RegisterUser";
+        public const string Create = "CreateUser";
         public const string RequestEmailVerification = "RequestUserEmailVerification";
         public const string RequestPasswordReset = "RequestUserPasswordReset";
         public const string AddRequiredAction = "AddUserRequiredAction";
