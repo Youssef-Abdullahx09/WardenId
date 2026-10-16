@@ -2,6 +2,7 @@ using FluentResults;
 using Microsoft.EntityFrameworkCore;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Domain;
+using WardenId.SharedKernel.Domain;
 
 namespace WardenId.Identity.Infrastructure.Persistence;
 
@@ -96,17 +97,27 @@ public sealed class UserRepository(
 
     // The unique (TenantId, Email) and (TenantId, Username) indexes include soft-deleted rows,
     // so no other user can have taken this user's email or username in the meantime.
-    // Only the user row is undeleted. Its child rows (credential, MFA factors, ...) were
-    // soft-deleted with it by the cascade, but children are always loaded through the user
-    // with no IsDeleted filter, so their flag changes nothing and is left as it is.
+    // The child rows (credential, MFA factors, ...) were soft-deleted with the user by the
+    // cascade, and are undeleted with it. Children the user dropped earlier are not among them:
+    // IdentityDbContext deletes those rows outright.
     public async Task RestoreAsync(
         User user,
         Guid userId,
         CancellationToken cancellationToken = default)
     {
         user.MarkAsRestored();
+        foreach (var child in ChildrenOf(user).Where(c => c.IsDeleted)) child.MarkAsRestored();
         await dbContext.SaveChangesAsync(userId, cancellationToken);
     }
+
+    private static IEnumerable<Entity> ChildrenOf(User user) =>
+        new Entity?[] { user.Credential }.OfType<Entity>()
+            .Concat(user.MfaFactors)
+            .Concat(user.RecoveryCodes)
+            .Concat(user.Attributes)
+            .Concat(user.PasswordHistory)
+            .Concat(user.EmailVerificationTokens)
+            .Concat(user.PasswordResetTokens);
 
     private IQueryable<User> Query() =>
         dbContext.Users

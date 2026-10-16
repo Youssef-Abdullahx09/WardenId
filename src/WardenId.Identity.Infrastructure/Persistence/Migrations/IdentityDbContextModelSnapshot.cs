@@ -18,7 +18,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("Identity")
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -59,7 +59,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -112,7 +112,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("LastModificationById")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("VerifiedAtUtc")
@@ -168,7 +168,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("SetAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -219,7 +219,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("SetAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -267,7 +267,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -312,7 +312,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("UsedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -419,7 +419,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("LastModificationById")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Value")
@@ -445,8 +445,9 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Channel")
-                        .HasColumnType("integer");
+                    b.Property<string>("Channel")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<byte[]>("LeafHash")
                         .IsRequired()
@@ -481,7 +482,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.Identity.Domain.User", null)
                         .WithMany("EmailVerificationTokens")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.Identity.Domain.MfaFactor", b =>
@@ -489,7 +491,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.Identity.Domain.User", null)
                         .WithMany("MfaFactors")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.Identity.Domain.PasswordCredential", b =>
@@ -497,7 +500,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.Identity.Domain.User", null)
                         .WithOne("Credential")
                         .HasForeignKey("WardenId.Identity.Domain.PasswordCredential", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.Identity.Domain.PasswordHistoryEntry", b =>
@@ -505,7 +509,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.Identity.Domain.User", null)
                         .WithMany("PasswordHistory")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.Identity.Domain.PasswordResetToken", b =>
@@ -513,7 +518,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.Identity.Domain.User", null)
                         .WithMany("PasswordResetTokens")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.Identity.Domain.RecoveryCode", b =>
@@ -521,7 +527,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.Identity.Domain.User", null)
                         .WithMany("RecoveryCodes")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.Identity.Domain.User", b =>
@@ -556,7 +563,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.Identity.Domain.User", null)
                         .WithMany("Attributes")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.Identity.Domain.User", b =>

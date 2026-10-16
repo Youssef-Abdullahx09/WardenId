@@ -49,36 +49,49 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasOne(u => u.Credential)
             .WithOne()
-            .HasForeignKey<PasswordCredential>("UserId")
+            .HasForeignKey<PasswordCredential>(SchemaConsts.UserForeignKey)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(u => u.MfaFactors)
             .WithOne()
+            .HasForeignKey(SchemaConsts.UserForeignKey)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(u => u.MfaFactors).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(u => u.RecoveryCodes)
             .WithOne()
+            .HasForeignKey(SchemaConsts.UserForeignKey)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(u => u.RecoveryCodes).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(u => u.Attributes)
             .WithOne()
+            .HasForeignKey(SchemaConsts.UserForeignKey)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(u => u.Attributes).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(u => u.PasswordHistory)
             .WithOne()
+            .HasForeignKey(SchemaConsts.UserForeignKey)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(u => u.PasswordHistory).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(u => u.EmailVerificationTokens)
             .WithOne()
+            .HasForeignKey(SchemaConsts.UserForeignKey)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(u => u.EmailVerificationTokens).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(u => u.PasswordResetTokens)
             .WithOne()
+            .HasForeignKey(SchemaConsts.UserForeignKey)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(u => u.PasswordResetTokens).UsePropertyAccessMode(PropertyAccessMode.Field);
 

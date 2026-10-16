@@ -10,4 +10,7 @@ public static class SchemaConsts
     public const string UserAttributesTable = "UserAttributes";
     public const string EmailVerificationTokensTable = "EmailVerificationTokens";
     public const string PasswordResetTokensTable = "PasswordResetTokens";
+
+    // The shadow foreign key every child table of Users has.
+    public const string UserForeignKey = "UserId";
 }

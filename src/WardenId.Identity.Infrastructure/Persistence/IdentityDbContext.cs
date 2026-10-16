@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Domain;
+using WardenId.SharedKernel.Domain;
 using WardenId.SharedKernel.Persistence;
 using WardenId.SharedKernel.Persistence.Audit;
 
@@ -27,5 +29,18 @@ public sealed class IdentityDbContext(
         modelBuilder.Entity<AuditEventRecord>().ToTable("events", "audit", t => t.ExcludeFromMigrations());
 
         base.OnModelCreating(modelBuilder);
+    }
+
+    // A child row is kept, soft-deleted, only when it goes with its user (the cascade of the
+    // user's soft delete), so that a restore brings it back. A child the user dropped (a revoked
+    // MFA factor, cleared recovery codes, a replaced credential, history beyond the policy's
+    // count) is deleted: children load with no IsDeleted filter, so a kept row would load again,
+    // and the secrets it holds have no further use. The domain events record those changes.
+    protected override bool KeepsDeletedRow(EntityEntry<Entity> entry)
+    {
+        if (entry.Metadata.FindProperty(SchemaConsts.UserForeignKey) is null) return true;
+
+        var ownerId = (Guid)entry.Property(SchemaConsts.UserForeignKey).OriginalValue!;
+        return ChangeTracker.Entries<User>().Any(u => u.Entity.Id == ownerId && u.Entity.IsDeleted);
     }
 }
