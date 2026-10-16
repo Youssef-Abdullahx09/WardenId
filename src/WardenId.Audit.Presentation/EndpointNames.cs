@@ -12,6 +12,11 @@ public static class EndpointNames
         public const string List = "ListCheckpointKeys";
     }
 
+    public static class Events
+    {
+        public const string List = "ListAuditEvents";
+    }
+
     public static class Proofs
     {
         public const string Consistency = "GetConsistencyProof";
