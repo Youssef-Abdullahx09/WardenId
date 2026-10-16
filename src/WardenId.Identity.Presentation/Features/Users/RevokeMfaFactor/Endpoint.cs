@@ -25,12 +25,11 @@ public sealed class Endpoint : IEndpoint
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromRoute] Guid factorId,
-                [FromQuery] bool targetUserIsAdmin,
                 [FromServices] ISender sender,
                 [FromServices] ICurrentUser currentUser,
                 CancellationToken cancellationToken) =>
             {
-                var command = new Command(tenantId, userId, factorId, currentUser.UserId, targetUserIsAdmin);
+                var command = new Command(tenantId, userId, factorId, currentUser.UserId);
                 var result = await sender.Send(command, cancellationToken);
 
                 return result.IsSuccess ? Results.NoContent() : result.HandleApiFailure();
@@ -41,7 +40,7 @@ public sealed class Endpoint : IEndpoint
             .RequireAuthorization()
             .WithTags("Identity - Users")
             .WithSummary("Revoke an MFA factor")
-            .WithDescription("Revokes an enrolled MFA factor. `targetUserIsAdmin` describes the user being revoked (not the caller) — pass true if MFA is required for admins and this is their last enabled factor. No roles system exists yet, so this is caller-supplied.")
+            .WithDescription("Revokes an enrolled MFA factor. When the MFA policy is Required or RequiredForAdmins, the user's last enabled factor can't be revoked (400); WardenId has no roles, so RequiredForAdmins applies to every user.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)

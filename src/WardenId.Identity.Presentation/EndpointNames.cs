@@ -26,6 +26,7 @@ public static class EndpointNames
         public const string ResetPassword = "ResetUserPassword";
         public const string RevokeMfaFactor = "RevokeUserMfaFactor";
         public const string SetAttribute = "SetUserAttribute";
+        public const string RemoveAttribute = "RemoveUserAttribute";
         public const string Delete = "DeleteUser";
         public const string Restore = "RestoreUser";
         public const string Unlock = "UnlockUser";

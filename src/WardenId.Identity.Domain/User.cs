@@ -227,12 +227,12 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         return Result.Ok();
     }
 
-    public Result RevokeMfaFactor(Guid factorId, MfaPolicy policy, bool userIsAdmin)
+    public Result RevokeMfaFactor(Guid factorId, MfaPolicy policy)
     {
         var factor = _mfaFactors.FirstOrDefault(f => f.Id == factorId);
         if (factor is null) return Result.Fail(UserErrors.MfaFactorNotFound());
 
-        var canRevoke = MfaPolicyEvaluator.CanRevokeFactor(policy, this, factor, userIsAdmin);
+        var canRevoke = MfaPolicyEvaluator.CanRevokeFactor(policy, this, factor);
         if (canRevoke.IsFailed) return canRevoke;
 
         _mfaFactors.Remove(factor);
@@ -280,6 +280,17 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         if (createResult.IsFailed) return createResult.ToResult();
 
         _attributes.Add(createResult.Value);
+        return Result.Ok();
+    }
+
+    /// <summary>Removes the attribute with this key (trimmed, matched exactly like <see cref="SetAttribute"/>).</summary>
+    public Result RemoveAttribute(string key)
+    {
+        var trimmedKey = key.Trim();
+        var existing = _attributes.FirstOrDefault(a => a.Key == trimmedKey);
+        if (existing is null) return Result.Fail(UserErrors.AttributeNotFound(trimmedKey));
+
+        _attributes.Remove(existing);
         return Result.Ok();
     }
 

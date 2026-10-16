@@ -66,17 +66,19 @@ public sealed class UserRepository(
         return user is null ? Result.Fail(UserErrors.NotFound) : user;
     }
 
+    // Soft-deleted users count: the unique (TenantId, Email) and (TenantId, Username) indexes
+    // include their rows, which keep the email and username for a restore.
     public Task<bool> ExistsByEmailAsync(
         Guid tenantId,
         Email email,
         CancellationToken cancellationToken = default) =>
-        dbContext.Users.AnyAsync(u => u.Email == email && u.TenantId == tenantId && !u.IsDeleted, cancellationToken);
+        dbContext.Users.AnyAsync(u => u.Email == email && u.TenantId == tenantId, cancellationToken);
 
     public Task<bool> ExistsByUsernameAsync(
         Guid tenantId,
         Username username,
         CancellationToken cancellationToken = default) =>
-        dbContext.Users.AnyAsync(u => u.Username == username && u.TenantId == tenantId && !u.IsDeleted, cancellationToken);
+        dbContext.Users.AnyAsync(u => u.Username == username && u.TenantId == tenantId, cancellationToken);
 
     public async Task UpdateAsync(
         User user,

@@ -16,8 +16,10 @@ public interface IUserRepository
 
     Task<Result<User>> GetByUsernameAsync(Guid tenantId, Username username, CancellationToken cancellationToken = default);
 
+    /// <summary>Whether any user in the tenant, soft-deleted ones included, has this email.</summary>
     Task<bool> ExistsByEmailAsync(Guid tenantId, Email email, CancellationToken cancellationToken = default);
 
+    /// <summary>Whether any user in the tenant, soft-deleted ones included, has this username.</summary>
     Task<bool> ExistsByUsernameAsync(Guid tenantId, Username username, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(User user, Guid userId, CancellationToken cancellationToken = default);

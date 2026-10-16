@@ -50,6 +50,9 @@ public static class UserErrors
     public static Error CannotRevokeLastRequiredFactor() => Validation("Cannot revoke the last MFA factor while MFA is required for this account.");
 
     public static Error AttributeKeyRequired() => Validation("Attribute key is required.");
+    public static Error AttributeNotFound(string key) =>
+        new Error($"User has no attribute '{key}'.")
+            .WithMetadata(UserErrorCodes.MetadataKey, UserErrorCodes.NotFound);
     public static Error EmailAlreadyInUse() => Validation("Email is already in use.");
     public static Error UsernameAlreadyInUse() => Validation("Username is already in use.");
     public static Error InvalidCredentials() => new Error("Invalid credentials.")

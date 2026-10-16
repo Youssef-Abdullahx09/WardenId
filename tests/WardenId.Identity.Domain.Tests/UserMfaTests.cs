@@ -37,7 +37,7 @@ public class UserMfaTests
     {
         var user = CreateUser();
 
-        var result = user.RevokeMfaFactor(Guid.NewGuid(), MfaPolicy.Create(MfaPolicyMode.Off), userIsAdmin: false);
+        var result = user.RevokeMfaFactor(Guid.NewGuid(), MfaPolicy.Create(MfaPolicyMode.Off));
 
         Assert.True(result.IsFailed);
     }
@@ -49,7 +49,7 @@ public class UserMfaTests
         var factor = MfaFactor.Create(MfaFactorType.Totp, "encrypted-secret");
         user.EnrollMfaFactor(factor, []);
 
-        var result = user.RevokeMfaFactor(factor.Id, MfaPolicy.Create(MfaPolicyMode.Optional), userIsAdmin: false);
+        var result = user.RevokeMfaFactor(factor.Id, MfaPolicy.Create(MfaPolicyMode.Optional));
 
         Assert.True(result.IsSuccess);
         Assert.Empty(user.MfaFactors);
@@ -63,7 +63,7 @@ public class UserMfaTests
         factor.Verify();
         user.EnrollMfaFactor(factor, []);
 
-        var result = user.RevokeMfaFactor(factor.Id, MfaPolicy.Create(MfaPolicyMode.Required), userIsAdmin: false);
+        var result = user.RevokeMfaFactor(factor.Id, MfaPolicy.Create(MfaPolicyMode.Required));
 
         Assert.True(result.IsFailed);
     }
@@ -75,7 +75,7 @@ public class UserMfaTests
         var factor = MfaFactor.Create(MfaFactorType.Totp, "encrypted-secret");
         user.EnrollMfaFactor(factor, []);
 
-        user.RevokeMfaFactor(factor.Id, MfaPolicy.Create(MfaPolicyMode.Off), userIsAdmin: false);
+        user.RevokeMfaFactor(factor.Id, MfaPolicy.Create(MfaPolicyMode.Off));
 
         Assert.Contains(user.DomainEvents, e => e is MfaFactorRevokedDomainEvent d && d.MfaFactorId == factor.Id);
     }
@@ -158,7 +158,7 @@ public class UserMfaTests
         var factor = MfaFactor.Create(MfaFactorType.Totp, "encrypted-secret");
         user.EnrollMfaFactor(factor, [RecoveryCode.Create("hash-1"), RecoveryCode.Create("hash-2")]);
 
-        var result = user.RevokeMfaFactor(factor.Id, MfaPolicy.Create(MfaPolicyMode.Off), userIsAdmin: false);
+        var result = user.RevokeMfaFactor(factor.Id, MfaPolicy.Create(MfaPolicyMode.Off));
 
         Assert.True(result.IsSuccess);
         Assert.Empty(user.RecoveryCodes);
@@ -175,7 +175,7 @@ public class UserMfaTests
         factor1.Verify();
         factor2.Verify();
 
-        var result = user.RevokeMfaFactor(factor1.Id, MfaPolicy.Create(MfaPolicyMode.Off), userIsAdmin: false);
+        var result = user.RevokeMfaFactor(factor1.Id, MfaPolicy.Create(MfaPolicyMode.Off));
 
         Assert.True(result.IsSuccess);
         Assert.NotEmpty(user.RecoveryCodes);

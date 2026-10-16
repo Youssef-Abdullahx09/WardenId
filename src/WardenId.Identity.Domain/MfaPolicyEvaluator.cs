@@ -4,17 +4,17 @@ namespace WardenId.Identity.Domain;
 
 public static class MfaPolicyEvaluator
 {
-    public static bool IsMfaRequired(MfaPolicy policy, bool userIsAdmin) =>
-        policy.Mode switch
-        {
-            MfaPolicyMode.Required => true,
-            MfaPolicyMode.RequiredForAdmins => userIsAdmin,
-            _ => false
-        };
+    /// <summary>
+    /// Whether the policy requires MFA of a user. WardenId has no roles, so it can't tell which
+    /// users are admins: <see cref="MfaPolicyMode.RequiredForAdmins"/> fails closed and requires
+    /// MFA of every user, so an admin's last factor is never removable.
+    /// </summary>
+    public static bool IsMfaRequired(MfaPolicy policy) =>
+        policy.Mode is MfaPolicyMode.Required or MfaPolicyMode.RequiredForAdmins;
 
-    public static Result CanRevokeFactor(MfaPolicy policy, User user, MfaFactor factor, bool userIsAdmin)
+    public static Result CanRevokeFactor(MfaPolicy policy, User user, MfaFactor factor)
     {
-        if (!IsMfaRequired(policy, userIsAdmin)) return Result.Ok();
+        if (!IsMfaRequired(policy)) return Result.Ok();
 
         var remainingEnabledFactors = user.MfaFactors.Count(f => f.Enabled && f.Id != factor.Id);
 

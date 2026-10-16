@@ -6,7 +6,9 @@ namespace WardenId.Identity.Presentation.Features.Users.List;
 public sealed record Request(
     int PageNumber,
     int PageSize,
-    UserStatus? Status)
+    UserStatus? Status,
+    string? Search,
+    string? Sort)
 {
-    public Query ToQuery(Guid tenantId) => new(tenantId, PageNumber, PageSize, Status);
+    public Query ToQuery(Guid tenantId) => new(tenantId, PageNumber, PageSize, Status, Search, Sort);
 }

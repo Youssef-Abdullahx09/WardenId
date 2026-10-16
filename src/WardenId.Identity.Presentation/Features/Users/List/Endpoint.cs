@@ -26,10 +26,12 @@ public sealed class Endpoint : IEndpoint
                 [FromQuery] int pageNumber,
                 [FromQuery] int pageSize,
                 [FromQuery] UserStatus? status,
+                [FromQuery] string? search,
+                [FromQuery] string? sort,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var request = new Request(pageNumber, pageSize, status);
+                var request = new Request(pageNumber, pageSize, status, search, sort);
                 var result = await sender.Send(request.ToQuery(tenantId), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
@@ -40,8 +42,12 @@ public sealed class Endpoint : IEndpoint
             .RequireAuthorization()
             .WithTags("Identity - Users")
             .WithSummary("List users")
-            .WithDescription("Lists users for the given tenant, paginated and optionally filtered by status.")
+            .WithDescription(
+                "Lists users for the given tenant, paginated and optionally filtered by status. `search` matches " +
+                "the start of the email or username, ignoring case. `sort` is `createdAt`, `email` or `username`, " +
+                "prefixed with `-` for descending; the default is `-createdAt` (newest first).")
             .Produces<PaginationListResponse<UserListItem>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 }

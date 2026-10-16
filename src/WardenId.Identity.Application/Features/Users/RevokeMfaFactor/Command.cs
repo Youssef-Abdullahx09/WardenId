@@ -7,5 +7,4 @@ public sealed record Command(
     Guid TenantId,
     Guid UserId,
     Guid FactorId,
-    Guid ActorUserId,
-    bool TargetUserIsAdmin) : IRequest<Result>;
+    Guid ActorUserId) : IRequest<Result>;

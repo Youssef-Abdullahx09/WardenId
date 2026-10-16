@@ -24,7 +24,7 @@ public class HandlerTests
         var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
         var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Optional }));
 
-        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, actorUserId, TargetUserIsAdmin: false), CancellationToken.None);
+        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, actorUserId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Empty(user.MfaFactors);
@@ -39,7 +39,23 @@ public class HandlerTests
         var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
         var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Required }));
 
-        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid(), TargetUserIsAdmin: false), CancellationToken.None);
+        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Single(user.MfaFactors);
+        Assert.Equal(0, repository.UpdateCallCount);
+    }
+
+    // No user is known to be an admin, so the policy can't be relaxed for "non-admins":
+    // RequiredForAdmins protects the last factor of every user, like Required.
+    [Fact]
+    public async Task Handle_Fails_WhenRevokingLastFactorAndPolicyIsRequiredForAdmins()
+    {
+        var tenantId = Guid.NewGuid();
+        var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
+        var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.RequiredForAdmins }));
+
+        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Single(user.MfaFactors);
@@ -47,30 +63,19 @@ public class HandlerTests
     }
 
     [Fact]
-    public async Task Handle_RevokesLastFactor_WhenPolicyIsRequiredForAdmins_AndTargetUserIsNotAnAdmin()
+    public async Task Handle_RevokesFactor_WhenPolicyIsRequiredForAdmins_AndAnotherEnabledFactorRemains()
     {
         var tenantId = Guid.NewGuid();
         var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
+        var second = MfaFactor.Create(MfaFactorType.Totp, "opaque-blob-2");
+        second.Verify();
+        user.EnrollMfaFactor(second, []);
         var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.RequiredForAdmins }));
 
-        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid(), TargetUserIsAdmin: false), CancellationToken.None);
+        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(user.MfaFactors);
-    }
-
-    [Fact]
-    public async Task Handle_Fails_WhenPolicyIsRequiredForAdmins_AndTargetUserIsAnAdminWithOnlyOneEnabledFactor()
-    {
-        var tenantId = Guid.NewGuid();
-        var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
-        var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.RequiredForAdmins }));
-
-        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid(), TargetUserIsAdmin: true), CancellationToken.None);
-
-        Assert.True(result.IsFailed);
-        Assert.Single(user.MfaFactors);
-        Assert.Equal(0, repository.UpdateCallCount);
+        Assert.Equal(second.Id, Assert.Single(user.MfaFactors).Id);
     }
 
     [Fact]
@@ -81,7 +86,7 @@ public class HandlerTests
         user.Disable("policy violation");
         var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Optional }));
 
-        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid(), TargetUserIsAdmin: false), CancellationToken.None);
+        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Single(user.MfaFactors);

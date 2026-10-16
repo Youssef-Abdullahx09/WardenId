@@ -53,6 +53,44 @@ public class UserAttributesAndActionsTests
     }
 
     [Fact]
+    public void RemoveAttribute_RemovesTheAttributeWithThatKey()
+    {
+        var user = CreateUser();
+        user.SetAttribute("department", "engineering", UserAttributeValueType.String);
+        user.SetAttribute("costCenter", "42", UserAttributeValueType.Number);
+
+        var result = user.RemoveAttribute("department");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("costCenter", Assert.Single(user.Attributes).Key);
+    }
+
+    [Fact]
+    public void RemoveAttribute_MatchesTheTrimmedKey()
+    {
+        var user = CreateUser();
+        user.SetAttribute("department", "engineering", UserAttributeValueType.String);
+
+        var result = user.RemoveAttribute(" department ");
+
+        Assert.True(result.IsSuccess);
+        Assert.Empty(user.Attributes);
+    }
+
+    [Fact]
+    public void RemoveAttribute_FailsWithNotFound_WhenNoAttributeHasThatKey()
+    {
+        var user = CreateUser();
+        user.SetAttribute("department", "engineering", UserAttributeValueType.String);
+
+        var result = user.RemoveAttribute("Department");
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserErrorCodes.NotFound, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+        Assert.Single(user.Attributes);
+    }
+
+    [Fact]
     public void AddRequiredAction_DedupesOnRepeatedAdd()
     {
         var user = CreateUser();

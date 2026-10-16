@@ -22,7 +22,7 @@ public sealed class Handler(
 
         var policy = MfaPolicy.Create(options.Value.MfaPolicyMode);
 
-        var revokeResult = user.RevokeMfaFactor(request.FactorId, policy, request.TargetUserIsAdmin);
+        var revokeResult = user.RevokeMfaFactor(request.FactorId, policy);
         if (revokeResult.IsFailed) return revokeResult;
 
         await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);

@@ -115,4 +115,95 @@ public class HandlerTests
 
         return (databaseName, tenantId);
     }
+
+    // Search, and sorting by email or username, compare the stored Email/Username columns, which
+    // EF InMemory can't evaluate (it sees the value objects); WardenId.Identity.Infrastructure.Tests
+    // covers them on Postgres. These tests cover what doesn't depend on the provider.
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_ReturnsEveryone_WhenSearchIsBlank(string? search)
+    {
+        var (databaseName, tenantId) = await SeedNamedUsersAsync();
+        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
+        var handler = new Handler(queryContext);
+
+        var result = await handler.Handle(new Query(tenantId, PageNumber: 1, PageSize: 10, Status: null, Search: search), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.Value.RecordsTotal);
+    }
+
+    [Fact]
+    public async Task Handle_FailsValidation_WhenSearchIsLongerThanAnEmail()
+    {
+        var (databaseName, tenantId) = await SeedNamedUsersAsync();
+        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
+        var handler = new Handler(queryContext);
+
+        var result = await handler.Handle(
+            new Query(tenantId, PageNumber: 1, PageSize: 10, Status: null, Search: new string('a', Email.MaxLength + 1)),
+            CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserErrorCodes.Validation, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+    }
+
+    [Theory]
+    [InlineData(null, new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })] // newest first
+    [InlineData("-createdAt", new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
+    [InlineData("createdAt", new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
+    [InlineData("CREATEDAT", new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
+    public async Task Handle_SortsByCreatedAt(string? sort, string[] expectedEmails)
+    {
+        var (databaseName, tenantId) = await SeedNamedUsersAsync();
+        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
+        var handler = new Handler(queryContext);
+
+        var result = await handler.Handle(new Query(tenantId, PageNumber: 1, PageSize: 10, Status: null, Sort: sort), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expectedEmails, result.Value.Data.Select(u => u.Email));
+    }
+
+    [Theory]
+    [InlineData("password")]
+    [InlineData("-")]
+    [InlineData("--email")]
+    [InlineData("email desc")]
+    [InlineData("2")]
+    public async Task Handle_FailsValidation_WhenSortIsUnknown(string sort)
+    {
+        var (databaseName, tenantId) = await SeedNamedUsersAsync();
+        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
+        var handler = new Handler(queryContext);
+
+        var result = await handler.Handle(new Query(tenantId, PageNumber: 1, PageSize: 10, Status: null, Sort: sort), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserErrorCodes.Validation, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+    }
+
+    /// <summary>Alice, then Bob, then Carol, each created a minute after the previous one.</summary>
+    private static async Task<(string DatabaseName, Guid TenantId)> SeedNamedUsersAsync()
+    {
+        var databaseName = Guid.NewGuid().ToString();
+        var tenantId = Guid.NewGuid();
+        var createdAt = DateTimeOffset.UtcNow.AddHours(-1);
+
+        using var seedContext = TestIdentityDbContext.CreateNew(databaseName);
+        foreach (var (email, username) in new[] { ("alice@example.com", "Alice.Smith"), ("bob@corp.test", "bobby"), ("carol@example.com", "c_ross") })
+        {
+            var user = TestUsers.CreatePendingVerification(tenantId, email, username);
+            user.MarkAsCreated(Guid.NewGuid());
+            seedContext.Users.Add(user);
+            seedContext.Entry(user).Property(u => u.CreatedAt).CurrentValue = createdAt;
+            createdAt = createdAt.AddMinutes(1);
+        }
+        await seedContext.SaveChangesAsync(CancellationToken.None);
+
+        return (databaseName, tenantId);
+    }
 }

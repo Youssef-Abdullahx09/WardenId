@@ -26,7 +26,7 @@ public sealed class UserRepositoryTests(PostgresFixture database)
         {
             var user = await LoadAsync(repository, userId);
             revokedId = user.MfaFactors.First().Id;
-            Assert.True(user.RevokeMfaFactor(revokedId, OptionalMfa, userIsAdmin: false).IsSuccess);
+            Assert.True(user.RevokeMfaFactor(revokedId, OptionalMfa).IsSuccess);
             await repository.UpdateAsync(user, Actor);
         });
 
@@ -48,7 +48,7 @@ public sealed class UserRepositoryTests(PostgresFixture database)
             var user = await LoadAsync(repository, userId);
             codeIds = user.RecoveryCodes.Select(c => c.Id).ToArray();
             foreach (var factorId in user.MfaFactors.Select(f => f.Id).ToList())
-                Assert.True(user.RevokeMfaFactor(factorId, OptionalMfa, userIsAdmin: false).IsSuccess);
+                Assert.True(user.RevokeMfaFactor(factorId, OptionalMfa).IsSuccess);
             await repository.UpdateAsync(user, Actor);
         });
 
@@ -132,6 +132,59 @@ public sealed class UserRepositoryTests(PostgresFixture database)
         AssertKeptEverything(restored);
         Assert.Equal(0, await CountChildRowsAsync(userId, isDeleted: true));
     }
+
+    [SkippableFact]
+    public async Task RemovingAnAttribute_DeletesItsRow_AndKeepsTheOthers()
+    {
+        Skip.If(database.SkipReason is not null, database.SkipReason);
+        var userId = await SeedUserAsync();
+        var removedId = Guid.Empty;
+
+        await InRequestAsync(async repository =>
+        {
+            var user = await LoadAsync(repository, userId);
+            user.SetAttribute("department", "finance", UserAttributeValueType.String);
+            user.SetAttribute("costCenter", "42", UserAttributeValueType.Number);
+            await repository.UpdateAsync(user, Actor);
+            removedId = user.Attributes.Single(a => a.Key == "department").Id;
+        });
+
+        await InRequestAsync(async repository =>
+        {
+            var user = await LoadAsync(repository, userId);
+            Assert.True(user.RemoveAttribute("department").IsSuccess);
+            await repository.UpdateAsync(user, Actor);
+        });
+
+        var reloaded = await InRequestAsync(repository => LoadAsync(repository, userId));
+        Assert.Equal("costCenter", Assert.Single(reloaded.Attributes).Key);
+        Assert.Equal(0, await database.CountAsync("""SELECT count(*) FROM "Identity"."UserAttributes" WHERE "Id" = $1""", removedId));
+    }
+
+    [SkippableFact]
+    public async Task ExistsByEmailAndUsername_FindSoftDeletedUsers()
+    {
+        Skip.If(database.SkipReason is not null, database.SkipReason);
+        var userId = await SeedUserAsync();
+        var (email, username) = await SoftDeleteAsync(userId);
+
+        await InRequestAsync(async repository =>
+        {
+            Assert.True(await repository.ExistsByEmailAsync(_tenantId, email));
+            Assert.True(await repository.ExistsByUsernameAsync(_tenantId, username));
+            Assert.False(await repository.ExistsByEmailAsync(Guid.NewGuid(), email));
+            Assert.False(await repository.ExistsByUsernameAsync(Guid.NewGuid(), username));
+        });
+    }
+
+    private async Task<(Email Email, Username Username)> SoftDeleteAsync(Guid userId) =>
+        await InRequestAsync(async repository =>
+        {
+            var user = await LoadAsync(repository, userId);
+            Assert.True(user.SoftDelete().IsSuccess);
+            await repository.SoftDeleteAsync(user, Actor);
+            return (user.Email, user.Username);
+        });
 
     private async Task<long> CountChildRowsAsync(Guid userId, bool isDeleted)
     {
