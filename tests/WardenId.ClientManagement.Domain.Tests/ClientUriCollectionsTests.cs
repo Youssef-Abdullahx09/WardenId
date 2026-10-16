@@ -74,4 +74,43 @@ public class ClientUriCollectionsTests
 
         Assert.Empty(client.CorsOrigins);
     }
+
+    [Fact]
+    public void ReplaceRedirectUris_ReplacesWholeSet_AndKeepsOverlap()
+    {
+        var client = CreateClient();
+        client.AddRedirectUri(RedirectUri.Create("https://app.example.com/a").Value);
+        client.AddRedirectUri(RedirectUri.Create("https://app.example.com/b").Value);
+
+        client.ReplaceRedirectUris(
+            [RedirectUri.Create("https://app.example.com/b").Value, RedirectUri.Create("https://app.example.com/c").Value]);
+
+        Assert.Equal(
+            new[] { "https://app.example.com/b", "https://app.example.com/c" },
+            client.RedirectUris.Select(u => u.Value).OrderBy(v => v, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void ReplaceRedirectUris_DedupesInput()
+    {
+        var client = CreateClient();
+
+        client.ReplaceRedirectUris(
+            [RedirectUri.Create("https://app.example.com/a").Value, RedirectUri.Create("https://app.example.com/a").Value]);
+
+        Assert.Single(client.RedirectUris);
+    }
+
+    [Fact]
+    public void ReplaceRedirectUris_EmptyClearsAll_AndLeavesPostLogoutUrisAlone()
+    {
+        var client = CreateClient();
+        client.AddRedirectUri(RedirectUri.Create("https://app.example.com/cb").Value);
+        client.AddPostLogoutRedirectUri(RedirectUri.Create("https://app.example.com/out").Value);
+
+        client.ReplaceRedirectUris([]);
+
+        Assert.Empty(client.RedirectUris);
+        Assert.Single(client.PostLogoutRedirectUris);
+    }
 }

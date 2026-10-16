@@ -6,4 +6,5 @@ namespace WardenId.ClientManagement.Application.Features.Clients.CorsOrigins.Rep
 public sealed record Command(
     Guid TenantId,
     Guid ClientId,
-    IReadOnlyCollection<string> Origins) : IRequest<Result>;
+    IReadOnlyCollection<string> Origins,
+    Guid ActorId) : IRequest<Result>;

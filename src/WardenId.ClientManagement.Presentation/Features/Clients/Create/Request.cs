@@ -12,7 +12,7 @@ public sealed record Request(
     bool ConsentRequired,
     string? Description)
 {
-    public Command ToCommand(Guid tenantId) => new(
+    public Command ToCommand(Guid tenantId, Guid actorId) => new(
         tenantId, ClientType, DisplayName, GrantType, ClientAuthenticationMethod,
-        IsFirstParty, ConsentRequired, Description);
+        IsFirstParty, ConsentRequired, Description, actorId);
 }

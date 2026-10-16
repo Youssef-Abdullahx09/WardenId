@@ -5,5 +5,5 @@ namespace WardenId.ClientManagement.Presentation.Features.Clients.BackchannelLog
 /// <summary>Body of <c>PUT .../backchannel-logout-uri</c>; <c>{ "uri": null }</c> clears the URI.</summary>
 public sealed record Request(string? Uri)
 {
-    public Command ToCommand(Guid tenantId, Guid clientId) => new(tenantId, clientId, Uri);
+    public Command ToCommand(Guid tenantId, Guid clientId, Guid actorId) => new(tenantId, clientId, Uri, actorId);
 }

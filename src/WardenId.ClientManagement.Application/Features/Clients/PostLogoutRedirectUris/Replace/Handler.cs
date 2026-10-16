@@ -29,7 +29,7 @@ public sealed class Handler(
 
         client.ReplacePostLogoutRedirectUris(uris);
 
-        await repository.UpdateAsync(client, request.TenantId, cancellationToken);
+        await repository.UpdateAsync(client, request.ActorId, cancellationToken);
 
         return Result.Ok();
     }

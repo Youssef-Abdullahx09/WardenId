@@ -22,9 +22,10 @@ public sealed class Endpoint : IEndpoint
                 [FromRoute] Guid tenantId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
+                [FromServices] ICurrentUser currentUser,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(request.ToCommand(tenantId), cancellationToken);
+                var result = await sender.Send(request.ToCommand(tenantId, currentUser.UserId), cancellationToken);
 
                 return result.IsSuccess
                     ? Results.Created($"/api/v1/admin/tenants/{tenantId}/clients/{result.Value}", new Response(result.Value))

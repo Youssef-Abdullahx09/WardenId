@@ -11,6 +11,7 @@ namespace WardenId.ClientManagement.Application.Tests.Features.Clients.PostLogou
 public class HandlerTests
 {
     private static readonly Guid TenantId = Guid.NewGuid();
+    private static readonly Guid ActorId = Guid.NewGuid();
 
     private static async Task<string[]> StoredUrisAsync(TestClientManagementDbContext db, Guid id)
     {
@@ -29,7 +30,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new AddHandler(new InMemoryClientRepository(db))
-            .Handle(new AddCommand(TenantId, client.Id, "https://spa.example/logged-out"), CancellationToken.None);
+            .Handle(new AddCommand(TenantId, client.Id, "https://spa.example/logged-out", ActorId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(new[] { "https://spa.example/logged-out" }, await StoredUrisAsync(db, client.Id));
@@ -42,9 +43,9 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
         var handler = new AddHandler(new InMemoryClientRepository(db));
 
-        await handler.Handle(new AddCommand(TenantId, client.Id, "https://spa.example/logged-out"), CancellationToken.None);
+        await handler.Handle(new AddCommand(TenantId, client.Id, "https://spa.example/logged-out", ActorId), CancellationToken.None);
         db.ChangeTracker.Clear();
-        await handler.Handle(new AddCommand(TenantId, client.Id, "https://spa.example/logged-out"), CancellationToken.None);
+        await handler.Handle(new AddCommand(TenantId, client.Id, "https://spa.example/logged-out", ActorId), CancellationToken.None);
 
         Assert.Single(await StoredUrisAsync(db, client.Id));
     }
@@ -56,7 +57,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new AddHandler(new InMemoryClientRepository(db))
-            .Handle(new AddCommand(TenantId, client.Id, "https://spa.example/logged-out#x"), CancellationToken.None);
+            .Handle(new AddCommand(TenantId, client.Id, "https://spa.example/logged-out#x", ActorId), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         AssertErrorCode(result, ClientErrorCodes.Validation);
@@ -70,7 +71,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new AddHandler(new InMemoryClientRepository(db))
-            .Handle(new AddCommand(Guid.NewGuid(), client.Id, "https://spa.example/logged-out"), CancellationToken.None);
+            .Handle(new AddCommand(Guid.NewGuid(), client.Id, "https://spa.example/logged-out", ActorId), CancellationToken.None);
 
         AssertErrorCode(result, ClientErrorCodes.NotFound);
     }
@@ -84,7 +85,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new RemoveHandler(new InMemoryClientRepository(db))
-            .Handle(new RemoveCommand(TenantId, client.Id, "https://spa.example/a"), CancellationToken.None);
+            .Handle(new RemoveCommand(TenantId, client.Id, "https://spa.example/a", ActorId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(new[] { "https://spa.example/b" }, await StoredUrisAsync(db, client.Id));
@@ -99,7 +100,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new ReplaceHandler(new InMemoryClientRepository(db)).Handle(
-            new ReplaceCommand(TenantId, client.Id, ["https://spa.example/b", "https://spa.example/c"]),
+            new ReplaceCommand(TenantId, client.Id, ["https://spa.example/b", "https://spa.example/c"], ActorId),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -114,7 +115,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new ReplaceHandler(new InMemoryClientRepository(db))
-            .Handle(new ReplaceCommand(TenantId, client.Id, []), CancellationToken.None);
+            .Handle(new ReplaceCommand(TenantId, client.Id, [], ActorId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Empty(await StoredUrisAsync(db, client.Id));
@@ -128,7 +129,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new ReplaceHandler(new InMemoryClientRepository(db)).Handle(
-            new ReplaceCommand(TenantId, client.Id, ["https://spa.example/c", "not a uri"]),
+            new ReplaceCommand(TenantId, client.Id, ["https://spa.example/c", "not a uri"], ActorId),
             CancellationToken.None);
 
         Assert.True(result.IsFailed);

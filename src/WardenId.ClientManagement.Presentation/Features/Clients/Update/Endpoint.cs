@@ -23,9 +23,10 @@ public sealed class Endpoint : IEndpoint
                 [FromRoute] Guid clientId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
+                [FromServices] ICurrentUser currentUser,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(request.ToCommand(tenantId, clientId), cancellationToken);
+                var result = await sender.Send(request.ToCommand(tenantId, clientId, currentUser.UserId), cancellationToken);
 
                 return result.IsSuccess ? Results.NoContent() : result.HandleApiFailure();
             })
@@ -35,7 +36,7 @@ public sealed class Endpoint : IEndpoint
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Update a Client")
-            .WithDescription("Updates display name, enabled, consent, and token lifetime overrides.")
+            .WithDescription("Updates display name, description, enabled, first-party, consent, grant types and token lifetime overrides. Omitted fields stay unchanged; an empty description clears it. Client type, PKCE and authentication method are fixed at create.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)

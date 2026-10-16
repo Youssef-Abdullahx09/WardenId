@@ -34,7 +34,7 @@ public sealed class Handler(
 
         if (addResult.IsFailed) return Result.Fail(addResult.Errors);
 
-        await repository.UpdateAsync(client, request.TenantId, cancellationToken);
+        await repository.UpdateAsync(client, request.ActorId, cancellationToken);
 
         return Result.Ok(new ClientSecretIssued(secret.Id, secret.Label, plainTextSecret, secret.ExpiresAt));
     }

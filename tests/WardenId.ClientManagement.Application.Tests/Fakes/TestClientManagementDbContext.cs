@@ -18,8 +18,13 @@ public sealed class TestClientManagementDbContext(DbContextOptions<TestClientMan
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Mirrors DbContextBase.ApplyValueGeneratedNeverOnId: ids are set at construction, so a new secret
+        // added to a tracked client must be inserted, not treated as an existing row.
+        modelBuilder.Entity<ClientSecret>().Property(s => s.Id).ValueGeneratedNever();
+
         modelBuilder.Entity<Client>(builder =>
         {
+            builder.Property(c => c.Id).ValueGeneratedNever();
             builder.Ignore(c => c.DomainEvents);
             builder.Property(c => c.ClientId)
                 .HasConversion(id => id.Value, value => ClientId.FromTrustedSource(value));

@@ -28,7 +28,7 @@ public sealed class Handler(
 
         client.SetBackchannelLogoutUri(uri);
 
-        await repository.UpdateAsync(client, request.TenantId, cancellationToken);
+        await repository.UpdateAsync(client, request.ActorId, cancellationToken);
 
         return Result.Ok();
     }

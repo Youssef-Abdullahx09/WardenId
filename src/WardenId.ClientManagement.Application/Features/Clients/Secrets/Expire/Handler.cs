@@ -19,7 +19,7 @@ public sealed class Handler(
         var expireResult = client.ExpireSecret(request.SecretId);
         if (expireResult.IsFailed) return expireResult;
 
-        await repository.UpdateAsync(client, request.TenantId, cancellationToken);
+        await repository.UpdateAsync(client, request.ActorId, cancellationToken);
 
         return Result.Ok();
     }

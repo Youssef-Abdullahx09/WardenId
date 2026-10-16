@@ -20,6 +20,7 @@ public static class EndpointNames
         public const string ReplacePostLogoutRedirectUris = "ReplaceClientPostLogoutRedirectUris";
         public const string AddRedirectUri = "AddClientRedirectUri";
         public const string RemoveRedirectUri = "RemoveClientRedirectUri";
+        public const string ReplaceRedirectUris = "ReplaceClientRedirectUris";
         public const string ExpireSecret = "ExpireClientSecret";
         public const string IssueSecret = "IssueClientSecret";
         public const string Update = "UpdateClient";

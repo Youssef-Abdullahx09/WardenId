@@ -23,6 +23,20 @@ public sealed class Handler(
             if (displayNameResult.IsFailed) return Result.Fail(displayNameResult.Errors);
         }
 
+        if (request.Description is not null)
+        {
+            var descriptionResult = client.UpdateDescription(request.Description);
+            if (descriptionResult.IsFailed) return Result.Fail(descriptionResult.Errors);
+        }
+
+        if (request.GrantType is not null)
+        {
+            var grantsResult = client.UpdateGrantTypes(request.GrantType.Value);
+            if (grantsResult.IsFailed) return Result.Fail(grantsResult.Errors);
+        }
+
+        if (request.IsFirstParty is not null) client.UpdateIsFirstParty(request.IsFirstParty.Value);
+
         if (request.Enabled is true) client.Enable();
         if (request.Enabled is false) client.Disable();
 
@@ -43,7 +57,7 @@ public sealed class Handler(
             client.UpdateTokenLifetimeOverrides(overridesResult.Value);
         }
 
-        await repository.UpdateAsync(client, request.TenantId, cancellationToken);
+        await repository.UpdateAsync(client, request.ActorId, cancellationToken);
 
         return Result.Ok();
     }

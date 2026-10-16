@@ -6,4 +6,5 @@ namespace WardenId.ClientManagement.Application.Features.Clients.PostLogoutRedir
 public sealed record Command(
     Guid TenantId,
     Guid ClientId,
-    IReadOnlyCollection<string> Uris) : IRequest<Result>;
+    IReadOnlyCollection<string> Uris,
+    Guid ActorId) : IRequest<Result>;

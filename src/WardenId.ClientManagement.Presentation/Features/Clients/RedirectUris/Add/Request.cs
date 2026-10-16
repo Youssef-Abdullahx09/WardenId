@@ -4,5 +4,5 @@ namespace WardenId.ClientManagement.Presentation.Features.Clients.RedirectUris.A
 
 public sealed record Request(string Uri)
 {
-    public Command ToCommand(Guid tenantId, Guid clientId) => new(tenantId, clientId, Uri);
+    public Command ToCommand(Guid tenantId, Guid clientId, Guid actorId) => new(tenantId, clientId, Uri, actorId);
 }

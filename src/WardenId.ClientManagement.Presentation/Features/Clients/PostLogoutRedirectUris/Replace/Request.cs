@@ -4,5 +4,5 @@ namespace WardenId.ClientManagement.Presentation.Features.Clients.PostLogoutRedi
 
 public sealed record Request(IReadOnlyCollection<string> Uris)
 {
-    public Command ToCommand(Guid tenantId, Guid clientId) => new(tenantId, clientId, Uris);
+    public Command ToCommand(Guid tenantId, Guid clientId, Guid actorId) => new(tenantId, clientId, Uris, actorId);
 }

@@ -87,4 +87,61 @@ public class ClientCreateTests
 
         Assert.True(result.Value.Enabled);
     }
+
+    [Fact]
+    public void Create_FailsWithoutAnyGrantType()
+    {
+        var result = Client.Create(
+            Guid.NewGuid(), ClientType.Confidential, "Backend client", default,
+            ClientAuthenticationMethod.SharedSecret, isFirstParty: false, consentRequired: true);
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public void Create_FailsForPublicClientWithClientCredentials()
+    {
+        var result = Client.Create(
+            Guid.NewGuid(), ClientType.Public, "SPA client", GrantType.AuthorizationCode | GrantType.ClientCredentials,
+            ClientAuthenticationMethod.SharedSecret, isFirstParty: false, consentRequired: true);
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public void Create_FailsForRefreshTokenWithoutAUserFlow()
+    {
+        var result = Client.Create(
+            Guid.NewGuid(), ClientType.Confidential, "Backend client", GrantType.ClientCredentials | GrantType.RefreshToken,
+            ClientAuthenticationMethod.SharedSecret, isFirstParty: false, consentRequired: true);
+
+        Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public void Create_TrimsDescription_AndStoresBlankAsNull()
+    {
+        var trimmed = Client.Create(
+            Guid.NewGuid(), ClientType.Confidential, "Backend client", GrantType.ClientCredentials,
+            ClientAuthenticationMethod.SharedSecret, isFirstParty: false, consentRequired: true,
+            description: "  Billing  ").Value;
+        var blank = Client.Create(
+            Guid.NewGuid(), ClientType.Confidential, "Backend client", GrantType.ClientCredentials,
+            ClientAuthenticationMethod.SharedSecret, isFirstParty: false, consentRequired: true,
+            description: "   ").Value;
+
+        Assert.Equal("Billing", trimmed.Description);
+        Assert.Null(blank.Description);
+    }
+
+    [Fact]
+    public void Create_FailsWhenDescriptionTooLong()
+    {
+        var result = Client.Create(
+            Guid.NewGuid(), ClientType.Confidential, "Backend client", GrantType.ClientCredentials,
+            ClientAuthenticationMethod.SharedSecret, isFirstParty: false, consentRequired: true,
+            description: new string('a', 1001));
+
+        Assert.True(result.IsFailed);
+    }
 }

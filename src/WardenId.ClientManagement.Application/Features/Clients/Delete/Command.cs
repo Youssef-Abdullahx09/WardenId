@@ -5,4 +5,5 @@ namespace WardenId.ClientManagement.Application.Features.Clients.Delete;
 
 public sealed record Command(
     Guid TenantId,
-    Guid ClientId) : IRequest<Result>;
+    Guid ClientId,
+    Guid ActorId) : IRequest<Result>;

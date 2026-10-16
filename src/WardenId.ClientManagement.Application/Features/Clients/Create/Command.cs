@@ -12,4 +12,5 @@ public sealed record Command(
     ClientAuthenticationMethod ClientAuthenticationMethod,
     bool IsFirstParty,
     bool ConsentRequired,
-    string? Description) : IRequest<Result<Guid>>;
+    string? Description,
+    Guid ActorId) : IRequest<Result<Guid>>;

@@ -26,7 +26,7 @@ public sealed class Handler(
 
         var client = clientResult.Value;
 
-        await repository.CreateAsync(client, request.TenantId, cancellationToken);
+        await repository.CreateAsync(client, request.ActorId, cancellationToken);
 
         return Result.Ok(client.Id);
     }

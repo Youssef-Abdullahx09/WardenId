@@ -4,5 +4,5 @@ namespace WardenId.ClientManagement.Presentation.Features.Clients.CorsOrigins.Re
 
 public sealed record Request(IReadOnlyCollection<string> Origins)
 {
-    public Command ToCommand(Guid tenantId, Guid clientId) => new(tenantId, clientId, Origins);
+    public Command ToCommand(Guid tenantId, Guid clientId, Guid actorId) => new(tenantId, clientId, Origins, actorId);
 }

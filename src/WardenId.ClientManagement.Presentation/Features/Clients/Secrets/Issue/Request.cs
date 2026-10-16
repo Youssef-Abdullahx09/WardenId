@@ -6,5 +6,5 @@ public sealed record Request(
     string Label,
     int? OverlapDays)
 {
-    public Command ToCommand(Guid tenantId, Guid clientId) => new(tenantId, clientId, Label, OverlapDays);
+    public Command ToCommand(Guid tenantId, Guid clientId, Guid actorId) => new(tenantId, clientId, Label, OverlapDays, actorId);
 }

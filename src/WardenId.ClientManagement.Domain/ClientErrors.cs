@@ -70,4 +70,19 @@ public static class ClientErrors
 
     public static Error BackchannelLogoutUriMustBeHttps()
         => Validation("Back-channel logout URI must use https (http is allowed only for loopback hosts).");
+
+    public static Error ClientDescriptionTooLong()
+        => Validation($"Client description cannot exceed {Client.DescriptionMaxLength} characters.");
+
+    public static Error GrantTypeRequired()
+        => Validation("At least one grant type is required.");
+
+    public static Error GrantTypeUnknown()
+        => Validation("Grant type contains an unknown value.");
+
+    public static Error PublicClientCannotUseClientCredentials()
+        => Validation("Public clients cannot use the ClientCredentials grant.");
+
+    public static Error RefreshTokenRequiresUserGrant()
+        => Validation("The RefreshToken grant requires the AuthorizationCode or DeviceCode grant.");
 }

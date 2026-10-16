@@ -25,9 +25,10 @@ public sealed class Endpoint : IEndpoint
                 [FromRoute] Guid clientId,
                 [FromRoute] Guid secretId,
                 [FromServices] ISender sender,
+                [FromServices] ICurrentUser currentUser,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(new Command(tenantId, clientId, secretId), cancellationToken);
+                var result = await sender.Send(new Command(tenantId, clientId, secretId, currentUser.UserId), cancellationToken);
 
                 return result.IsSuccess ? Results.NoContent() : result.HandleApiFailure();
             })

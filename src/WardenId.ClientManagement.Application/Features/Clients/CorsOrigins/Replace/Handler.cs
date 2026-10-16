@@ -36,7 +36,7 @@ public sealed class Handler(
             client.AddCorsOrigin(origin);
         }
 
-        await repository.UpdateAsync(client, request.TenantId, cancellationToken);
+        await repository.UpdateAsync(client, request.ActorId, cancellationToken);
 
         return Result.Ok();
     }

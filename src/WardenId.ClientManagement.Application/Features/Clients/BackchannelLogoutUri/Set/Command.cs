@@ -7,4 +7,5 @@ namespace WardenId.ClientManagement.Application.Features.Clients.BackchannelLogo
 public sealed record Command(
     Guid TenantId,
     Guid ClientId,
-    string? Uri) : IRequest<Result>;
+    string? Uri,
+    Guid ActorId) : IRequest<Result>;

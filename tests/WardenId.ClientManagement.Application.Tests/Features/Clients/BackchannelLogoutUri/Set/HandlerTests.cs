@@ -7,6 +7,7 @@ namespace WardenId.ClientManagement.Application.Tests.Features.Clients.Backchann
 public class HandlerTests
 {
     private static readonly Guid TenantId = Guid.NewGuid();
+    private static readonly Guid ActorId = Guid.NewGuid();
 
     private static async Task<string?> StoredUriAsync(TestClientManagementDbContext db, Guid id)
     {
@@ -22,7 +23,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new Handler(new InMemoryClientRepository(db))
-            .Handle(new Command(TenantId, client.Id, "https://app.example/bcl"), CancellationToken.None);
+            .Handle(new Command(TenantId, client.Id, "https://app.example/bcl", ActorId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal("https://app.example/bcl", await StoredUriAsync(db, client.Id));
@@ -36,7 +37,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new Handler(new InMemoryClientRepository(db))
-            .Handle(new Command(TenantId, client.Id, null), CancellationToken.None);
+            .Handle(new Command(TenantId, client.Id, null, ActorId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Null(await StoredUriAsync(db, client.Id));
@@ -50,7 +51,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new Handler(new InMemoryClientRepository(db))
-            .Handle(new Command(TenantId, client.Id, "http://app.example/bcl"), CancellationToken.None);
+            .Handle(new Command(TenantId, client.Id, "http://app.example/bcl", ActorId), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(ClientErrorCodes.Validation, result.Errors[0].Metadata[ClientErrorCodes.MetadataKey]);
@@ -63,7 +64,7 @@ public class HandlerTests
         await using var db = await ClientBuilder.SeedAsync(ClientBuilder.Confidential(TenantId));
 
         var result = await new Handler(new InMemoryClientRepository(db))
-            .Handle(new Command(TenantId, Guid.NewGuid(), "https://app.example/bcl"), CancellationToken.None);
+            .Handle(new Command(TenantId, Guid.NewGuid(), "https://app.example/bcl", ActorId), CancellationToken.None);
 
         Assert.Equal(ClientErrorCodes.NotFound, result.Errors[0].Metadata[ClientErrorCodes.MetadataKey]);
     }

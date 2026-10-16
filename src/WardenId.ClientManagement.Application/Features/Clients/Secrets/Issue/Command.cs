@@ -7,4 +7,5 @@ public sealed record Command(
     Guid TenantId,
     Guid ClientId,
     string Label,
-    int? OverlapDays) : IRequest<Result<ClientSecretIssued>>;
+    int? OverlapDays,
+    Guid ActorId) : IRequest<Result<ClientSecretIssued>>;

@@ -6,6 +6,12 @@ namespace WardenId.ClientManagement.Domain;
 
 public sealed class Client : AggregateRoot
 {
+    // Matches the column length in ClientConfiguration.
+    public const int DescriptionMaxLength = 1000;
+
+    private const GrantType AllGrantTypes =
+        GrantType.AuthorizationCode | GrantType.ClientCredentials | GrantType.RefreshToken | GrantType.DeviceCode;
+
     private Client(
         Guid tenantId,
         ClientId clientId,
@@ -80,6 +86,12 @@ public sealed class Client : AggregateRoot
 
         if (trimmed.Length > 200) return Result.Fail(ClientErrors.ClientDisplayNameTooLong());
 
+        var descriptionResult = NormalizeDescription(description);
+        if (descriptionResult.IsFailed) return Result.Fail(descriptionResult.Errors);
+
+        var grantsResult = ValidateGrantTypes(clientType, allowedGrantTypes);
+        if (grantsResult.IsFailed) return Result.Fail(grantsResult.Errors);
+
         var requirePkce = clientType == ClientType.Public;
 
         var client = new Client(
@@ -87,7 +99,7 @@ public sealed class Client : AggregateRoot
             clientId ?? ClientId.Generate(),
             clientType,
             trimmed,
-            description,
+            descriptionResult.Value,
             allowedGrantTypes,
             clientAuthenticationMethod,
             requirePkce,
@@ -104,6 +116,18 @@ public sealed class Client : AggregateRoot
     }
 
     public void RemoveRedirectUri(RedirectUri uri) => _redirectUris.Remove(uri);
+
+    // Diff for the same reason as ReplacePostLogoutRedirectUris. An empty set is allowed: Add/Remove can
+    // already empty it and Create starts empty, and with no URIs every authorize request fails closed.
+    public void ReplaceRedirectUris(IReadOnlyCollection<RedirectUri> uris)
+    {
+        _redirectUris.RemoveAll(existing => !uris.Contains(existing));
+
+        foreach (var uri in uris)
+        {
+            AddRedirectUri(uri);
+        }
+    }
 
     public void AddPostLogoutRedirectUri(RedirectUri uri)
     {
@@ -220,4 +244,59 @@ public sealed class Client : AggregateRoot
     }
 
     public void UpdateConsentRequired(bool consentRequired) => ConsentRequired = consentRequired;
+
+    /// <summary>Sets the description; null, empty or whitespace clears it.</summary>
+    public Result UpdateDescription(string? description)
+    {
+        var descriptionResult = NormalizeDescription(description);
+        if (descriptionResult.IsFailed) return Result.Fail(descriptionResult.Errors);
+
+        Description = descriptionResult.Value;
+        return Result.Ok();
+    }
+
+    public void UpdateIsFirstParty(bool isFirstParty) => IsFirstParty = isFirstParty;
+
+    public Result UpdateGrantTypes(GrantType grantTypes)
+    {
+        var grantsResult = ValidateGrantTypes(ClientType, grantTypes);
+        if (grantsResult.IsFailed) return grantsResult;
+
+        if (GrantType == grantTypes) return Result.Ok();
+
+        var previous = GrantType;
+        GrantType = grantTypes;
+        RaiseDomainEvent(new ClientGrantTypesChangedDomainEvent(previous, grantTypes));
+        return Result.Ok();
+    }
+
+    private static Result<string?> NormalizeDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description)) return Result.Ok<string?>(null);
+
+        var trimmed = description.Trim();
+
+        return trimmed.Length > DescriptionMaxLength
+            ? Result.Fail(ClientErrors.ClientDescriptionTooLong())
+            : Result.Ok<string?>(trimmed);
+    }
+
+    private static Result ValidateGrantTypes(ClientType clientType, GrantType grantTypes)
+    {
+        if (grantTypes == default) return Result.Fail(ClientErrors.GrantTypeRequired());
+
+        if ((grantTypes & ~AllGrantTypes) != 0) return Result.Fail(ClientErrors.GrantTypeUnknown());
+
+        // A public client has no credentials, so client_credentials would mean "anyone holding the client_id".
+        if (clientType == ClientType.Public && grantTypes.HasFlag(GrantType.ClientCredentials))
+            return Result.Fail(ClientErrors.PublicClientCannotUseClientCredentials());
+
+        // Refresh tokens are only issued alongside a user's tokens (UserTokenGrantFactory).
+        if (grantTypes.HasFlag(GrantType.RefreshToken)
+            && !grantTypes.HasFlag(GrantType.AuthorizationCode)
+            && !grantTypes.HasFlag(GrantType.DeviceCode))
+            return Result.Fail(ClientErrors.RefreshTokenRequiresUserGrant());
+
+        return Result.Ok();
+    }
 }
