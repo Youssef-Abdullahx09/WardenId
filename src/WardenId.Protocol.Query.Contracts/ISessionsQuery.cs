@@ -1,4 +1,5 @@
 using FluentResults;
+using WardenId.SharedKernel.Query.Contracts;
 
 namespace WardenId.Protocol.Query.Contracts;
 
@@ -7,5 +8,9 @@ public interface ISessionsQuery
 {
     Task<Result<List<Features.Sessions.ListForUser.Item>>> ListForUser(
         Features.Sessions.ListForUser.Query query,
+        CancellationToken cancellationToken);
+
+    Task<Result<PaginationListResponse<Features.Sessions.List.Item>>> List(
+        Features.Sessions.List.Query query,
         CancellationToken cancellationToken);
 }

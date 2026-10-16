@@ -9,5 +9,10 @@ public sealed class Item
     public Guid Sid { get; init; }
     public DateTime AuthTime { get; init; }
     public DateTime ExpiresAt { get; init; }
+    public DateTime? EndedAt { get; init; }
+
+    /// <summary>The <c>EndReason</c> member name, as persisted.</summary>
+    public string? EndReason { get; init; }
+
     public string[] ClientIds { get; init; } = [];
 }

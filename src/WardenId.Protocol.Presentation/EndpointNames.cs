@@ -12,5 +12,13 @@ public static class EndpointNames
         public const string End = "EndSession";
         public const string EndForUser = "EndUserSessions";
         public const string ListForUser = "ListUserSessions";
+        public const string List = "ListSessions";
+    }
+
+    public static class Grants
+    {
+        public const string ListForUser = "ListUserGrants";
+        public const string Revoke = "RevokeUserGrant";
+        public const string RevokeForUser = "RevokeUserGrants";
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 using WardenId.Protocol.Application.Features.Sessions.ListForUser;
+using WardenId.Protocol.Domain.Sessions;
 using ListForUserQuery = WardenId.Protocol.Application.Features.Sessions.ListForUser.Query;
 using QueryItem = WardenId.Protocol.Query.Contracts.Features.Sessions.ListForUser.Item;
 using SessionsQuery = WardenId.Protocol.Query.Contracts.Features.Sessions.ListForUser.Query;
@@ -12,9 +13,10 @@ public class HandlerTests
     private static readonly Guid UserId = Guid.NewGuid();
     private static readonly DateTimeOffset Now = new(2026, 10, 14, 12, 0, 0, TimeSpan.Zero);
 
-    private static Task<Result<IReadOnlyList<UserSession>>> HandleAsync(FakeSessionsQuery sessionsQuery) =>
+    private static Task<Result<IReadOnlyList<UserSession>>> HandleAsync(
+        FakeSessionsQuery sessionsQuery, bool includeEnded = false) =>
         new Handler(sessionsQuery, new FakeTimeProvider(Now))
-            .Handle(new ListForUserQuery(TenantId, UserId), CancellationToken.None);
+            .Handle(new ListForUserQuery(TenantId, UserId, includeEnded), CancellationToken.None);
 
     [Fact]
     public async Task PassesTenantUserAndCurrentTime_ToTheQueryLayer()
@@ -24,6 +26,42 @@ public class HandlerTests
         await HandleAsync(sessionsQuery);
 
         Assert.Equal(new SessionsQuery(TenantId, UserId, Now), Assert.Single(sessionsQuery.ListForUserCalls));
+    }
+
+    [Fact]
+    public async Task IncludeEnded_IsPassedToTheQueryLayer()
+    {
+        var sessionsQuery = new FakeSessionsQuery();
+
+        await HandleAsync(sessionsQuery, includeEnded: true);
+
+        Assert.Equal(new SessionsQuery(TenantId, UserId, Now, IncludeEnded: true), Assert.Single(sessionsQuery.ListForUserCalls));
+    }
+
+    [Fact]
+    public async Task EndedRow_MapsEndedAtAsUtc_AndEndReason()
+    {
+        var sessionsQuery = new FakeSessionsQuery
+        {
+            ListForUserResponse = Result.Ok(new List<QueryItem>
+            {
+                new()
+                {
+                    Sid = Guid.NewGuid(),
+                    AuthTime = Now.AddHours(-3).UtcDateTime,
+                    ExpiresAt = Now.AddHours(21).UtcDateTime,
+                    EndedAt = Now.AddHours(-2).UtcDateTime,
+                    EndReason = nameof(EndReason.PasswordChanged)
+                }
+            })
+        };
+
+        var result = await HandleAsync(sessionsQuery, includeEnded: true);
+
+        var session = Assert.Single(result.Value);
+        Assert.Equal(Now.AddHours(-2), session.EndedAt);
+        Assert.Equal(TimeSpan.Zero, session.EndedAt!.Value.Offset);
+        Assert.Equal(EndReason.PasswordChanged, session.EndReason);
     }
 
     [Fact]
@@ -63,6 +101,8 @@ public class HandlerTests
                 Assert.Equal(TimeSpan.Zero, s.AuthTime.Offset);
                 Assert.Equal(Now.AddHours(23), s.ExpiresAt);
                 Assert.Empty(s.ClientIds);
+                Assert.Null(s.EndedAt);
+                Assert.Null(s.EndReason);
             },
             s =>
             {

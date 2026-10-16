@@ -22,10 +22,11 @@ public sealed class Endpoint : IEndpoint
         return app.MapGet("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/sessions", async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
+                [FromQuery] bool? includeEnded,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(new ListForUserQuery(tenantId, userId), cancellationToken);
+                var result = await sender.Send(new ListForUserQuery(tenantId, userId, includeEnded ?? false), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
             })
@@ -35,7 +36,9 @@ public sealed class Endpoint : IEndpoint
             .RequireAuthorization()
             .WithTags("Protocol - Sessions")
             .WithSummary("List a User's Sessions")
-            .WithDescription("Lists the user's live login sessions in the tenant, with the clients that took part in each.")
+            .WithDescription(
+                "Lists the user's live login sessions in the tenant, newest first, with the clients that took part in each. " +
+                "includeEnded=true adds ended and expired sessions; endedAt and endReason are null until a session is ended.")
             .Produces<IReadOnlyList<UserSession>>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }

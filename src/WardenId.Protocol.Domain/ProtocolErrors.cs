@@ -10,6 +10,10 @@ public static class ProtocolErrors
     public static Error TenantNotFound()
         => new Error("Tenant not found.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.NotFound);
 
+    // Unknown, another user's or another tenant's authorization: one answer, so ids can't be probed across tenants.
+    public static Error GrantNotFound()
+        => new Error("Grant not found.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.NotFound);
+
     // One message for wrong password, unknown user, locked and disabled — no account enumeration.
     public static Error InvalidCredentials()
         => new Error("Invalid username or password.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.InvalidCredentials);

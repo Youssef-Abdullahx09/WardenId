@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.EntityFrameworkCore.Models;
 using OpenIddict.Server;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Features.Grants;
+using WardenId.Protocol.Infrastructure.Grants;
 using WardenId.Protocol.Infrastructure.OpenIddict.Handlers;
 using WardenId.Protocol.Infrastructure.OpenIddict.Stores;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -23,6 +25,8 @@ public static class ProtocolOpenIddictExtensions
             .Get<ProtocolTokenOptions>() ?? new ProtocolTokenOptions();
 
         services.AddHttpContextAccessor();
+        // The admin grant endpoints read authorizations through OpenIddict's manager, registered below.
+        services.AddScoped<IUserGrantStore, OpenIddictUserGrantStore>();
 
         services.AddOpenIddict()
             .AddCore(options =>
@@ -82,6 +86,7 @@ public static class ProtocolOpenIddictExtensions
                        .AddEventHandler(RejectRefreshScopeBeyondGrant.Descriptor)
                        .AddEventHandler(RevokeTokenFamily.Descriptor)
                        .AddEventHandler(RecordSessionAuthorization.Descriptor)
+                       .AddEventHandler(StampAuthorizationOwner.Descriptor)
                        .AddEventHandler(InferClientIdFromHint.Descriptor);
 
                 // OpenIddict's authorize-time grant check rejects offline_access (no refresh permission) locally

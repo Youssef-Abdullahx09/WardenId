@@ -14,6 +14,9 @@
       <None Update="Features\Sessions\ListForUser\Query.sql">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Features\Sessions\List\Query.sql">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

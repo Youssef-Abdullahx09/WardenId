@@ -12,11 +12,13 @@ using Microsoft.Extensions.Logging;
 using OpenIddict.EntityFrameworkCore;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Abstractions;
+using WardenId.Protocol.Application.Features.BackchannelLogout;
 using WardenId.Protocol.Infrastructure.Authentication;
 using WardenId.Protocol.Domain.Sessions;
 using WardenId.Protocol.Infrastructure;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.Protocol.Infrastructure.Persistence;
+using WardenId.Protocol.Infrastructure.Sessions;
 using WardenId.SharedKernel.Presentation;
 using ConfigurationKeys = WardenId.Protocol.Infrastructure.ConfigurationKeys;
 
@@ -79,6 +81,8 @@ public sealed class ProtocolTestHost : IAsyncDisposable
         var sessionDatabaseName = "protocol-" + Guid.NewGuid();
         builder.Services.AddDbContext<ProtocolDbContext>(options => options.UseInMemoryDatabase(sessionDatabaseName));
         builder.Services.AddScoped<IProtocolDbContext>(sp => sp.GetRequiredService<ProtocolDbContext>());
+        // Production registers it with back-channel logout (CAP); the admin grant handlers need it here too.
+        builder.Services.AddScoped<ISessionAuthorizationRevoker, OpenIddictSessionAuthorizationRevoker>();
 
         builder.Services.AddSharedKernelPresentation();
         builder.Services.AddProtocolPresentation(builder.Configuration);
