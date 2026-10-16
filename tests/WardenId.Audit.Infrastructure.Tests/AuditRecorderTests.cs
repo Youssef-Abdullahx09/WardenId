@@ -41,6 +41,9 @@ public class AuditRecorderTests
         Assert.NotNull(stored.Payload);
         Assert.Equal(MerkleHash.Leaf(stored.Payload!), stored.LeafHash);
         Assert.Equal(CanonicalAuditEventSerializer.Serialize(auditEvent), stored.Payload);
+        Assert.Equal(auditEvent.EventType.Key, stored.EventType);
+        Assert.Equal(auditEvent.Actor.ToSerializedForm(), stored.Actor);
+        Assert.Equal(nameof(AuditResult.Success), stored.Outcome);
     }
 
     [Fact]

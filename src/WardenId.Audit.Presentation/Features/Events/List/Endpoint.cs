@@ -28,11 +28,16 @@ public sealed class Endpoint : IEndpoint
                 [FromQuery] Guid? tenantId,
                 [FromQuery] DateTimeOffset? from,
                 [FromQuery] DateTimeOffset? to,
+                [FromQuery] string? eventType,
+                [FromQuery] string? actor,
+                [FromQuery] string? target,
+                [FromQuery] AuditResult? outcome,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
                 var result = await sender.Send(
-                    new Query(pageNumber, pageSize, channel, tenantId, from, to), cancellationToken);
+                    new Query(pageNumber, pageSize, channel, tenantId, from, to, eventType, actor, target, outcome),
+                    cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
             })
@@ -43,9 +48,12 @@ public sealed class Endpoint : IEndpoint
             .WithTags("Audit - Events")
             .WithSummary("List audit events")
             .WithDescription(
-                "Pages through audit events, newest first, filtered by channel, tenant and occurred-at range. " +
-                "Each event is summarized from its payload (type, actor, targets, outcome); events whose payload " +
-                "was removed by retention keep only the table columns.")
+                "Pages through audit events, newest first, filtered by channel, tenant, occurred-at range, " +
+                "event type (e.g. 'admin.entity.update'), actor (the scope-qualified 'platform:{type}:{id}' / " +
+                "'tenant:{tenantId}:{type}:{id}' form, or just the actor id), target ('{type}:{id}', matching any " +
+                "of the event's targets) and outcome. Each event is summarized from its payload (type, actor, " +
+                "targets, outcome); events whose payload was removed by retention are summarized from their " +
+                "indexed columns, without severity or outcome reason.")
             .Produces<PaginationListResponse<AuditEventListItem>>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);

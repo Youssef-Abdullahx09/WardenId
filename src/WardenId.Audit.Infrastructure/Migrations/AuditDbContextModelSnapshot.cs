@@ -18,7 +18,7 @@ namespace WardenId.Audit.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("audit")
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -150,6 +150,16 @@ namespace WardenId.Audit.Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("Actor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ActorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<byte[]>("LeafHash")
                         .IsRequired()
                         .HasColumnType("bytea");
@@ -157,18 +167,37 @@ namespace WardenId.Audit.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<byte[]>("Payload")
                         .HasColumnType("bytea");
 
                     b.Property<long?>("Sequence")
                         .HasColumnType("bigint");
 
+                    b.PrimitiveCollection<string[]>("Targets")
+                        .HasColumnType("text[]");
+
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id", "Channel");
 
+                    b.HasIndex("Targets");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Targets"), "gin");
+
+                    b.HasIndex("Actor", "OccurredAt");
+
+                    b.HasIndex("ActorId", "OccurredAt");
+
                     b.HasIndex("Channel", "Sequence");
+
+                    b.HasIndex("EventType", "OccurredAt");
+
+                    b.HasIndex("Outcome", "OccurredAt");
 
                     b.HasIndex("TenantId", "OccurredAt");
 

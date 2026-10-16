@@ -15,6 +15,7 @@ public static class EndpointNames
     public static class Events
     {
         public const string List = "ListAuditEvents";
+        public const string Get = "GetAuditEvent";
     }
 
     public static class Proofs

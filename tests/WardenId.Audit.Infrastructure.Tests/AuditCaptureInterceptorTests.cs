@@ -44,6 +44,24 @@ public class AuditCaptureInterceptorTests
     }
 
     [Fact]
+    public async Task Create_FillsTheSearchColumnsOnTheAuditRow()
+    {
+        var (db, accessor) = CreateSut(nameof(Create_FillsTheSearchColumnsOnTheAuditRow));
+        using var scope = BeginAmbientScope(accessor);
+
+        var aggregate = TestAggregate.Create("Acme");
+        db.TestAggregates.Add(aggregate);
+        await db.SaveChangesAsync(ActorUserId, CancellationToken.None);
+
+        var record = await db.AuditEvents.SingleAsync();
+        Assert.Equal(AuditEventType.AdminEntityCreate.Key, record.EventType);
+        Assert.Equal("platform:adminuser:admin-1", record.Actor);
+        Assert.Equal("admin-1", record.ActorId);
+        Assert.Equal([$"tenant:{aggregate.Id}"], record.Targets);
+        Assert.Equal(nameof(AuditResult.Success), record.Outcome);
+    }
+
+    [Fact]
     public async Task Update_DiffIncludesTheChangedProperty_WithBothOldAndNewValues()
     {
         var (db, accessor) = CreateSut(nameof(Update_DiffIncludesTheChangedProperty_WithBothOldAndNewValues));

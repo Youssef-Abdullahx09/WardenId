@@ -25,4 +25,12 @@ public class AuditTargetTests
         Assert.True(result.IsSuccess);
         Assert.Null(result.Value.CreatedVia);
     }
+
+    [Fact]
+    public void ToSerializedForm_IsTypeKeyColonId()
+    {
+        var target = AuditTarget.Create(AuditTargetType.User, "user-1").Value;
+
+        Assert.Equal("user:user-1", target.ToSerializedForm());
+    }
 }

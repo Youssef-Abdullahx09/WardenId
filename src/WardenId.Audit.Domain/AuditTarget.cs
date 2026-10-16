@@ -21,4 +21,7 @@ public sealed record AuditTarget
         if (string.IsNullOrWhiteSpace(id)) return Result.Fail(AuditErrors.TargetIdRequired());
         return Result.Ok(new AuditTarget(type, id, createdVia));
     }
+
+    /// <summary>"{type key}:{id}", e.g. "user:0198…" — how a target is listed and searched.</summary>
+    public string ToSerializedForm() => $"{Type.Key}:{Id}";
 }

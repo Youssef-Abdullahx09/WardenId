@@ -22,46 +22,52 @@ public sealed class Handler(IAuditEventSearch search)
         if (request.From is { } from && request.To is { } to && from > to)
             return Result.Fail(AuditErrors.Validation("'from' must not be after 'to'."));
 
-        var (total, rows) = await search.SearchAsync(
-            new AuditEventFilter(request.Channel, request.TenantId, request.From, request.To),
-            request.PageNumber,
-            request.PageSize,
-            cancellationToken);
+        var filter = new AuditEventFilter(
+            request.Channel,
+            request.TenantId,
+            request.From,
+            request.To,
+            Normalize(request.EventType),
+            Normalize(request.Actor),
+            Normalize(request.Target),
+            request.Outcome);
+
+        var (total, rows) = await search.SearchAsync(filter, request.PageNumber, request.PageSize, cancellationToken);
 
         return Result.Ok(new PaginationListResponse<AuditEventListItem>(total, rows.Select(Summarize).ToArray()));
     }
 
+    private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>From the payload when it can be read; otherwise from the row's search columns.</summary>
     private static AuditEventListItem Summarize(AuditEventSearchRow row)
     {
-        var auditEvent = Decode(row.Payload);
+        var auditEvent = AuditPayloadDecoder.TryDecode(row.Payload);
+        if (auditEvent is null)
+        {
+            return new AuditEventListItem(
+                row.Id, row.Channel, row.TenantId, row.Sequence, row.OccurredAt,
+                PayloadAvailable: false,
+                row.EventType,
+                Severity: null,
+                row.Outcome,
+                OutcomeReason: null,
+                row.Actor,
+                row.Targets);
+        }
+
         return new AuditEventListItem(
             row.Id,
             row.Channel,
             row.TenantId,
             row.Sequence,
             row.OccurredAt,
-            PayloadAvailable: auditEvent is not null,
-            auditEvent?.EventType.Key,
-            auditEvent?.Severity,
-            auditEvent?.Outcome.Status,
-            auditEvent?.Outcome.Reason?.Key,
-            auditEvent?.Actor.ToSerializedForm(),
-            auditEvent?.Targets.Select(t => $"{t.Type.Key}:{t.Id}").ToArray() ?? []);
-    }
-
-    private static AuditEvent? Decode(byte[]? payload)
-    {
-        if (payload is null) return null;
-        try
-        {
-            return CanonicalAuditEventSerializer.Deserialize(payload);
-        }
-        catch (Exception)
-        {
-            // Unreadable: an event type this build doesn't know, or bytes that aren't a canonical event
-            // (the serializer throws more than one exception type for those). A summary is best effort,
-            // so one bad row must not fail the page; it's still listed and has its inclusion proof.
-            return null;
-        }
+            PayloadAvailable: true,
+            auditEvent.EventType.Key,
+            auditEvent.Severity,
+            auditEvent.Outcome.Status,
+            auditEvent.Outcome.Reason?.Key,
+            auditEvent.Actor.ToSerializedForm(),
+            auditEvent.Targets.Select(t => t.ToSerializedForm()).ToArray());
     }
 }

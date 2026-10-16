@@ -12,4 +12,7 @@ public sealed class FakeAuditEventSearch : IAuditEventSearch
         IReadOnlyList<AuditEventSearchRow> page = Rows.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToArray();
         return Task.FromResult(((long)Rows.Count, page));
     }
+
+    public Task<AuditEventSearchRow?> FindAsync(Guid eventId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Rows.FirstOrDefault(r => r.Id == eventId));
 }

@@ -23,9 +23,11 @@ public class HandlerTests
             []).Value;
 
     private static AuditEventSearchRow Row(byte[]? payload, Guid? id = null) =>
-        new(id ?? Guid.NewGuid(), AuditChannel.AdminConfig, TenantId, 7, DateTimeOffset.Parse("2026-10-16T08:00:00Z"), payload);
+        new(id ?? Guid.NewGuid(), AuditChannel.AdminConfig, TenantId, 7, DateTimeOffset.Parse("2026-10-16T08:00:00Z"), payload,
+            EventType: null, Actor: null, Targets: [], Outcome: null);
 
-    private static Query Page(int pageNumber = 1, int pageSize = 25) => new(pageNumber, pageSize, null, null, null, null);
+    private static Query Page(int pageNumber = 1, int pageSize = 25) =>
+        new(pageNumber, pageSize, null, null, null, null, null, null, null, null);
 
     [Fact]
     public async Task Handle_SummarizesEachEventFromItsPayload()
@@ -67,15 +69,56 @@ public class HandlerTests
     }
 
     [Fact]
+    public async Task Handle_SummarizesAPurgedEventFromItsSearchColumns()
+    {
+        var search = new FakeAuditEventSearch();
+        search.Rows.Add(Row(null) with
+        {
+            EventType = "admin.tenant.suspend",
+            Actor = "platform:adminuser:admin-1",
+            Targets = ["tenant:tenant-1"],
+            Outcome = AuditResult.Failure
+        });
+
+        var result = await new Handler(search).Handle(Page(), CancellationToken.None);
+
+        var item = Assert.Single(result.Value.Data);
+        Assert.False(item.PayloadAvailable);
+        Assert.Equal("admin.tenant.suspend", item.EventType);
+        Assert.Equal("platform:adminuser:admin-1", item.Actor);
+        Assert.Equal(["tenant:tenant-1"], item.Targets);
+        Assert.Equal(AuditResult.Failure, item.Result);
+        Assert.Null(item.Severity);
+        Assert.Null(item.OutcomeReason);
+    }
+
+    [Fact]
     public async Task Handle_PassesTheFilterOn()
     {
         var search = new FakeAuditEventSearch();
         var from = DateTimeOffset.Parse("2026-10-01T00:00:00Z");
         var to = DateTimeOffset.Parse("2026-10-16T00:00:00Z");
 
-        await new Handler(search).Handle(new Query(1, 25, AuditChannel.TokenOps, TenantId, from, to), CancellationToken.None);
+        await new Handler(search).Handle(
+            new Query(1, 25, AuditChannel.TokenOps, TenantId, from, to,
+                " admin.tenant.suspend ", "admin-1", "tenant:tenant-1", AuditResult.Failure),
+            CancellationToken.None);
 
-        Assert.Equal(new AuditEventFilter(AuditChannel.TokenOps, TenantId, from, to), search.LastFilter);
+        Assert.Equal(
+            new AuditEventFilter(AuditChannel.TokenOps, TenantId, from, to,
+                "admin.tenant.suspend", "admin-1", "tenant:tenant-1", AuditResult.Failure),
+            search.LastFilter);
+    }
+
+    [Fact]
+    public async Task Handle_TreatsBlankTextFiltersAsAbsent()
+    {
+        var search = new FakeAuditEventSearch();
+
+        await new Handler(search).Handle(
+            new Query(1, 25, null, null, null, null, " ", "", null, null), CancellationToken.None);
+
+        Assert.Equal(new AuditEventFilter(null, null, null, null), search.LastFilter);
     }
 
     [Theory]
@@ -94,7 +137,8 @@ public class HandlerTests
     public async Task Handle_RejectsAnInvertedTimeRange()
     {
         var result = await new Handler(new FakeAuditEventSearch()).Handle(
-            new Query(1, 25, null, null, DateTimeOffset.Parse("2026-10-16T00:00:00Z"), DateTimeOffset.Parse("2026-10-01T00:00:00Z")),
+            new Query(1, 25, null, null, DateTimeOffset.Parse("2026-10-16T00:00:00Z"), DateTimeOffset.Parse("2026-10-01T00:00:00Z"),
+                null, null, null, null),
             CancellationToken.None);
 
         Assert.True(result.IsFailed);

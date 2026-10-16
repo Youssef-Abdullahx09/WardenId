@@ -4,7 +4,9 @@ namespace WardenId.Audit.Application.Features.Events.List;
 
 /// <summary>
 /// One event, summarized from its payload. When the payload is gone (retention) or can't be read,
-/// only the table columns are filled and <see cref="PayloadAvailable"/> is false.
+/// <see cref="PayloadAvailable"/> is false and the summary comes from the row's search columns
+/// (event type, actor, targets, result); severity and outcome reason are then null, as are the
+/// search columns on rows purged before those columns existed.
 /// </summary>
 public sealed record AuditEventListItem(
     Guid Id,

@@ -75,16 +75,7 @@ public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAc
                 targets: [target],
                 changes: changes).Value;
 
-            var payload = CanonicalAuditEventSerializer.Serialize(auditEvent);
-            context.Set<AuditEventRecord>().Add(new AuditEventRecord
-            {
-                Id = auditEvent.Id,
-                Channel = auditEvent.Channel.ToString(),
-                TenantId = ambient.TenantId,
-                OccurredAt = auditEvent.OccurredAt,
-                Payload = payload,
-                LeafHash = MerkleHash.Leaf(payload)
-            });
+            context.Set<AuditEventRecord>().Add(AuditEventRecordFactory.Create(auditEvent, ambient.TenantId));
         }
     }
 

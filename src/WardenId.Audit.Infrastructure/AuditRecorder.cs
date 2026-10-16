@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using WardenId.Audit.Application;
 using WardenId.Audit.Domain;
 using WardenId.Audit.Infrastructure.Persistence;
-using WardenId.SharedKernel.Persistence.Audit;
 
 namespace WardenId.Audit.Infrastructure;
 
@@ -19,17 +18,7 @@ public sealed class AuditRecorder(IDbContextFactory<AuditDbContext> dbContextFac
     {
         try
         {
-            var payload = CanonicalAuditEventSerializer.Serialize(auditEvent);
-
-            var record = new AuditEventRecord
-            {
-                Id = auditEvent.Id,
-                Channel = auditEvent.Channel.ToString(),
-                TenantId = tenantId,
-                OccurredAt = auditEvent.OccurredAt,
-                Payload = payload,
-                LeafHash = MerkleHash.Leaf(payload)
-            };
+            var record = AuditEventRecordFactory.Create(auditEvent, tenantId);
 
             await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
             db.AuditEvents.Add(record);
