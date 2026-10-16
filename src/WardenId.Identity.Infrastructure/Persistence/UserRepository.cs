@@ -29,6 +29,18 @@ public sealed class UserRepository(
         return user is null ? Result.Fail(UserErrors.NotFound) : user;
     }
 
+    public async Task<Result<User>> GetByIdIncludingDeletedAsync(
+        Guid tenantId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await Query()
+            .Where(u => u.Id == userId && u.TenantId == tenantId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return user is null ? Result.Fail(UserErrors.NotFound) : user;
+    }
+
     public async Task<Result<User>> GetByEmailAsync(
         Guid tenantId,
         Email email,
@@ -79,6 +91,20 @@ public sealed class UserRepository(
         CancellationToken cancellationToken = default)
     {
         dbContext.Users.Remove(user);
+        await dbContext.SaveChangesAsync(userId, cancellationToken);
+    }
+
+    // The unique (TenantId, Email) and (TenantId, Username) indexes include soft-deleted rows,
+    // so no other user can have taken this user's email or username in the meantime.
+    // Only the user row is undeleted. Its child rows (credential, MFA factors, ...) were
+    // soft-deleted with it by the cascade, but children are always loaded through the user
+    // with no IsDeleted filter, so their flag changes nothing and is left as it is.
+    public async Task RestoreAsync(
+        User user,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        user.MarkAsRestored();
         await dbContext.SaveChangesAsync(userId, cancellationToken);
     }
 

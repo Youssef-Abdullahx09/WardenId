@@ -6,12 +6,13 @@ public sealed class FakeUserRepository : IUserRepository
 {
     private readonly Dictionary<Guid, User> _usersById = new();
 
-    /// <summary>The actor id passed to the most recent Create/Update/SoftDelete call.</summary>
+    /// <summary>The actor id passed to the most recent Create/Update/SoftDelete/Restore call.</summary>
     public Guid? LastActorId { get; private set; }
 
     public int CreateCallCount { get; private set; }
     public int UpdateCallCount { get; private set; }
     public int SoftDeleteCallCount { get; private set; }
+    public int RestoreCallCount { get; private set; }
 
     public Task CreateAsync(User user, Guid userId, CancellationToken cancellationToken = default)
     {
@@ -22,6 +23,14 @@ public sealed class FakeUserRepository : IUserRepository
     }
 
     public Task<Result<User>> GetByIdAsync(Guid tenantId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = _usersById.GetValueOrDefault(userId);
+        return Task.FromResult(user is not null && user.TenantId == tenantId && !user.IsDeleted
+            ? Result.Ok(user)
+            : Result.Fail<User>(UserErrors.NotFound));
+    }
+
+    public Task<Result<User>> GetByIdIncludingDeletedAsync(Guid tenantId, Guid userId, CancellationToken cancellationToken = default)
     {
         var user = _usersById.GetValueOrDefault(userId);
         return Task.FromResult(user is not null && user.TenantId == tenantId
@@ -59,6 +68,15 @@ public sealed class FakeUserRepository : IUserRepository
     {
         LastActorId = userId;
         SoftDeleteCallCount++;
+        _usersById[user.Id] = user;
+        return Task.CompletedTask;
+    }
+
+    public Task RestoreAsync(User user, Guid userId, CancellationToken cancellationToken = default)
+    {
+        LastActorId = userId;
+        RestoreCallCount++;
+        user.MarkAsRestored();
         _usersById[user.Id] = user;
         return Task.CompletedTask;
     }

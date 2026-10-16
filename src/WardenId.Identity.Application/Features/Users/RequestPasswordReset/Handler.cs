@@ -9,6 +9,8 @@ public sealed class Handler(
     IUserRepository repository,
     IIdentityEmailSender emailSender) : IRequestHandler<Command, Result<PasswordResetRequested?>>
 {
+    private readonly PasswordResetIssuer _issuer = new(repository, emailSender);
+
     public async Task<Result<PasswordResetRequested?>> Handle(Command request, CancellationToken cancellationToken)
     {
         var emailResult = Email.Create(request.Email);
@@ -24,14 +26,7 @@ public sealed class Handler(
         if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
             return Result.Ok<PasswordResetRequested?>(null);
 
-        var (rawToken, tokenHash) = SecureTokenGenerator.Generate();
-        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(1);
-        var token = PasswordResetToken.Create(tokenHash, expiresAtUtc);
-        user.RequestPasswordReset(token);
-
-        await repository.UpdateAsync(user, user.Id, cancellationToken);
-
-        await emailSender.SendPasswordResetAsync(user.Email.Value, user.Username.Value, rawToken, expiresAtUtc, cancellationToken);
+        var rawToken = await _issuer.IssueAsync(user, user.Id, cancellationToken);
 
         return Result.Ok<PasswordResetRequested?>(new PasswordResetRequested(rawToken));
     }

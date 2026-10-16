@@ -90,4 +90,30 @@ public class UserPasswordResetTests
         Assert.True(result.IsFailed);
         Assert.Equal(UserStatus.SoftDeleted, user.Status);
     }
+
+    [Fact]
+    public void ResetPassword_ClearsPendingResetPasswordAction()
+    {
+        var user = CreateActiveUserWithCredential();
+        user.AddRequiredAction(RequiredAction.ResetPassword);
+        user.RequestPasswordReset(PasswordResetToken.Create("reset-hash", DateTimeOffset.UtcNow.AddHours(1)));
+
+        var result = user.ResetPassword("reset-hash", PasswordCredential.Create("hash-new", "Argon2id", 1, DateTimeOffset.UtcNow), PasswordPolicy.Create(8, true, true, false, false, 2).Value);
+
+        Assert.True(result.IsSuccess);
+        Assert.DoesNotContain(RequiredAction.ResetPassword, user.PendingActions);
+    }
+
+    [Fact]
+    public void ResetPassword_KeepsResetPasswordAction_WhenTokenIsInvalid()
+    {
+        var user = CreateActiveUserWithCredential();
+        user.AddRequiredAction(RequiredAction.ResetPassword);
+        user.RequestPasswordReset(PasswordResetToken.Create("reset-hash", DateTimeOffset.UtcNow.AddHours(1)));
+
+        var result = user.ResetPassword("wrong-hash", PasswordCredential.Create("hash-new", "Argon2id", 1, DateTimeOffset.UtcNow), PasswordPolicy.Create(8, true, true, false, false, 2).Value);
+
+        Assert.True(result.IsFailed);
+        Assert.Contains(RequiredAction.ResetPassword, user.PendingActions);
+    }
 }

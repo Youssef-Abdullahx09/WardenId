@@ -2,6 +2,7 @@ using FluentResults;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WardenId.Identity.Application.Abstractions;
+using WardenId.Identity.Domain;
 using WardenId.SharedKernel.Query.Contracts;
 
 namespace WardenId.Identity.Application.Features.Users.List;
@@ -10,7 +11,9 @@ public sealed class Handler(IIdentityDbContext dbContext) : IRequestHandler<Quer
 {
     public async Task<Result<PaginationListResponse<UserListItem>>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Users.Where(u => u.TenantId == request.TenantId && !u.IsDeleted);
+        // Soft-deleted users are hidden unless asked for by status, so they can be found to restore.
+        var includeDeleted = request.Status == UserStatus.SoftDeleted;
+        var query = dbContext.Users.Where(u => u.TenantId == request.TenantId && (includeDeleted || !u.IsDeleted));
 
         if (request.Status is not null)
             query = query.Where(u => u.Status == request.Status);

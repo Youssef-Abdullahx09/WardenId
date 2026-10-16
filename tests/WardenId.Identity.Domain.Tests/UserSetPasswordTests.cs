@@ -106,4 +106,43 @@ public class UserSetPasswordTests
 
         Assert.True(result.IsFailed);
     }
+
+    [Fact]
+    public void SetPassword_ClearsPendingResetPasswordAction()
+    {
+        var user = CreateUser();
+        user.SetPassword(PasswordCredential.Create("hash-1", "Argon2id", 1, DateTimeOffset.UtcNow), PolicyWithHistory(2));
+        user.AddRequiredAction(RequiredAction.ResetPassword);
+
+        var result = user.SetPassword(PasswordCredential.Create("hash-2", "Argon2id", 1, DateTimeOffset.UtcNow), PolicyWithHistory(2));
+
+        Assert.True(result.IsSuccess);
+        Assert.DoesNotContain(RequiredAction.ResetPassword, user.PendingActions);
+    }
+
+    [Fact]
+    public void SetPassword_KeepsOtherPendingActions()
+    {
+        var user = CreateUser();
+        user.AddRequiredAction(RequiredAction.ResetPassword);
+        user.AddRequiredAction(RequiredAction.AcceptTos);
+
+        user.SetPassword(PasswordCredential.Create("hash-1", "Argon2id", 1, DateTimeOffset.UtcNow), PolicyWithHistory(2));
+
+        Assert.Contains(RequiredAction.VerifyEmail, user.PendingActions);
+        Assert.Contains(RequiredAction.AcceptTos, user.PendingActions);
+    }
+
+    [Fact]
+    public void SetPassword_KeepsResetPasswordAction_WhenItFails()
+    {
+        var user = CreateUser();
+        user.AddRequiredAction(RequiredAction.ResetPassword);
+        user.Disable("policy violation");
+
+        var result = user.SetPassword(PasswordCredential.Create("hash-1", "Argon2id", 1, DateTimeOffset.UtcNow), PolicyWithHistory(2));
+
+        Assert.True(result.IsFailed);
+        Assert.Contains(RequiredAction.ResetPassword, user.PendingActions);
+    }
 }

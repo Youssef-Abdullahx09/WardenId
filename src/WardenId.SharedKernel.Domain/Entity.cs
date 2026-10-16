@@ -32,4 +32,12 @@ public abstract class Entity : IEntity
         DeletedById = userId;
         DeletedAt = DateTime.UtcNow;
     }
+
+    /// <summary>Undoes <see cref="MarkAsDeleted"/>. The save that follows stamps the modification.</summary>
+    public void MarkAsRestored()
+    {
+        IsDeleted = false;
+        DeletedById = null;
+        DeletedAt = null;
+    }
 }

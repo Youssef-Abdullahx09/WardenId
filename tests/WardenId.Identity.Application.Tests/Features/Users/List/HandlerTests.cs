@@ -73,4 +73,46 @@ public class HandlerTests
         Assert.True(result.IsSuccess);
         Assert.Equal(0, result.Value.RecordsTotal);
     }
+
+    [Fact]
+    public async Task Handle_ExcludesSoftDeletedUsers_WhenNoStatusFilter()
+    {
+        var (databaseName, tenantId) = await SeedThreeUsersAndOneSoftDeletedAsync();
+        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
+        var handler = new Handler(queryContext);
+
+        var result = await handler.Handle(new Query(tenantId, PageNumber: 1, PageSize: 10, Status: null), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.Value.RecordsTotal);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsSoftDeletedUsers_WhenFilteredBySoftDeleted()
+    {
+        var (databaseName, tenantId) = await SeedThreeUsersAndOneSoftDeletedAsync();
+        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
+        var handler = new Handler(queryContext);
+
+        var result = await handler.Handle(new Query(tenantId, PageNumber: 1, PageSize: 10, Status: UserStatus.SoftDeleted), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.RecordsTotal);
+        Assert.Equal("deleted@example.com", Assert.Single(result.Value.Data).Email);
+    }
+
+    private static async Task<(string DatabaseName, Guid TenantId)> SeedThreeUsersAndOneSoftDeletedAsync()
+    {
+        var (databaseName, tenantId) = await SeedThreeUsersAsync();
+
+        using var seedContext = TestIdentityDbContext.CreateNew(databaseName);
+        var deleted = TestUsers.CreatePendingVerification(tenantId, "deleted@example.com", "deleted");
+        deleted.MarkAsCreated(Guid.NewGuid());
+        deleted.SoftDelete();
+        deleted.MarkAsDeleted(Guid.NewGuid());
+        seedContext.Users.Add(deleted);
+        await seedContext.SaveChangesAsync(CancellationToken.None);
+
+        return (databaseName, tenantId);
+    }
 }

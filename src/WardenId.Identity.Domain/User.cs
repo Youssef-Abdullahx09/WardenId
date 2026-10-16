@@ -102,6 +102,8 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         }
 
         Credential = newCredential;
+        // A new password is exactly what the ResetPassword action asks for, so it is done.
+        _pendingActions.Remove(RequiredAction.ResetPassword);
         RaiseDomainEvent(new PasswordChangedDomainEvent());
         return Result.Ok();
     }
@@ -150,6 +152,22 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         return Result.Ok();
     }
 
+    /// <summary>
+    /// Disabled → the status the user would have without the disable: PendingVerification while
+    /// the email has never been verified (no verification token was ever consumed), Active
+    /// otherwise. A lockout from before the disable is cleared, since an admin enabling the
+    /// account means it should be usable now. Pending required actions are kept.
+    /// </summary>
+    public Result Enable()
+    {
+        if (Status != UserStatus.Disabled) return Result.Fail(UserErrors.InvalidStatusTransition());
+
+        Lockout = LoginLockoutState.None;
+        Status = IsEmailVerified ? UserStatus.Active : UserStatus.PendingVerification;
+        RaiseDomainEvent(new UserEnabledDomainEvent());
+        return Result.Ok();
+    }
+
     public Result SoftDelete()
     {
         if (Status == UserStatus.SoftDeleted) return Result.Fail(UserErrors.InvalidStatusTransition());
@@ -158,6 +176,21 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         RaiseDomainEvent(new UserSoftDeletedDomainEvent());
         return Result.Ok();
     }
+
+    /// <summary>
+    /// SoftDeleted → Disabled. The status before the delete isn't kept, and a restored account
+    /// should not be able to sign in again until an admin decides so: they call <see cref="Enable"/>.
+    /// </summary>
+    public Result Restore()
+    {
+        if (Status != UserStatus.SoftDeleted) return Result.Fail(UserErrors.InvalidStatusTransition());
+
+        Status = UserStatus.Disabled;
+        RaiseDomainEvent(new UserRestoredDomainEvent());
+        return Result.Ok();
+    }
+
+    private bool IsEmailVerified => _emailVerificationTokens.Any(t => t.ConsumedAtUtc is not null);
 
     public Result EnrollMfaFactor(MfaFactor factor, IEnumerable<RecoveryCode> recoveryCodes)
     {
