@@ -10,5 +10,12 @@ public static class EndpointNames
     public static class Tenants
     {
         public const string Create = "CreateTenant";
+        public const string List = "ListTenants";
+        public const string Get = "GetTenant";
+        public const string GetBySlug = "GetTenantBySlug";
+        public const string Rename = "RenameTenant";
+        public const string Suspend = "SuspendTenant";
+        public const string Reactivate = "ReactivateTenant";
+        public const string Archive = "ArchiveTenant";
     }
 }

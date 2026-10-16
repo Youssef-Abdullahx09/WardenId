@@ -17,6 +17,25 @@ public sealed class TenantRepository(
         await dbContext.SaveChangesAsync(userId, cancellationToken);
     }
 
+    public async Task<Result<Tenant>> GetByIdAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await dbContext.Tenants.Where(x => x.Id == tenantId
+                                                        && !x.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return tenant is null ? Result.Fail(TenantErrors.NotFound) : tenant;
+    }
+
+    public async Task UpdateAsync(
+        Tenant tenant,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        await dbContext.SaveChangesAsync(userId, cancellationToken);
+    }
+
     public async Task<Result<Tenant>> GetBySlugAsync(
         Slug slug,
         CancellationToken cancellationToken = default)

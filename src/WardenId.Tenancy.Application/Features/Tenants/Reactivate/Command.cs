@@ -1,0 +1,6 @@
+using FluentResults;
+using MediatR;
+
+namespace WardenId.Tenancy.Application.Features.Tenants.Reactivate;
+
+public sealed record Command(Guid TenantId, Guid UserId) : IRequest<Result>;

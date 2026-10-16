@@ -10,6 +10,15 @@ public interface ITenantRepository
         Guid userId,
         CancellationToken cancellationToken = default);
     
+    Task<Result<Tenant>> GetByIdAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
+    Task UpdateAsync(
+        Tenant tenant,
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
     Task<Result<Tenant>> GetBySlugAsync(
         Slug slug,
         CancellationToken cancellationToken = default);

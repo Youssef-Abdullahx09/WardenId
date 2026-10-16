@@ -27,15 +27,34 @@ public sealed class Tenant : AggregateRoot
 
     public static Result<Tenant> Create(Slug slug, string displayName)
     {
+        var displayNameResult = ValidateDisplayName(displayName);
+        if (displayNameResult.IsFailed) return Result.Fail(displayNameResult.Errors);
+
+        var tenant = new Tenant(slug, displayNameResult.Value);
+        tenant.RaiseDomainEvent(new TenantCreatedDomainEvent(tenant.Slug));
+        return Result.Ok(tenant);
+    }
+
+    /// <summary>Changes the display name. The slug (and so the issuer) never changes.</summary>
+    public Result Rename(string displayName)
+    {
+        if (Status == Status.Archived) return Result.Fail(TenantErrors.TenantInvalidTransition(Status));
+
+        var displayNameResult = ValidateDisplayName(displayName);
+        if (displayNameResult.IsFailed) return Result.Fail(displayNameResult.Errors);
+        if (displayNameResult.Value == DisplayName) return Result.Ok();
+
+        DisplayName = displayNameResult.Value;
+        RaiseDomainEvent(new TenantRenamedDomainEvent(DisplayName));
+        return Result.Ok();
+    }
+
+    private static Result<string> ValidateDisplayName(string displayName)
+    {
         if (string.IsNullOrWhiteSpace(displayName)) return Result.Fail(TenantErrors.TenantDisplayNameRequired());
 
         var trimmed = displayName.Trim();
-
-        if (trimmed.Length > 200) return Result.Fail(TenantErrors.TenantDisplayNameTooLong());
-
-        var tenant = new Tenant(slug, trimmed);
-        tenant.RaiseDomainEvent(new TenantCreatedDomainEvent(tenant.Slug));
-        return Result.Ok(tenant);
+        return trimmed.Length > 200 ? Result.Fail(TenantErrors.TenantDisplayNameTooLong()) : Result.Ok(trimmed);
     }
 
     /// <summary>
