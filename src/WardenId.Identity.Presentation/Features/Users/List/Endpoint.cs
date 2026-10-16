@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using WardenId.Identity.Application.Features.Users.List;
 using WardenId.Identity.Domain;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Query.Contracts;
 
 namespace WardenId.Identity.Presentation.Features.Users.List;
 
@@ -34,11 +36,12 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.List)
             .RequireAuthorization()
             .WithTags("Identity - Users")
             .WithSummary("List users")
             .WithDescription("Lists users for the given tenant, paginated and optionally filtered by status.")
-            .Produces(StatusCodes.Status200OK)
+            .Produces<PaginationListResponse<UserListItem>>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 }

@@ -83,7 +83,7 @@ public static class GatewayDependencyInjection
 
             options.OperationFilter<AsParametersOperationFilter>();
             options.SchemaFilter<EnumSchemaFilter>();
-            options.CustomSchemaIds(type => type.FullName);
+            options.CustomSchemaIds(SchemaIds.For);
 
             options.MapType<DateOnly>(() => new OpenApiSchema
             {

@@ -32,6 +32,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.RemoveRedirectUri)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Remove a redirect URI")

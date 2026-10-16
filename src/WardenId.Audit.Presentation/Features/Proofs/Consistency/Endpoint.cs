@@ -34,12 +34,13 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Proofs.Consistency)
             .RequireAuthorization()
             .WithTags("Audit - Proofs")
             .WithSummary("Get a consistency proof between two checkpoints")
             .WithDescription(
                 "Proves the checkpoint at earlierSize is a strict prefix of the checkpoint at laterSize, for the given channel/tenant scope.")
-            .Produces(StatusCodes.Status200OK)
+            .Produces<ConsistencyProofResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);

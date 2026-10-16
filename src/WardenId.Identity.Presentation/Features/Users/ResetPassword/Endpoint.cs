@@ -30,6 +30,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.ResetPassword)
             .WithTags("Identity - Users")
             .WithSummary("Confirm a password reset")
             .WithDescription("Consumes a password-reset token minted by the request endpoint and sets the new password.")

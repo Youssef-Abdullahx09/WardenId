@@ -32,6 +32,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Sessions.EndForUser)
             .RequireAuthorization()
             .WithTags("Protocol - Sessions")
             .WithSummary("End all of a User's Sessions")

@@ -29,15 +29,16 @@ public sealed class Endpoint : IEndpoint
                 return result.IsSuccess
                     ? Results.Created(
                         $"/api/v1/admin/tenants/{tenantId}/users/{result.Value.UserId}",
-                        new { userId = result.Value.UserId })
+                        new Response(result.Value.UserId))
                     : result.HandleApiFailure();
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.Register)
             .WithTags("Identity - Users")
             .WithSummary("Register a user")
             .WithDescription("Self-registers a new user for the given tenant. An email-verification code is sent to the given address.")
-            .Produces(StatusCodes.Status201Created)
+            .Produces<Response>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status409Conflict);
     }

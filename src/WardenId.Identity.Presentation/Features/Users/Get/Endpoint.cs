@@ -31,11 +31,12 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.Get)
             .RequireAuthorization()
             .WithTags("Identity - Users")
             .WithSummary("Get a user")
             .WithDescription("Returns full user detail, including MFA factors and attributes.")
-            .Produces(StatusCodes.Status200OK)
+            .Produces<UserDetail>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound);
     }

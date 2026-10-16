@@ -32,6 +32,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.SetBackchannelLogoutUri)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Set the back-channel logout URI")

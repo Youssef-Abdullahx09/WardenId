@@ -33,6 +33,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.RequestPasswordReset)
             .WithTags("Identity - Users")
             .WithSummary("Request a password reset")
             .WithDescription("Always returns 202 regardless of whether the email matches an account, to avoid user enumeration.")

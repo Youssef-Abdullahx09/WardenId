@@ -33,6 +33,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.ExpireSecret)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Expire a Client secret")

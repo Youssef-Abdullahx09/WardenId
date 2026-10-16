@@ -32,6 +32,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.VerifyEmail)
             .WithTags("Identity - Users")
             .WithSummary("Verify an email address")
             .WithDescription("Consumes an email-verification token, activating the account.")

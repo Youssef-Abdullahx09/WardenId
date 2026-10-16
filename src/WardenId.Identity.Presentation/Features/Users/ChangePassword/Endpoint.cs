@@ -32,6 +32,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.ChangePassword)
             .RequireAuthorization()
             .WithTags("Identity - Users")
             .WithSummary("Change a user's password")

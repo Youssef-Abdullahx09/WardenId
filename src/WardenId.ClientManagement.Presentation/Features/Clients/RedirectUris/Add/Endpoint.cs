@@ -32,6 +32,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.AddRedirectUri)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Add a redirect URI")

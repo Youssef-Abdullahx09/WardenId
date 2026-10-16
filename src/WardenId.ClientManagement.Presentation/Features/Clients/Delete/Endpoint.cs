@@ -31,6 +31,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.Delete)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Delete a Client")

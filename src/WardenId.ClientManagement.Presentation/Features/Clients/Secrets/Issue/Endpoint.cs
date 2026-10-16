@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using WardenId.ClientManagement.Application.Features.Clients.Secrets.Issue;
 using WardenId.SharedKernel.Presentation;
 
 namespace WardenId.ClientManagement.Presentation.Features.Clients.Secrets.Issue;
@@ -32,11 +33,13 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.IssueSecret)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Issue a Client secret")
             .WithDescription("Issues a new client secret, rotating out the prior active secret with an overlap window if one exists. The plaintext secret is only ever returned here, once.")
             .ProducesValidationProblem()
+            .Produces<ClientSecretIssued>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound);
     }

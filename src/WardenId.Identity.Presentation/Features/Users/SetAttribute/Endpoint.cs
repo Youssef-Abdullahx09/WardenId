@@ -33,6 +33,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.SetAttribute)
             .RequireAuthorization()
             .WithTags("Identity - Users")
             .WithSummary("Set a user attribute")

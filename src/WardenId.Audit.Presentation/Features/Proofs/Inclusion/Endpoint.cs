@@ -30,12 +30,13 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Proofs.Inclusion)
             .RequireAuthorization()
             .WithTags("Audit - Proofs")
             .WithSummary("Get an inclusion proof for an audit event")
             .WithDescription(
                 "Returns the event's canonical bytes, leaf hash, Merkle audit path, and the earliest checkpoint that covers its segment.")
-            .Produces(StatusCodes.Status200OK)
+            .Produces<InclusionProofResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);

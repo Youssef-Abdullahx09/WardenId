@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using WardenId.Identity.Application.Features.Users.EnrollMfaFactor;
 using WardenId.SharedKernel.Presentation;
 
 namespace WardenId.Identity.Presentation.Features.Users.EnrollMfaFactor;
@@ -32,11 +33,13 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.EnrollMfaFactor)
             .RequireAuthorization()
             .WithTags("Identity - Users")
             .WithSummary("Enroll an MFA factor")
             .WithDescription("Enrolls an MFA factor and issues a batch of recovery codes. The raw recovery codes are only ever returned here, once. TOTP secret generation/verification is not implemented yet — CredentialData is accepted as an opaque pre-built value.")
             .ProducesValidationProblem()
+            .Produces<MfaFactorEnrolled>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound);
     }

@@ -27,16 +27,17 @@ public sealed class Endpoint : IEndpoint
                 var result = await sender.Send(request.ToCommand(currentUser.UserId), cancellationToken);
 
                 return result.IsSuccess
-                    ? Results.Created($"/api/v1/tenants/{result.Value}", new { id = result.Value })
+                    ? Results.Created($"/api/v1/tenants/{result.Value}", new Response(result.Value))
                     : result.HandleApiFailure();
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Tenants.Create)
             .RequireAuthorization()
             .WithTags("Tenancy - Tenants")
             .WithSummary("Create a Tenant")
             .WithDescription("Creates a Tenant with the given name. Slug are unique (case-insensitive).")
-            .Produces(StatusCodes.Status201Created, typeof(Guid))
+            .Produces<Response>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status409Conflict);

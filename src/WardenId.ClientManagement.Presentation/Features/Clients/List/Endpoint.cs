@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using WardenId.ClientManagement.Application.Features.Clients.List;
 using WardenId.ClientManagement.Domain;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Query.Contracts;
 
 namespace WardenId.ClientManagement.Presentation.Features.Clients.List;
 
@@ -35,11 +37,12 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.List)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("List Clients")
             .WithDescription("Lists clients for the given tenant, paginated and optionally filtered by enabled/clientType.")
-            .Produces(StatusCodes.Status200OK)
+            .Produces<PaginationListResponse<ClientListItem>>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 }

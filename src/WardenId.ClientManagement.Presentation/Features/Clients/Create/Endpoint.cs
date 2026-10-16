@@ -27,16 +27,17 @@ public sealed class Endpoint : IEndpoint
                 var result = await sender.Send(request.ToCommand(tenantId), cancellationToken);
 
                 return result.IsSuccess
-                    ? Results.Created($"/api/v1/admin/tenants/{tenantId}/clients/{result.Value}", new { id = result.Value })
+                    ? Results.Created($"/api/v1/admin/tenants/{tenantId}/clients/{result.Value}", new Response(result.Value))
                     : result.HandleApiFailure();
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.Create)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Create a Client")
             .WithDescription("Creates an OAuth client for the given tenant.")
-            .Produces(StatusCodes.Status201Created, typeof(Guid))
+            .Produces<Response>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }

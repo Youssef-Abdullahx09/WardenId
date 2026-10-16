@@ -31,11 +31,12 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.Get)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Get a Client")
             .WithDescription("Returns full client detail, excluding secret hashed values.")
-            .Produces(StatusCodes.Status200OK)
+            .Produces<ClientDetail>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound);
     }

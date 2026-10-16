@@ -32,6 +32,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.RequestEmailVerification)
             .WithTags("Identity - Users")
             .WithSummary("Resend an email-verification token")
             .WithDescription("Mints a new email-verification code and emails it to the user.")

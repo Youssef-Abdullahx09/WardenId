@@ -32,13 +32,14 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Verification.Verify)
             .RequireAuthorization()
             .WithTags("Audit - Verification")
             .WithSummary("Run full chain verification for a channel/tenant scope")
             .WithDescription(
                 "Recomputes segment roots, header chain linkage, sequence density, and checkpoint signatures. " +
                 "Always returns 200 with a report — a broken chain is Verified=false in the body, not an HTTP error.")
-            .Produces(StatusCodes.Status200OK)
+            .Produces<VerificationReport>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 }

@@ -32,6 +32,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Clients.ReplacePostLogoutRedirectUris)
             .RequireAuthorization()
             .WithTags("ClientManagement - Clients")
             .WithSummary("Replace post-logout redirect URIs")

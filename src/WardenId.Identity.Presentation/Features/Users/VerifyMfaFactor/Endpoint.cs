@@ -34,6 +34,7 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.Users.VerifyMfaFactor)
             .RequireAuthorization()
             .WithTags("Identity - Users")
             .WithSummary("Verify an MFA factor")

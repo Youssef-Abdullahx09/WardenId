@@ -29,11 +29,12 @@ public sealed class Endpoint : IEndpoint
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
+            .WithName(EndpointNames.CheckpointKeys.List)
             .RequireAuthorization()
             .WithTags("Audit - Verification")
             .WithSummary("List checkpoint signing public keys")
             .WithDescription("Publishes every checkpoint signing key's public JWK (spec §6) — needed to verify checkpoint signatures independently.")
-            .Produces(StatusCodes.Status200OK)
+            .Produces<IReadOnlyList<CheckpointKeySummary>>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 }
