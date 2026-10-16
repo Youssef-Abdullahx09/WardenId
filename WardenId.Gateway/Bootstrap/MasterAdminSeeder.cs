@@ -1,7 +1,6 @@
 using MediatR;
 using WardenId.Audit.Application;
 using WardenId.Audit.Domain;
-using WardenId.Gateway.Authorization;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Application.Features.Users.Register;
 using WardenId.Identity.Domain;
@@ -66,7 +65,6 @@ public static class MasterAdminSeeder
             {
                 logger.LogInformation(
                     "Master admin user '{Email}' already exists — skipping seed.", options.AdminEmail);
-                await AllowOnAdminApiAsync(app, userRepository, tenantId, emailResult.Value, logger);
                 return;
             }
         }
@@ -113,27 +111,6 @@ public static class MasterAdminSeeder
                 "(e.g. sending the verification email) failed.",
                 options.AdminEmail);
         }
-
-        if (emailResult.IsSuccess)
-        {
-            await AllowOnAdminApiAsync(
-                app, scope.ServiceProvider.GetRequiredService<IUserRepository>(), tenantId, emailResult.Value, logger);
-        }
-    }
-
-    /// <summary>
-    /// The seeded master admin is a platform admin on the admin API (until roles exist, B2), whether
-    /// this run created the user or found it from an earlier one.
-    /// </summary>
-    private static async Task AllowOnAdminApiAsync(
-        WebApplication app, IUserRepository users, Guid tenantId, Email email, ILogger logger)
-    {
-        var user = await users.GetByEmailAsync(tenantId, email, CancellationToken.None);
-        if (user.IsFailed) return;
-
-        app.Services.GetRequiredService<PlatformAdmins>().Add(tenantId, user.Value.Id);
-        logger.LogInformation(
-            "Master admin user '{Email}' ({UserId}) may use the admin API.", email.Value, user.Value.Id);
     }
 }
 
