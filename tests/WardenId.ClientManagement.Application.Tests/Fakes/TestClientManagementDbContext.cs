@@ -53,7 +53,14 @@ public sealed class TestClientManagementDbContext(DbContextOptions<TestClientMan
             });
             builder.Navigation(c => c.PostLogoutRedirectUris).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-            builder.Ignore(c => c.CorsOrigins);
+            builder.OwnsMany(c => c.CorsOrigins, b =>
+            {
+                b.WithOwner().HasForeignKey("OwnerId");
+                b.Property(o => o.Value);
+                b.HasKey("OwnerId", "Value");
+            });
+            builder.Navigation(c => c.CorsOrigins).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             builder.Ignore(c => c.SigningKeys);
             builder.Ignore(c => c.AssignedScopeIds);
 

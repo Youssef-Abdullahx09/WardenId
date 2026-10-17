@@ -5,6 +5,8 @@ namespace WardenId.ClientManagement.Integration.Command.Features.Clients.GetForA
 /// no secret material — secrets are verified inside ClientManagement via VerifySecret.
 /// <see cref="PostLogoutRedirectUris"/> feed OpenIddict's exact-match end-session validation;
 /// <see cref="BackchannelLogoutUri"/> is null when the client does not take back-channel logout.
+/// The lifetime overrides are null when the client uses the global <c>ProtocolToken</c> default.
+/// <see cref="IdTokenLifetimeSeconds"/> was added last, with a default, so existing callers keep compiling.
 /// </summary>
 public sealed record ClientForAuthentication(
     Guid Id,
@@ -18,4 +20,5 @@ public sealed record ClientForAuthentication(
     IReadOnlyList<string> RedirectUris,
     bool RequirePkce,
     IReadOnlyList<string> PostLogoutRedirectUris,
-    string? BackchannelLogoutUri);
+    string? BackchannelLogoutUri,
+    int? IdTokenLifetimeSeconds = null);

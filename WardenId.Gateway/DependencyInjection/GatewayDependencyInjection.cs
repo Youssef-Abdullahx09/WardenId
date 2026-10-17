@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Microsoft.OpenApi;
 using WardenId.Gateway.Authentication;
+using WardenId.Gateway.Cors;
 using WardenId.Gateway.Utilities;
 using WardenId.SharedKernel.Presentation;
 
@@ -19,7 +20,7 @@ public static class GatewayDependencyInjection
         services.AddExceptionHandling();
         services.AddJsonConfiguration();
         services.AddSwaggerDocumentation();
-        services.AddCorsConfiguration();
+        services.AddGatewayCors(configuration);
         services.AddAntiforgery();
         services.AddAdminApiAuthentication();
     }
@@ -54,21 +55,6 @@ public static class GatewayDependencyInjection
         services.AddProblemDetails();
     }
 
-    private static void AddCorsConfiguration(
-        this IServiceCollection services)
-    {
-        services.AddCors(options =>
-        {
-            options.AddDefaultPolicy(corsPolicyBuilder =>
-            {
-                corsPolicyBuilder
-                    .AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader();
-            });
-        });
-    }
-    
     private static void AddSwaggerDocumentation(
         this IServiceCollection services)
     {

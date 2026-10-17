@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Presentation.Cors;
 
 namespace WardenId.Protocol.Presentation;
 
@@ -17,6 +18,9 @@ public static class DependencyInjection
         services.AddCors(options => options.AddPolicy(
             CorsPolicyNames.ProtocolPublicMetadata,
             policy => policy.AllowAnyOrigin().WithMethods("GET").AllowAnyHeader()));
+        // Token, revoke and userinfo: only the tenant's client origins (W17b). The host's CORS policy provider asks it.
+        services.AddMemoryCache();
+        services.AddScoped<IProtocolCorsPolicyResolver, ProtocolCorsPolicyResolver>();
 
         services.AddRazorPages(options =>
                 options.Conventions.AddFolderApplicationModelConvention(

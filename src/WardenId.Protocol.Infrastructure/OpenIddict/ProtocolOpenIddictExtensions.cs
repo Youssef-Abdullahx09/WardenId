@@ -27,6 +27,8 @@ public static class ProtocolOpenIddictExtensions
         services.AddHttpContextAccessor();
         // The admin grant endpoints read authorizations through OpenIddict's manager, registered below.
         services.AddScoped<IUserGrantStore, OpenIddictUserGrantStore>();
+        // W12: revoke a client's rows by owner stamp (needs ISessionAuthorizationRevoker, registered by the host).
+        services.AddScoped<IClientGrantRevoker, OpenIddictClientGrantRevoker>();
 
         services.AddOpenIddict()
             .AddCore(options =>
@@ -87,6 +89,7 @@ public static class ProtocolOpenIddictExtensions
                        .AddEventHandler(RevokeTokenFamily.Descriptor)
                        .AddEventHandler(RecordSessionAuthorization.Descriptor)
                        .AddEventHandler(StampAuthorizationOwner.Descriptor)
+                       .AddEventHandler(StampClientCredentialsTokenOwner.Descriptor)
                        .AddEventHandler(InferClientIdFromHint.Descriptor)
                        // Audit trail (W24): token issuance, revocation and refresh-token replay.
                        .AddEventHandler(RecordTokenIssuance.Descriptor)

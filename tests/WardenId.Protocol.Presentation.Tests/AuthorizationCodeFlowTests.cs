@@ -93,6 +93,24 @@ public class AuthorizationCodeFlowTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ClientIdTokenLifetimeOverride_SetsIdTokenExpiry_AndLeavesAccessTokenAtDefault()
+    {
+        var pkce = OidcFlow.NewPkce();
+        var code = await OidcFlow.CodeAsync(_host.CreateBrowser(), "acme",
+            OidcFlow.AuthorizeParameters("web-short-id", FakeDirectory.WebRedirect, pkce, "openid"), FakeDirectory.WebRedirect);
+
+        var response = await RedeemAsync(
+            "acme", "web-short-id", FakeDirectory.AcmeSecret, code, FakeDirectory.WebRedirect, pkce.Verifier);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await JsonAsync(response);
+        var id = new JsonWebTokenHandler().ReadJsonWebToken(body.GetProperty("id_token").GetString()!);
+        Assert.Equal(TimeSpan.FromSeconds(120), id.ValidTo - id.IssuedAt);
+        var access = new JsonWebTokenHandler().ReadJsonWebToken(body.GetProperty("access_token").GetString()!);
+        Assert.Equal(TimeSpan.FromMinutes(15), access.ValidTo - access.IssuedAt);
+    }
+
+    [Fact]
     public async Task OpenIdOnly_IdTokenHasNoProfileOrEmailClaims()
     {
         var (code, verifier) = await WebCodeAsync("openid");

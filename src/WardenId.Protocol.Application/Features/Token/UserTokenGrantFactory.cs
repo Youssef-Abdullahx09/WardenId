@@ -11,7 +11,7 @@ namespace WardenId.Protocol.Application.Features.Token;
 /// <summary>
 /// Shared by code and refresh redemption: re-checks the user (may have been disabled since sign-in) and
 /// the client, sources claims fresh from Identity filtered by claimScopes, and computes
-/// lifetimes. The refresh lifetime is decided by grantedScopes (offline_access) and the
+/// lifetimes (access and ID token: client override ?? global default). The refresh lifetime is decided by grantedScopes (offline_access) and the
 /// client still holding the refresh grant; it slides (client override ?? RefreshTokenLifetime) but never past
 /// auth_time + RefreshTokenAbsoluteLifetime.
 /// </summary>
@@ -56,7 +56,9 @@ public sealed class UserTokenGrantFactory(ISender sender, IOptions<ProtocolToken
             AccessTokenLifetime: client.AccessTokenLifetimeSeconds is { } accessSeconds
                 ? TimeSpan.FromSeconds(accessSeconds)
                 : settings.AccessTokenLifetime,
-            IdTokenLifetime: settings.IdTokenLifetime,
+            IdTokenLifetime: client.IdTokenLifetimeSeconds is { } idSeconds
+                ? TimeSpan.FromSeconds(idSeconds)
+                : settings.IdTokenLifetime,
             RefreshTokenLifetime: refreshLifetime,
             PreferredUsername: claims.PreferredUsername,
             Email: claims.Email,

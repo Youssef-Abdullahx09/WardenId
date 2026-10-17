@@ -14,6 +14,9 @@ public static class ProtocolErrors
     public static Error GrantNotFound()
         => new Error("Grant not found.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.NotFound);
 
+    public static Error ClientNotFound()
+        => new Error("Client not found.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.NotFound);
+
     // One message for wrong password, unknown user, locked and disabled — no account enumeration.
     public static Error InvalidCredentials()
         => new Error("Invalid username or password.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.InvalidCredentials);

@@ -37,7 +37,8 @@ public sealed class Handler(IClientManagementDbContext dbContext)
             client.RedirectUris.Select(r => r.Value).ToArray(),
             client.RequirePkce,
             client.PostLogoutRedirectUris.Select(r => r.Value).ToArray(),
-            client.BackchannelLogoutUri?.Value));
+            client.BackchannelLogoutUri?.Value,
+            client.TokenLifetimeOverrides?.IdTokenSeconds));
     }
 
     private static List<AllowedGrant> MapGrants(GrantType grants)

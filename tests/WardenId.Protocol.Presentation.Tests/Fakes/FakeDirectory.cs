@@ -20,7 +20,16 @@ public sealed class FakeDirectory
         Guid TenantId, Guid Id, string ClientId, ClientKind Kind, bool Enabled,
         IReadOnlyList<AllowedGrant> Grants, ClientAuthMethod Auth, int? AccessTokenLifetimeSeconds,
         int? RefreshTokenLifetimeSeconds, string[] Secrets, string[] RedirectUris, bool RequirePkce,
-        string[] PostLogoutRedirectUris, string? BackchannelLogoutUri);
+        string[] PostLogoutRedirectUris, string? BackchannelLogoutUri, int? IdTokenLifetimeSeconds = null,
+        string[]? CorsOriginList = null)
+    {
+        public string[] CorsOrigins => CorsOriginList ?? [];
+    }
+
+    public const string SpaOrigin = "https://spa.example";
+
+    /// <summary>How often Protocol asked ClientManagement for a tenant's CORS origins (cache tests).</summary>
+    public int CorsOriginLookups { get; set; }
 
     public const string WebRedirect = "https://app.example/cb";
     public const string SpaRedirect = "https://spa.example/cb";
@@ -63,7 +72,8 @@ public sealed class FakeDirectory
         AddClient(acme, "pkjwt", auth: ClientAuthMethod.PrivateKeyJwt, secrets: [AcmeSecret]);
         AddClient(acme, "public-app", kind: ClientKind.Public, secrets: []);
         AddClient(acme, "web", grants: [AllowedGrant.AuthorizationCode], secrets: [AcmeSecret], redirectUris: [WebRedirect]);
-        AddClient(acme, "spa", kind: ClientKind.Public, grants: [AllowedGrant.AuthorizationCode], redirectUris: [SpaRedirect]);
+        AddClient(acme, "spa", kind: ClientKind.Public, grants: [AllowedGrant.AuthorizationCode], redirectUris: [SpaRedirect],
+            corsOrigins: [SpaOrigin]);
         AddClient(globex, "web", grants: [AllowedGrant.AuthorizationCode], secrets: [GlobexSecret], redirectUris: [WebRedirect]);
         AddClient(acme, "web-rt", grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
             secrets: [AcmeSecret], redirectUris: [WebRedirect],
@@ -72,6 +82,8 @@ public sealed class FakeDirectory
             secrets: [AcmeSecret], redirectUris: [WebRedirect]);
         AddClient(acme, "spa-rt", kind: ClientKind.Public, grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
             redirectUris: [SpaRtRedirect]);
+        AddClient(acme, "web-short-id", grants: [AllowedGrant.AuthorizationCode], secrets: [AcmeSecret],
+            redirectUris: [WebRedirect], idTokenLifetime: 120);
         AddClient(globex, "web-rt", grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
             secrets: [GlobexSecret], redirectUris: [WebRedirect]);
 
@@ -99,6 +111,8 @@ public sealed class FakeDirectory
         });
     }
 
+    public ClientEntry Client(string slug, string clientId) => FindClient(Tenant(slug).TenantId, clientId)!;
+
     public ClientEntry? FindClient(Guid tenantId, string clientId) =>
         Clients.FirstOrDefault(c => c.TenantId == tenantId && c.ClientId == clientId);
 
@@ -114,10 +128,11 @@ public sealed class FakeDirectory
         ClientKind kind = ClientKind.Confidential, bool enabled = true,
         AllowedGrant[]? grants = null, ClientAuthMethod auth = ClientAuthMethod.SharedSecret,
         int? lifetime = null, string[]? secrets = null, string[]? redirectUris = null, bool? requirePkce = null,
-        int? refreshLifetime = null, string[]? postLogoutRedirectUris = null, string? backchannelLogoutUri = null) =>
+        int? refreshLifetime = null, string[]? postLogoutRedirectUris = null, string? backchannelLogoutUri = null,
+        int? idTokenLifetime = null, string[]? corsOrigins = null) =>
         Clients.Add(new ClientEntry(
             tenant.TenantId, Guid.NewGuid(), clientId, kind, enabled,
             grants ?? [AllowedGrant.ClientCredentials], auth, lifetime, refreshLifetime, secrets ?? [],
             redirectUris ?? [], requirePkce ?? kind == ClientKind.Public,
-            postLogoutRedirectUris ?? [], backchannelLogoutUri));
+            postLogoutRedirectUris ?? [], backchannelLogoutUri, idTokenLifetime, corsOrigins));
 }

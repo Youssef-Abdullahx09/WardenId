@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.DataProtection;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
+using WardenId.ClientManagement.Integration.Command.Features.Clients.GetReference;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
 using WardenId.Identity.Integration.Command.Features.Users.GetForSignIn;
 using WardenId.Tenancy.Application.Abstractions;
@@ -13,6 +14,8 @@ using GetForAuthenticationQuery = WardenId.ClientManagement.Integration.Command.
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
 using ResolveForIssuanceQuery = WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance.Query;
 using TenancyActiveSigningKey = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.ActiveSigningKey;
+using GetReferenceQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.GetReference.Query;
+using ListCorsOriginsQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.ListCorsOrigins.Query;
 using VerifySecretQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.VerifySecret.Query;
 using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Events.Record.Command;
 
@@ -60,8 +63,33 @@ public sealed class GetForAuthenticationHandler(FakeDirectory directory)
         Task.FromResult(directory.FindClient(request.TenantId, request.ClientId) is { } c
             ? Result.Ok(new ClientForAuthentication(c.Id, c.ClientId, c.Kind, c.Enabled, c.Grants, c.Auth,
                 c.AccessTokenLifetimeSeconds, c.RefreshTokenLifetimeSeconds, c.RedirectUris, c.RequirePkce,
-                c.PostLogoutRedirectUris, c.BackchannelLogoutUri))
+                c.PostLogoutRedirectUris, c.BackchannelLogoutUri, c.IdTokenLifetimeSeconds))
             : Result.Fail<ClientForAuthentication>(Fail.NotFound));
+}
+
+public sealed class GetReferenceHandler(FakeDirectory directory)
+    : IRequestHandler<GetReferenceQuery, Result<ClientReference>>
+{
+    public Task<Result<ClientReference>> Handle(GetReferenceQuery request, CancellationToken cancellationToken) =>
+        Task.FromResult(directory.Clients.FirstOrDefault(c => c.TenantId == request.TenantId && c.Id == request.Id) is { } c
+            ? Result.Ok(new ClientReference(c.Id, c.ClientId))
+            : Result.Fail<ClientReference>(Fail.NotFound));
+}
+
+public sealed class ListCorsOriginsHandler(FakeDirectory directory)
+    : IRequestHandler<ListCorsOriginsQuery, Result<IReadOnlyList<string>>>
+{
+    public Task<Result<IReadOnlyList<string>>> Handle(ListCorsOriginsQuery request, CancellationToken cancellationToken)
+    {
+        directory.CorsOriginLookups++;
+        IReadOnlyList<string> origins = directory.Clients
+            .Where(c => c.TenantId == request.TenantId && c.Enabled)
+            .SelectMany(c => c.CorsOrigins)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        return Task.FromResult(Result.Ok(origins));
+    }
 }
 
 public sealed class VerifySecretHandler(FakeDirectory directory) : IRequestHandler<VerifySecretQuery, Result>

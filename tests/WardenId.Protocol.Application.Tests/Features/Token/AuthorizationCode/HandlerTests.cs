@@ -19,11 +19,13 @@ public class HandlerTests
         Result.Ok(new SignInUser(UserId, "alice@acme.test", "alice", status, actions));
 
     private static Result<ClientForAuthentication> Client(
-        int? lifetimeSeconds = null, int? refreshSeconds = null, bool enabled = true, AllowedGrant[]? grants = null) =>
+        int? lifetimeSeconds = null, int? refreshSeconds = null, bool enabled = true, AllowedGrant[]? grants = null,
+        int? idTokenSeconds = null) =>
         Result.Ok(new ClientForAuthentication(
             Guid.NewGuid(), "web", ClientKind.Confidential, enabled,
             grants ?? [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
-            ClientAuthMethod.SharedSecret, lifetimeSeconds, refreshSeconds, ["https://app.example/cb"], false, [], null));
+            ClientAuthMethod.SharedSecret, lifetimeSeconds, refreshSeconds, ["https://app.example/cb"], false, [], null,
+            idTokenSeconds));
 
     private static Task<Result<UserTokenGrant>> HandleAsync(
         FakeSender sender, DateTimeOffset? authTime = null, params string[] scopes)
@@ -87,6 +89,17 @@ public class HandlerTests
         var result = await HandleAsync(sender, scopes: ["openid"]);
 
         Assert.Equal(TimeSpan.FromSeconds(60), result.Value.AccessTokenLifetime);
+    }
+
+    [Fact]
+    public async Task Handle_UsesClientIdTokenLifetimeOverride()
+    {
+        var sender = new FakeSender { SignInUserResponse = User(), ClientResponse = Client(idTokenSeconds: 120) };
+
+        var result = await HandleAsync(sender, scopes: ["openid"]);
+
+        Assert.Equal(TimeSpan.FromSeconds(120), result.Value.IdTokenLifetime);
+        Assert.Equal(TimeSpan.FromMinutes(15), result.Value.AccessTokenLifetime);
     }
 
     [Fact]

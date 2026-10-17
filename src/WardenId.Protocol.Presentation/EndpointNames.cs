@@ -20,6 +20,7 @@ public static class EndpointNames
         public const string ListForUser = "ListUserGrants";
         public const string Revoke = "RevokeUserGrant";
         public const string RevokeForUser = "RevokeUserGrants";
+        public const string RevokeForClient = "RevokeClientGrants";
     }
 
     public static class Policies

@@ -6,7 +6,9 @@ namespace WardenId.Protocol.Infrastructure.OpenIddict;
 /// <summary>
 /// Tenant and client of an OpenIddict authorization, kept in its Properties JSON column (no schema change). OpenIddict
 /// stores neither: token tables are not tenant-partitioned and the read-only application store leaves ApplicationId
-/// empty (ADR-01). Written once by <see cref="Handlers.StampAuthorizationOwner"/>; read by the admin grant endpoints.
+/// empty (ADR-01). Written once by <see cref="Handlers.StampAuthorizationOwner"/> (authorizations) and
+/// <see cref="Handlers.StampClientCredentialsTokenOwner"/> (client_credentials token rows, same keys); read by the admin
+/// grant endpoints.
 /// </summary>
 public static class AuthorizationOwnerProperties
 {
