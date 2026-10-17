@@ -65,6 +65,7 @@ public sealed class Handler(
             request.Lockout?.MaxFailedAttempts,
             lockoutDuration,
             request.Mfa?.Mode,
-            request.SelfRegistration?.Enabled));
+            request.SelfRegistration?.Enabled,
+            string.IsNullOrWhiteSpace(request.Terms?.Url) ? null : request.Terms.Url.Trim()));
     }
 }

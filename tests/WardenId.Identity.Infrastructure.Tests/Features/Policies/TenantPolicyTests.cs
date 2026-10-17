@@ -36,6 +36,7 @@ public sealed class TenantPolicyTests(PostgresFixture database)
             new LockoutOverrides(3, "PT45M"),
             new MfaOverrides(MfaPolicyMode.Required),
             new SelfRegistrationOverrides(false),
+            new TermsOverrides("https://example.test/terms"),
             _adminId));
         Assert.True(put.IsSuccess);
 
@@ -51,7 +52,8 @@ public sealed class TenantPolicyTests(PostgresFixture database)
         Assert.Equal("PT45M", policy.Lockout.LockoutDuration);
         Assert.Equal(MfaPolicyMode.Required, policy.Mfa.Mode);
         Assert.False(policy.SelfRegistration.Enabled);
-        Assert.Equal(10, policy.Overrides.Count);
+        Assert.Equal("https://example.test/terms", policy.Terms.Url);
+        Assert.Equal(11, policy.Overrides.Count);
         Assert.Equal(1, await database.CountAsync(
             "SELECT count(*) FROM \"Identity\".\"TenantPolicies\" WHERE \"TenantId\" = $1 AND \"MfaMode\" = 'Required'", _tenantId));
     }
@@ -60,9 +62,9 @@ public sealed class TenantPolicyTests(PostgresFixture database)
     public async Task PutAgain_ReplacesTheSameRow_AndNullsClearOverrides()
     {
         Skip.If(database.SkipReason is not null, database.SkipReason);
-        await UpdateAsync(new Command(_tenantId, new PasswordOverrides(12, null, null, null, null, null), null, null, null, _adminId));
+        await UpdateAsync(new Command(_tenantId, new PasswordOverrides(12, null, null, null, null, null), null, null, null, null, _adminId));
 
-        var second = await UpdateAsync(new Command(_tenantId, null, new LockoutOverrides(7, null), null, null, _adminId));
+        var second = await UpdateAsync(new Command(_tenantId, null, new LockoutOverrides(7, null), null, null, null, _adminId));
 
         Assert.True(second.IsSuccess);
         Assert.Equal(1, await database.CountAsync("SELECT count(*) FROM \"Identity\".\"TenantPolicies\" WHERE \"TenantId\" = $1", _tenantId));
@@ -89,7 +91,7 @@ public sealed class TenantPolicyTests(PostgresFixture database)
         Skip.If(database.SkipReason is not null, database.SkipReason);
         Assert.True((await RegisterAsync("first")).IsSuccess);
 
-        await UpdateAsync(new Command(_tenantId, null, null, null, new SelfRegistrationOverrides(false), _adminId));
+        await UpdateAsync(new Command(_tenantId, null, null, null, new SelfRegistrationOverrides(false), null, _adminId));
         var result = await RegisterAsync("second");
 
         Assert.True(result.IsFailed);

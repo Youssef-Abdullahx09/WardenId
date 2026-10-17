@@ -5,6 +5,7 @@ namespace WardenId.Identity.Application;
 
 /// <summary>The identity policy in force for one tenant: its overrides laid over the global options.</summary>
 /// <param name="CurrentPasswordAlgorithmVersion">Always the global value: hashing isn't a tenant setting.</param>
+/// <param name="TermsUrl">The terms of service link, or null when neither the tenant nor the global options set one.</param>
 /// <param name="Overrides">The tenant's own values (all null when it has none).</param>
 public sealed record EffectiveIdentityPolicy(
     PasswordPolicy Password,
@@ -13,6 +14,7 @@ public sealed record EffectiveIdentityPolicy(
     MfaPolicy Mfa,
     bool SelfRegistrationEnabled,
     int CurrentPasswordAlgorithmVersion,
+    string? TermsUrl,
     IdentityPolicyOverrides Overrides)
 {
     public static Result<EffectiveIdentityPolicy> Merge(IdentityPolicyOptions global, IdentityPolicyOverrides? tenant)
@@ -35,6 +37,7 @@ public sealed record EffectiveIdentityPolicy(
             MfaPolicy.Create(overrides.MfaMode ?? global.MfaPolicyMode),
             overrides.SelfRegistrationEnabled ?? global.SelfRegistrationEnabled,
             global.CurrentPasswordAlgorithmVersion,
+            overrides.TermsUrl ?? global.TermsUrl,
             overrides));
     }
 }

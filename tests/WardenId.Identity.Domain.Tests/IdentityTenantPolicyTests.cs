@@ -16,7 +16,8 @@ public class IdentityTenantPolicyTests
         MaxFailedLoginAttempts: 3,
         LockoutDuration: TimeSpan.FromMinutes(30),
         MfaMode: MfaPolicyMode.Required,
-        SelfRegistrationEnabled: false);
+        SelfRegistrationEnabled: false,
+        TermsUrl: "https://example.test/terms");
 
     [Fact]
     public void Create_StoresTheOverrides_AndRaisesChanged()
@@ -131,6 +132,38 @@ public class IdentityTenantPolicyTests
     [Fact]
     public void MfaMode_ThatIsNotAMember_IsRejected() =>
         AssertInvalid(IdentityPolicyOverrides.None with { MfaMode = (MfaPolicyMode)99 });
+
+    [Theory]
+    [InlineData("/terms")]
+    [InlineData("terms.html")]
+    [InlineData("ftp://example.test/terms")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void TermsUrl_ThatIsNotAnAbsoluteHttpUrl_IsRejected(string url)
+    {
+        var result = IdentityTenantPolicy.Create(TenantId, IdentityPolicyOverrides.None with { TermsUrl = url });
+
+        Assert.True(result.IsFailed);
+        Assert.StartsWith("terms.url ", result.Errors[0].Message);
+    }
+
+    [Fact]
+    public void TermsUrl_LongerThanTheBound_IsRejected() =>
+        AssertInvalid(IdentityPolicyOverrides.None with { TermsUrl = "https://example.test/" + new string('a', IdentityPolicyBounds.MaxTermsUrlLength) });
+
+    [Theory]
+    [InlineData("https://example.test/terms")]
+    [InlineData("http://example.test/terms?v=2#top")]
+    public void TermsUrl_AbsoluteHttpOrHttps_IsAccepted(string url) =>
+        AssertValid(IdentityPolicyOverrides.None with { TermsUrl = url });
+
+    [Fact]
+    public void TermsUrl_AtTheLengthBound_IsAccepted()
+    {
+        const string prefix = "https://example.test/";
+        AssertValid(IdentityPolicyOverrides.None with { TermsUrl = prefix + new string('a', IdentityPolicyBounds.MaxTermsUrlLength - prefix.Length) });
+    }
 
     [Fact]
     public void Audit_IsAdminConfig_TargetedByTenantId()

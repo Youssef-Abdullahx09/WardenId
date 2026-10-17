@@ -33,6 +33,7 @@ public sealed class Handler(IIdentityDbContext dbContext) : IRequestHandler<Quer
                 .Select(f => new MfaFactorSummary(f.Id, f.FactorType, f.Enabled, f.EnrolledAtUtc, f.VerifiedAtUtc, f.LastUsedAtUtc))
                 .ToArray(),
             user.RemainingRecoveryCodeCount,
+            user.TermsAcceptedAtUtc,
             user.CreatedAt);
 
         return Result.Ok(detail);

@@ -36,6 +36,7 @@ public sealed class Handler(
             new LockoutSettings(effective.MaxFailedLoginAttempts, XmlConvert.ToString(effective.LockoutDuration)),
             new MfaSettings(effective.Mfa.Mode),
             new SelfRegistrationSettings(effective.SelfRegistrationEnabled),
+            new TermsSettings(effective.TermsUrl),
             overridden.Count > 0 ? TenantScope : GlobalScope,
             overridden));
     }
@@ -55,6 +56,7 @@ public sealed class Handler(
         Add(overrides.LockoutDuration is not null, "lockout.lockoutDuration");
         Add(overrides.MfaMode is not null, "mfa.mode");
         Add(overrides.SelfRegistrationEnabled is not null, "selfRegistration.enabled");
+        Add(overrides.TermsUrl is not null, "terms.url");
         return fields;
     }
 }

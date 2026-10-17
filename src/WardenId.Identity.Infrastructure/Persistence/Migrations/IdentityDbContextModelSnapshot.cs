@@ -18,7 +18,7 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("Identity")
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -130,6 +130,10 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("TermsUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
 
                     b.HasKey("Id");
 
@@ -455,6 +459,9 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("TermsAcceptedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Username")
                         .IsRequired()

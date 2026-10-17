@@ -44,9 +44,27 @@ The `AddTotpFactorUsage` migration deletes every factor and recovery code stored
 removed admin enroll endpoint, which stored no usable secret. Their users aren't given EnrollMfa; Authenticate asks
 for enrollment whenever the tenant's policy requires MFA and the user has no enabled factor.
 
+Signed-in users also manage their own MFA on Protocol's account page. Self-enrollment (`BeginTotpEnrollment`) is
+allowed without a code only while the user has no enabled factor and the policy isn't Off (or they must enroll).
+Every change to an existing factor needs a current code first, checked by `Identity.Application`'s
+`SecondFactorCheck`, the same check `VerifySecondFactor` uses (lockout counting, replay, retries, `SecondFactorFailure`
+tags). The change is saved together with the code's use: `BeginTotpReplacement` (TOTP or recovery code) starts a new
+enrollment, `RegenerateRecoveryCodes` (TOTP only) replaces every recovery code, and `RemoveMfa` (TOTP or recovery
+code; refused before any code check while the policy requires MFA) removes every factor and code without asking for
+a new enrollment. Completing any enrollment removes the user's other TOTP factors (`User.RemoveOtherMfaFactors`), so a
+replacement leaves only the new authenticator. A wrong current password on a password change (admin API or account
+page) is a failed login too, and a locked account can't change its password until the lockout ends.
+
 Users, MfaFactors and RecoveryCodes carry an xmin concurrency token, so racing sign-in steps can't both accept one
 code or lose a failed attempt: `IUserRepository` saves fail with `UserErrors.ConcurrencyConflict` (409 over HTTP),
 and the sign-in handlers reload and try again (Authenticate 3 times, VerifySecondFactor 5).
+
+## Terms of service
+
+`RequiredAction.AcceptTos` is a sign-in step, not a block: Protocol shows the terms link (`terms.url` in the identity
+policy, the tenant's override over the global `IdentityPolicy:TermsUrl`, null by default) and calls `AcceptTerms`,
+which stores `User.TermsAcceptedAtUtc`, clears the action and raises `UserTermsAcceptedDomainEvent`. A tenant's
+`terms.url` must be an absolute http or https URL of at most 2048 characters.
 
 ## Explicitly out of scope in this pass
 

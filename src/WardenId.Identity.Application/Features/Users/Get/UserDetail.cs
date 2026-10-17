@@ -24,4 +24,5 @@ public sealed record UserDetail(
     IReadOnlyCollection<UserAttributeSummary> Attributes,
     IReadOnlyCollection<MfaFactorSummary> MfaFactors,
     int RemainingRecoveryCodes,
+    DateTimeOffset? TermsAcceptedAtUtc,
     DateTimeOffset CreatedAt);

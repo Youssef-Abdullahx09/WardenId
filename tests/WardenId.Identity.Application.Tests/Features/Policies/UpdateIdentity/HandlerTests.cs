@@ -16,8 +16,9 @@ public class HandlerTests
         PasswordOverrides? password = null,
         LockoutOverrides? lockout = null,
         MfaOverrides? mfa = null,
-        SelfRegistrationOverrides? selfRegistration = null) =>
-        new(TenantId, password, lockout, mfa, selfRegistration, AdminId);
+        SelfRegistrationOverrides? selfRegistration = null,
+        TermsOverrides? terms = null) =>
+        new(TenantId, password, lockout, mfa, selfRegistration, terms, AdminId);
 
     [Fact]
     public async Task Handle_CreatesTheTenantsPolicy_AsTheAdmin()
@@ -27,7 +28,8 @@ public class HandlerTests
                 new PasswordOverrides(12, null, true, null, null, 10),
                 new LockoutOverrides(3, "PT30M"),
                 new MfaOverrides(MfaPolicyMode.Required),
-                new SelfRegistrationOverrides(false)),
+                new SelfRegistrationOverrides(false),
+                new TermsOverrides(" https://example.test/terms ")),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -35,7 +37,7 @@ public class HandlerTests
         Assert.Equal(AdminId, _repository.LastActorId);
         var stored = (await _repository.GetAsync(TenantId))!.Overrides;
         Assert.Equal(
-            new IdentityPolicyOverrides(12, null, true, null, null, 10, 3, TimeSpan.FromMinutes(30), MfaPolicyMode.Required, false),
+            new IdentityPolicyOverrides(12, null, true, null, null, 10, 3, TimeSpan.FromMinutes(30), MfaPolicyMode.Required, false, "https://example.test/terms"),
             stored);
     }
 
@@ -91,5 +93,26 @@ public class HandlerTests
 
         Assert.True(result.IsFailed);
         Assert.Equal(IdentityPolicyErrors.LockoutDurationOutOfRange().Message, result.Errors[0].Message);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_ABlankTermsUrl_ClearsTheOverride(string url)
+    {
+        var result = await NewHandler().Handle(NewCommand(terms: new TermsOverrides(url)), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null((await _repository.GetAsync(TenantId))!.TermsUrl);
+    }
+
+    [Fact]
+    public async Task Handle_FailsWithValidation_WhenTheTermsUrlIsRelative()
+    {
+        var result = await NewHandler().Handle(NewCommand(terms: new TermsOverrides("/terms")), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(IdentityPolicyErrors.TermsUrlInvalid().Message, result.Errors[0].Message);
+        Assert.Null(await _repository.GetAsync(TenantId));
     }
 }

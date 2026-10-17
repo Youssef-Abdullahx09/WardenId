@@ -50,7 +50,7 @@ public class HandlerTests
     }
 
     [Fact]
-    public async Task Handle_DoesNotPersist_WhenCurrentPasswordIsWrong()
+    public async Task Handle_CountsAFailedLogin_AndKeepsThePassword_WhenCurrentPasswordIsWrong()
     {
         var (user, repository, hasher) = await SeedUserAsync();
         var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
@@ -60,8 +60,40 @@ public class HandlerTests
             CancellationToken.None);
 
         Assert.True(result.IsFailed);
-        Assert.Equal(0, repository.UpdateCallCount);
+        Assert.Equal(UserErrorCodes.InvalidCredentials, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+        Assert.Equal(1, user.Lockout.FailedAttemptCount);
+        Assert.Equal(1, repository.UpdateCallCount);
         Assert.True(hasher.Verify(CurrentPassword, user.Credential!.Hash));
+    }
+
+    [Fact]
+    public async Task Handle_LocksTheAccount_OnTheTenantsMaxFailedAttempts_AndThenRefusesEvenTheRightPassword()
+    {
+        var (user, repository, hasher) = await SeedUserAsync();
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(),
+            TestPolicies.Resolver(new IdentityPolicyOptions { MaxFailedLoginAttempts = 2 }));
+        await handler.Handle(new Command(user.TenantId, user.Id, "wrong-1", "N3wP@ssword"), CancellationToken.None);
+
+        var locking = await handler.Handle(new Command(user.TenantId, user.Id, "wrong-2", "N3wP@ssword"), CancellationToken.None);
+        var right = await handler.Handle(new Command(user.TenantId, user.Id, CurrentPassword, "N3wP@ssword"), CancellationToken.None);
+
+        Assert.Equal(UserErrorCodes.AccountLocked, locking.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+        Assert.Equal(UserStatus.Locked, user.Status);
+        Assert.Equal(UserErrorCodes.AccountLocked, right.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+        Assert.True(hasher.Verify(CurrentPassword, user.Credential!.Hash));
+    }
+
+    [Fact]
+    public async Task Handle_CountsAWrongPassword_AfterASaveConflict()
+    {
+        var (user, repository, hasher) = await SeedUserAsync();
+        repository.ConflictsToSimulate = 1;
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(user.TenantId, user.Id, "wrong", "N3wP@ssword"), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(2, repository.UpdateCallCount);
     }
 
     [Fact]

@@ -10,6 +10,7 @@ using CompletedTotpEnrollment = WardenId.Identity.Integration.Command.Features.U
 namespace WardenId.Identity.Application.Features.Users.CompleteTotpEnrollment;
 
 /// <summary>
+/// Enables the new factor and removes the user's other TOTP factors, enabled or not.
 /// A wrong first code doesn't count towards the lockout: it only fails to enable a factor the user is setting up,
 /// and the password step before it already counted. The user can try again with the same factor.
 /// </summary>
@@ -47,6 +48,11 @@ public sealed class Handler(
         var (rawCodes, codes) = RecoveryCodes.Generate();
         var completeResult = user.CompleteMfaEnrollment(factor.Id, steps[^1], codes, now);
         if (completeResult.IsFailed) return Result.Fail(completeResult.Errors);
+
+        // The new authenticator replaces any other: an earlier one (BeginTotpReplacement) or one left from before
+        // an admin asked for a new enrollment.
+        var removeResult = user.RemoveOtherMfaFactors(factor.Id);
+        if (removeResult.IsFailed) return Result.Fail(removeResult.Errors);
 
         // Lost a race (say, the same first code sent twice): nothing was saved, and this request is answered like a
         // wrong code. Not retried: the winner enabled the factor, and a factor is enabled only once.

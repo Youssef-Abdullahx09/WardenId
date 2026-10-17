@@ -20,6 +20,9 @@ public sealed record MfaOverrides(MfaPolicyMode? Mode);
 
 public sealed record SelfRegistrationOverrides(bool? Enabled);
 
+/// <param name="Url">An absolute http or https URL, at most 2048 characters. Null, empty or blank uses the global value.</param>
+public sealed record TermsOverrides(string? Url);
+
 /// <summary>Replaces the tenant's identity policy overrides as a whole.</summary>
 public sealed record Command(
     Guid TenantId,
@@ -27,4 +30,5 @@ public sealed record Command(
     LockoutOverrides? Lockout,
     MfaOverrides? Mfa,
     SelfRegistrationOverrides? SelfRegistration,
+    TermsOverrides? Terms,
     Guid ActorUserId) : IRequest<Result>;

@@ -18,6 +18,8 @@ public sealed class IdentityTenantPolicyConfiguration : IEntityTypeConfiguration
             .HasConversion<string>()
             .HasMaxLength(30);
 
+        builder.Property(p => p.TermsUrl).HasMaxLength(IdentityPolicyBounds.MaxTermsUrlLength);
+
         builder.Ignore(p => p.Overrides);
         builder.Ignore(p => p.DomainEvents);
     }

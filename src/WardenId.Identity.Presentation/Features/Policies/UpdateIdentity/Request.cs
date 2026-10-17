@@ -10,8 +10,9 @@ public sealed record Request(
     PasswordOverrides? Password,
     LockoutOverrides? Lockout,
     MfaOverrides? Mfa,
-    SelfRegistrationOverrides? SelfRegistration)
+    SelfRegistrationOverrides? SelfRegistration,
+    TermsOverrides? Terms)
 {
     public Command ToCommand(Guid tenantId, Guid actorUserId) =>
-        new(tenantId, Password, Lockout, Mfa, SelfRegistration, actorUserId);
+        new(tenantId, Password, Lockout, Mfa, SelfRegistration, Terms, actorUserId);
 }

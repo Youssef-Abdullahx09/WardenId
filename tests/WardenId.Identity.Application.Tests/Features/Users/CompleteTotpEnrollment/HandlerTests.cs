@@ -61,6 +61,24 @@ public class HandlerTests
     }
 
     [Fact]
+    public async Task Handle_RemovesTheUsersOtherTotpFactors()
+    {
+        var user = TestUsers.CreatePendingVerification(_tenantId);
+        user.AddRequiredAction(RequiredAction.EnrollMfa);
+        var old = user.AddEnabledTotp("abcdefghijabcdefghij"u8.ToArray());
+        var pending = MfaFactor.Create(MfaFactorType.Totp, _protector.Protect(TestMfa.Secret), TestMfa.Now);
+        user.BeginMfaEnrollment(pending);
+        await _repository.CreateAsync(user, user.Id);
+
+        var result = await CreateHandler().Handle(
+            new Command(_tenantId, user.Id, pending.Id, TestMfa.CodeAt(TestMfa.Now)), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Same(pending, Assert.Single(user.MfaFactors));
+        Assert.DoesNotContain(user.MfaFactors, f => f.Id == old.Id);
+    }
+
+    [Fact]
     public async Task Handle_Fails_OnAWrongCode_AndLeavesTheFactorToTryAgain()
     {
         var (user, factor) = await SeedPendingEnrollmentAsync();

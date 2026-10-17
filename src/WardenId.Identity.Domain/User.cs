@@ -32,6 +32,9 @@ public sealed class User : AggregateRoot, IAuditableAggregate
     public PasswordCredential? Credential { get; private set; }
     public LoginLockoutState Lockout { get; private set; }
 
+    /// <summary>When the user last accepted the tenant's terms of service (see <see cref="AcceptTerms"/>), or null if never.</summary>
+    public DateTimeOffset? TermsAcceptedAtUtc { get; private set; }
+
     private readonly List<MfaFactor> _mfaFactors = new();
     public IReadOnlyCollection<MfaFactor> MfaFactors => _mfaFactors.AsReadOnly();
 
@@ -340,6 +343,75 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         _mfaFactors.Remove(factor);
         if (_mfaFactors.All(f => !f.Enabled)) _recoveryCodes.Clear();
         RaiseDomainEvent(new MfaFactorRevokedDomainEvent(factorId));
+        return Result.Ok();
+    }
+
+    /// <summary>
+    /// The user's own removal of their MFA (the account page), after proving they hold a factor: every factor and
+    /// recovery code goes. Unlike <see cref="ResetMfa"/>, it asks for no new enrollment, and it's refused while the
+    /// MFA policy requires MFA.
+    /// </summary>
+    public Result RemoveMfa(MfaPolicy policy)
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+        if (MfaPolicyEvaluator.IsMfaRequired(policy)) return Result.Fail(UserErrors.MfaRequiredCannotRemove());
+
+        var removedFactorCount = _mfaFactors.Count;
+        var removedRecoveryCodeCount = _recoveryCodes.Count;
+        _mfaFactors.Clear();
+        _recoveryCodes.Clear();
+        RaiseDomainEvent(new MfaRemovedDomainEvent(removedFactorCount, removedRecoveryCodeCount));
+        return Result.Ok();
+    }
+
+    /// <summary>
+    /// Removes every factor of the type of <paramref name="factorId"/> other than it, enabled or not: a completed
+    /// replacement leaves the user with only the new authenticator. Each removed enabled factor is reported revoked.
+    /// </summary>
+    public Result RemoveOtherMfaFactors(Guid factorId)
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+
+        var kept = _mfaFactors.FirstOrDefault(f => f.Id == factorId);
+        if (kept is null) return Result.Fail(UserErrors.MfaFactorNotFound());
+
+        var others = _mfaFactors.Where(f => f.Id != factorId && f.FactorType == kept.FactorType).ToList();
+        foreach (var other in others)
+        {
+            _mfaFactors.Remove(other);
+            if (other.Enabled) RaiseDomainEvent(new MfaFactorRevokedDomainEvent(other.Id));
+        }
+
+        return Result.Ok();
+    }
+
+    /// <summary>Replaces every recovery code with <paramref name="recoveryCodes"/>: codes issued before stop working.</summary>
+    public Result RegenerateRecoveryCodes(IEnumerable<RecoveryCode> recoveryCodes)
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+        if (!HasEnabledMfaFactor) return Result.Fail(UserErrors.MfaNotEnrolled());
+
+        _recoveryCodes.Clear();
+        _recoveryCodes.AddRange(recoveryCodes);
+        RaiseDomainEvent(new RecoveryCodesRegeneratedDomainEvent(_recoveryCodes.Count));
+        return Result.Ok();
+    }
+
+    /// <summary>
+    /// Records that the user accepted the tenant's terms at <paramref name="nowUtc"/> and clears the AcceptTos
+    /// required action. Accepting again (with no action pending) just moves the time forward.
+    /// </summary>
+    public Result AcceptTerms(DateTimeOffset nowUtc)
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+
+        TermsAcceptedAtUtc = nowUtc;
+        _pendingActions.Remove(RequiredAction.AcceptTos);
+        RaiseDomainEvent(new UserTermsAcceptedDomainEvent(nowUtc));
         return Result.Ok();
     }
 

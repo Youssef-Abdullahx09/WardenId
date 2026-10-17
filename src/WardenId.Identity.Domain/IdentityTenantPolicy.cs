@@ -6,7 +6,7 @@ namespace WardenId.Identity.Domain;
 
 /// <summary>
 /// One tenant's overrides of the global identity policy (password, lockout, MFA mode,
-/// self-registration). At most one per tenant. Each field is null when the tenant uses the global
+/// self-registration, terms of service link). At most one per tenant. Each field is null when the tenant uses the global
 /// value. Tightening the password rules doesn't touch existing passwords: they're checked only
 /// when a password is set (registration, change, reset).
 /// </summary>
@@ -35,6 +35,7 @@ public sealed class IdentityTenantPolicy : AggregateRoot, IAuditableAggregate
     public TimeSpan? LockoutDuration { get; private set; }
     public MfaPolicyMode? MfaMode { get; private set; }
     public bool? SelfRegistrationEnabled { get; private set; }
+    public string? TermsUrl { get; private set; }
 
     public IdentityPolicyOverrides Overrides => new(
         PasswordMinLength,
@@ -46,7 +47,8 @@ public sealed class IdentityTenantPolicy : AggregateRoot, IAuditableAggregate
         MaxFailedLoginAttempts,
         LockoutDuration,
         MfaMode,
-        SelfRegistrationEnabled);
+        SelfRegistrationEnabled,
+        TermsUrl);
 
     public static Result<IdentityTenantPolicy> Create(Guid tenantId, IdentityPolicyOverrides overrides)
     {
@@ -85,5 +87,6 @@ public sealed class IdentityTenantPolicy : AggregateRoot, IAuditableAggregate
         LockoutDuration = overrides.LockoutDuration;
         MfaMode = overrides.MfaMode;
         SelfRegistrationEnabled = overrides.SelfRegistrationEnabled;
+        TermsUrl = overrides.TermsUrl;
     }
 }

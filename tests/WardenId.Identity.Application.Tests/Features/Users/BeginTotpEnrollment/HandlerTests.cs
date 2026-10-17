@@ -67,6 +67,41 @@ public class HandlerTests
     }
 
     [Fact]
+    public async Task Handle_IsAllowed_AsOptionalSelfEnrollment_WhenTheUserHasNoEnabledFactor()
+    {
+        var user = await SeedUserAsync(enrollMfa: false);
+
+        var result = await CreateHandler(MfaPolicyMode.Optional).Handle(new Command(_tenantId, user.Id, "Acme"), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(Assert.Single(user.MfaFactors).Enabled);
+    }
+
+    [Fact]
+    public async Task Handle_Fails_WhenThePolicyIsOff_AndTheUserNeedNotEnroll()
+    {
+        var user = await SeedUserAsync(enrollMfa: false);
+
+        var result = await CreateHandler(MfaPolicyMode.Off).Handle(new Command(_tenantId, user.Id, "Acme"), CancellationToken.None);
+
+        Assert.Equal(UserErrors.MfaEnrollmentNotRequired().Message, result.Errors[0].Message);
+        Assert.Empty(user.MfaFactors);
+    }
+
+    [Fact]
+    public async Task Handle_Fails_WhenTheUserAlreadyHasAnEnabledFactor_UnderAnOptionalPolicy()
+    {
+        var user = await SeedUserAsync(enrollMfa: false);
+        user.AddEnabledTotp();
+
+        var result = await CreateHandler(MfaPolicyMode.Optional).Handle(new Command(_tenantId, user.Id, "Acme"), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Single(user.MfaFactors);
+        Assert.Equal(0, _repository.UpdateCallCount);
+    }
+
+    [Fact]
     public async Task Handle_Fails_WhenTheUserHasNothingToEnroll()
     {
         var user = await SeedUserAsync(enrollMfa: false);

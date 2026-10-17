@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .WithTags("Identity - Policies")
             .WithSummary("Get the identity policy")
             .WithDescription(
-                "Returns the password, lockout, MFA and self-registration policy in effect for the tenant: the tenant's " +
+                "Returns the password, lockout, MFA, self-registration and terms of service policy in effect for the tenant: the tenant's " +
                 "overrides (set with PUT) over the global values (the IdentityPolicy config section, with code defaults). " +
                 "overrides lists the fields that come from the tenant, as paths into this response (e.g. \"password.minLength\"); " +
                 "scope is \"tenant\" when that list is non-empty, else \"global\". tenantId is not checked for existence. " +

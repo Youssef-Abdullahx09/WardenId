@@ -17,9 +17,10 @@ public sealed record IdentityPolicyOverrides(
     int? MaxFailedLoginAttempts,
     TimeSpan? LockoutDuration,
     MfaPolicyMode? MfaMode,
-    bool? SelfRegistrationEnabled)
+    bool? SelfRegistrationEnabled,
+    string? TermsUrl)
 {
-    public static readonly IdentityPolicyOverrides None = new(null, null, null, null, null, null, null, null, null, null);
+    public static readonly IdentityPolicyOverrides None = new(null, null, null, null, null, null, null, null, null, null, null);
 
     public bool HasAny => this != None;
 
@@ -41,8 +42,17 @@ public sealed record IdentityPolicyOverrides(
         if (MfaMode is { } mode && !Enum.IsDefined(mode))
             return Result.Fail(IdentityPolicyErrors.MfaModeInvalid());
 
+        if (TermsUrl is not null && !IsValidTermsUrl(TermsUrl))
+            return Result.Fail(IdentityPolicyErrors.TermsUrlInvalid());
+
         return Result.Ok();
     }
+
+    /// <summary>An absolute http or https URL of at most <see cref="IdentityPolicyBounds.MaxTermsUrlLength"/> characters.</summary>
+    public static bool IsValidTermsUrl(string url) =>
+        url.Length <= IdentityPolicyBounds.MaxTermsUrlLength
+        && Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
 }
 
 /// <summary>What a tenant may set. The global configuration is not held to these.</summary>
@@ -71,4 +81,7 @@ public static class IdentityPolicyBounds
 
     /// <summary>Anyone who knows a username can trigger a lockout, so a longer one is a denial-of-service lever. Admins can unlock sooner.</summary>
     public static readonly TimeSpan MaxLockoutDuration = TimeSpan.FromHours(24);
+
+    /// <summary>The longest terms of service link a tenant may set (the common practical URL limit).</summary>
+    public const int MaxTermsUrlLength = 2048;
 }

@@ -39,11 +39,11 @@ public sealed class Endpoint : IEndpoint
                 "field or section clears that override and the tenant uses the global value. Allowed ranges: " +
                 "password.minLength 8-128, password.historyCount 0-24, lockout.maxFailedAttempts 1-100, " +
                 "lockout.lockoutDuration an ISO 8601 duration from PT1M to PT24H; mfa.mode one of Off, Optional, Required, " +
-                "RequiredForAdmins. 400 when a value is out of range or malformed (nothing is saved). Takes effect for new " +
+                "RequiredForAdmins; terms.url an absolute http or https URL of at most 2048 characters (blank clears it). 400 when a value is out of range or malformed (nothing is saved). Takes effect for new " +
                 "sign-ins, sign-ups and password changes within 30 seconds on every instance (at once on this one). " +
                 "Existing passwords that don't meet stricter rules keep working; only new passwords must comply. " +
                 "selfRegistration.enabled = false makes POST tenants/{tenantId}/auth/register return 403; admins can " +
-                "still create users. tenantId is not checked for existence.")
+                "still create users. terms.url is the link shown at the accept-terms sign-in step. tenantId is not checked for existence.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);

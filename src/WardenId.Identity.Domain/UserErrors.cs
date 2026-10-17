@@ -60,6 +60,7 @@ public static class UserErrors
     public static Error MfaEnrollmentNotRequired() => Validation("The user has no MFA enrollment to do.");
     public static Error TotpIssuerRequired() => Validation("An issuer name is required.");
     public static Error MfaNotEnrolled() => Validation("The user has no enabled MFA factor.");
+    public static Error MfaRequiredCannotRemove() => Validation("MFA is required for this account, so it can't be removed.");
     public static Error CannotRevokeLastRequiredFactor() => Validation("Cannot revoke the last MFA factor while MFA is required for this account.");
 
     public static Error AttributeKeyRequired() => Validation("Attribute key is required.");

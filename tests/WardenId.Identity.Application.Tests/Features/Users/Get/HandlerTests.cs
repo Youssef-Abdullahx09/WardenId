@@ -11,6 +11,8 @@ public class HandlerTests
         var tenantId = Guid.NewGuid();
         var user = TestUsers.CreatePendingVerification(tenantId, "someone@example.com", "someone");
         user.MarkAsCreated(Guid.NewGuid());
+        var acceptedAt = new DateTimeOffset(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
+        user.AcceptTerms(acceptedAt);
 
         using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
         {
@@ -28,6 +30,7 @@ public class HandlerTests
         Assert.Equal("someone", result.Value.Username);
         Assert.Equal(UserStatus.PendingVerification, result.Value.Status);
         Assert.Contains(RequiredAction.VerifyEmail, result.Value.PendingActions);
+        Assert.Equal(acceptedAt, result.Value.TermsAcceptedAtUtc);
     }
 
     // Regression: the query had no .Include(...), so these two navigations always came back empty.

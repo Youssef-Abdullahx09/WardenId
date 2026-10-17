@@ -22,4 +22,10 @@ public sealed class IdentityPolicyOptions
 
     /// <summary>Whether anyone may sign up through POST tenants/{tenantId}/auth/register. Admin user creation is unaffected.</summary>
     public bool SelfRegistrationEnabled { get; init; } = true;
+
+    /// <summary>
+    /// The terms of service link shown at the accept-terms sign-in step, unless a tenant sets its own. Null (the default)
+    /// means none: the step still asks for acceptance, without a link.
+    /// </summary>
+    public string? TermsUrl { get; init; }
 }

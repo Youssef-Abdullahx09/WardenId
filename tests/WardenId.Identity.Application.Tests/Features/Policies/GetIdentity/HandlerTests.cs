@@ -49,6 +49,22 @@ public class HandlerTests
         Assert.Equal(new LockoutSettings(5, "PT15M"), policy.Lockout);
         Assert.Equal(MfaPolicyMode.Optional, policy.Mfa.Mode);
         Assert.True(policy.SelfRegistration.Enabled);
+        Assert.Null(policy.Terms.Url);
+    }
+
+    [Fact]
+    public async Task Handle_TheTenantsTermsUrl_WinsOverTheGlobalOne()
+    {
+        var options = new IdentityPolicyOptions { TermsUrl = "https://global.test/terms" };
+        var global = (await NewHandler(options).Handle(new Query(TenantId), CancellationToken.None)).Value;
+        var tenantPolicies = new FakeIdentityTenantPolicyRepository().With(TenantId, IdentityPolicyOverrides.None with { TermsUrl = "https://tenant.test/terms" });
+
+        var tenant = (await NewHandler(options, tenantPolicies).Handle(new Query(TenantId), CancellationToken.None)).Value;
+
+        Assert.Equal("https://global.test/terms", global.Terms.Url);
+        Assert.Empty(global.Overrides);
+        Assert.Equal("https://tenant.test/terms", tenant.Terms.Url);
+        Assert.Equal(["terms.url"], tenant.Overrides);
     }
 
     [Fact]
@@ -78,7 +94,7 @@ public class HandlerTests
     public async Task Handle_ReportsEveryOverriddenField()
     {
         var tenantPolicies = new FakeIdentityTenantPolicyRepository().With(TenantId, new IdentityPolicyOverrides(
-            12, false, false, true, false, 0, 10, TimeSpan.FromMinutes(5), MfaPolicyMode.Off, true));
+            12, false, false, true, false, 0, 10, TimeSpan.FromMinutes(5), MfaPolicyMode.Off, true, "https://example.test/terms"));
 
         var policy = (await NewHandler(new IdentityPolicyOptions(), tenantPolicies).Handle(new Query(TenantId), CancellationToken.None)).Value;
 
@@ -86,7 +102,7 @@ public class HandlerTests
             [
                 "password.minLength", "password.requireUppercase", "password.requireDigit", "password.requireSymbol",
                 "password.breachCheckEnabled", "password.historyCount", "lockout.maxFailedAttempts",
-                "lockout.lockoutDuration", "mfa.mode", "selfRegistration.enabled"
+                "lockout.lockoutDuration", "mfa.mode", "selfRegistration.enabled", "terms.url"
             ],
             policy.Overrides);
     }

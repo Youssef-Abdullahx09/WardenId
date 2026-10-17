@@ -25,4 +25,7 @@ public static class IdentityPolicyErrors
         "lockout.lockoutDuration must be an ISO 8601 duration, e.g. \"PT15M\".");
 
     public static Error MfaModeInvalid() => Validation("mfa.mode is not a known MFA mode.");
+
+    public static Error TermsUrlInvalid() => Validation(
+        $"terms.url must be an absolute http or https URL of at most {IdentityPolicyBounds.MaxTermsUrlLength} characters.");
 }
