@@ -1,8 +1,8 @@
 using FluentResults;
 using MediatR;
-using Microsoft.Extensions.Options;
 using WardenId.Audit.Integration.Command.Features.Events.Record;
 using WardenId.Protocol.Application.Auditing;
+using WardenId.Protocol.Application.Features.Policies;
 using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Domain.Sessions;
 using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Events.Record.Command;
@@ -16,7 +16,7 @@ namespace WardenId.Protocol.Application.Features.Sessions.Start;
 public sealed class Handler(
     IProtocolDbContext dbContext,
     TimeProvider timeProvider,
-    IOptions<ProtocolSessionOptions> options,
+    ITenantLifetimes tenantLifetimes,
     IAuthAuditTrail audit) : IRequestHandler<Command, Result<StartedSession>>
 {
     // The cookie's amr (TenantSession): the password is the only sign-in method today.
@@ -27,8 +27,10 @@ public sealed class Handler(
         // auth_time is whole seconds in the cookie and tokens; storing the same value keeps all three equal.
         var authTime = DateTimeOffset.FromUnixTimeSeconds(timeProvider.GetUtcNow().ToUnixTimeSeconds());
 
+        // The tenant's absolute lifetime (or the global one), fixed on the row now: a later change doesn't move it.
+        var lifetimes = await tenantLifetimes.GetAsync(request.TenantId, cancellationToken);
         var sessionResult = Session.Start(
-            request.TenantId, request.UserId, authTime, authTime + options.Value.AbsoluteLifetime);
+            request.TenantId, request.UserId, authTime, authTime + lifetimes.SessionAbsolute);
         if (sessionResult.IsFailed) return Result.Fail(sessionResult.Errors);
 
         var session = sessionResult.Value;

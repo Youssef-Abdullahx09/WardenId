@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WardenId.Protocol.Domain.Sessions;
+using WardenId.Protocol.Domain.TokenPolicies;
 
 namespace WardenId.Protocol.Application.Tests.Fakes;
 
@@ -7,6 +8,7 @@ public sealed class TestProtocolDbContext(DbContextOptions<TestProtocolDbContext
     : DbContext(options), IProtocolDbContext
 {
     public DbSet<Session> Sessions => Set<Session>();
+    public DbSet<TenantTokenPolicy> TenantTokenPolicies => Set<TenantTokenPolicy>();
 
     public Task<int> SaveChangesAsync(Guid userId, CancellationToken cancellationToken) =>
         SaveChangesAsync(cancellationToken);
@@ -32,6 +34,11 @@ public sealed class TestProtocolDbContext(DbContextOptions<TestProtocolDbContext
                 b.HasKey("SessionId", nameof(SessionAuthorization.AuthorizationId));
             });
             builder.Navigation(s => s.Authorizations).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        modelBuilder.Entity<TenantTokenPolicy>(builder =>
+        {
+            builder.Ignore(p => p.DomainEvents);
+            builder.Ignore(p => p.Overrides);
         });
     }
 

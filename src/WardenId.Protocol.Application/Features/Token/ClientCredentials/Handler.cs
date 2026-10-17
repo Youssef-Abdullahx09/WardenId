@@ -1,11 +1,12 @@
 using FluentResults;
 using MediatR;
 using Microsoft.Extensions.Options;
+using WardenId.Protocol.Application.Features.Policies;
 using GetForAuthenticationQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication.Query;
 
 namespace WardenId.Protocol.Application.Features.Token.ClientCredentials;
 
-public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> options)
+public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> options, ITenantLifetimes tenantLifetimes)
     : IRequestHandler<Command, Result<ClientCredentialsGrant>>
 {
     public async Task<Result<ClientCredentialsGrant>> Handle(Command request, CancellationToken cancellationToken)
@@ -15,9 +16,9 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
 
         var settings = options.Value;
         var audience = settings.AudienceFor(request.Slug);
-        var lifetime = clientResult.Value.AccessTokenLifetimeSeconds is { } seconds
-            ? TimeSpan.FromSeconds(seconds)
-            : settings.AccessTokenLifetime;
+        // Client override ?? tenant override ?? global default.
+        var lifetimes = await tenantLifetimes.GetAsync(request.TenantId, cancellationToken);
+        var lifetime = lifetimes.AccessTokenFor(clientResult.Value.AccessTokenLifetimeSeconds);
 
         return Result.Ok(new ClientCredentialsGrant(request.ClientId, request.TenantId, audience, lifetime));
     }

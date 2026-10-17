@@ -4,8 +4,8 @@ using MediatR;
 namespace WardenId.Protocol.Application.Features.Policies.GetTokens;
 
 /// <summary>
-/// The token and session lifetimes in effect for a tenant. They are global today (ProtocolToken and
-/// ProtocolSession config sections), so every tenant gets the same values; TenantId is accepted for the
-/// per-tenant defaults to come. Per-client overrides are not reflected here.
+/// The token and session lifetimes in effect for a tenant: its own overrides where set, the global ProtocolToken /
+/// ProtocolSession configuration otherwise. Per-client lifetime overrides (which win at issuance) are not reflected.
+/// The tenant is not checked for existence.
 /// </summary>
 public sealed record Query(Guid TenantId) : IRequest<Result<TokenPolicy>>;

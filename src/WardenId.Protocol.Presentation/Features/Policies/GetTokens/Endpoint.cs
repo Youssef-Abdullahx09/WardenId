@@ -35,11 +35,12 @@ public sealed class Endpoint : IEndpoint
             .WithTags("Protocol - Policies")
             .WithSummary("Get the token and session lifetimes")
             .WithDescription(
-                "Returns the token and login-session lifetimes in effect for the tenant. Read-only. Every lifetime is an " +
-                "ISO 8601 duration (e.g. \"PT15M\", \"P30D\"). These values are global today (the ProtocolToken and " +
-                "ProtocolSession config sections, with code defaults), so every tenant gets the same ones and scope is " +
-                "\"global\"; tenantId is accepted for future per-tenant defaults and is not checked for existence. " +
-                "Per-client lifetime overrides are not reflected here.")
+                "Returns the token and login-session lifetimes in effect for the tenant. Every lifetime is an ISO 8601 " +
+                "duration (e.g. \"PT15M\", \"P30D\"). Each value is the tenant's override where it has one, else the " +
+                "global default (the ProtocolToken and ProtocolSession config sections, with code defaults). " +
+                "`overrides` holds the tenant's own values (null = global default); scope is \"tenant\" when at least " +
+                "one is set, else \"global\". A client's own lifetime overrides still win at issuance and are not " +
+                "reflected here. tenantId is not checked for existence.")
             .Produces<TokenPolicy>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }

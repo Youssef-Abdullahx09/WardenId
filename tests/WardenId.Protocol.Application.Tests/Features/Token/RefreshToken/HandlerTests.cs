@@ -33,6 +33,7 @@ public class HandlerTests
         new Handler(new UserTokenGrantFactory(
                 sender,
                 Options.Create(new ProtocolTokenOptions { IssuerBaseUri = "https://wardenid.test" }),
+                new FakeTenantLifetimes(),
                 new FakeTimeProvider(Now)))
             .Handle(
                 new Command(TenantId, "acme", "web", UserId, grantedScopes, requestedScopes, authTime),

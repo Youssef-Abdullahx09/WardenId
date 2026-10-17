@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Routing;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Features.Policies;
 using WardenId.SharedKernel.Application;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Presentation;
@@ -33,6 +34,7 @@ public sealed class Endpoint : IEndpoint
                 [FromServices] IAntiforgery antiforgery,
                 [FromServices] ISender sender,
                 [FromServices] IOpenIddictApplicationManager applicationManager,
+                [FromServices] ITenantLifetimes tenantLifetimes,
                 CancellationToken cancellationToken) =>
             {
                 // Null when OpenIddict didn't handle the request (e.g. mixed-case slug).
@@ -99,6 +101,9 @@ public sealed class Endpoint : IEndpoint
                 // Destinations are decided at redemption (Token endpoint), where claims are rebuilt.
                 var principal = new ClaimsPrincipal(identity);
                 principal.SetScopes(request.GetScopes());
+                // The tenant's code lifetime (or the global default); OpenIddict's own setting is only the fallback.
+                var lifetimes = await tenantLifetimes.GetAsync(tenantId, cancellationToken);
+                principal.SetAuthorizationCodeLifetime(lifetimes.AuthorizationCode);
 
                 return Results.SignIn(principal, authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             })

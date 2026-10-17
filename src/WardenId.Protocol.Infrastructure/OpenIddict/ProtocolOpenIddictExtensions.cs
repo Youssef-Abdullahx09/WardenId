@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.EntityFrameworkCore.Models;
 using OpenIddict.Server;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Application.Features.Grants;
 using WardenId.Protocol.Infrastructure.Grants;
 using WardenId.Protocol.Infrastructure.OpenIddict.Handlers;
@@ -29,6 +30,8 @@ public static class ProtocolOpenIddictExtensions
         services.AddScoped<IUserGrantStore, OpenIddictUserGrantStore>();
         // W12: revoke a client's rows by owner stamp (needs ISessionAuthorizationRevoker, registered by the host).
         services.AddScoped<IClientGrantRevoker, OpenIddictClientGrantRevoker>();
+        // A tenant's refresh-token absolute lifetime may not outlive the pruning age (UpdateTokens policy).
+        services.AddSingleton<IRefreshTokenRetention, OpenIddictRefreshTokenRetention>();
 
         services.AddOpenIddict()
             .AddCore(options =>
@@ -54,6 +57,7 @@ public static class ProtocolOpenIddictExtensions
                 // Hard-coded OIDC scopes until per-client scopes (FR-CM-04); discovery advertises the same set.
                 // offline_access is honoured only for clients allowed the RefreshToken grant (Authorize endpoint).
                 options.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess);
+                // Global default only: /authorize sets each code's lifetime from the tenant's policy.
                 options.SetAuthorizationCodeLifetime(tokenOptions.AuthorizationCodeLifetime);
                 // Rolling (default) + sliding: each redemption issues a new refresh token; the Token endpoint
                 // sets each token's lifetime, clamped to the absolute cap. This is only the default ceiling.

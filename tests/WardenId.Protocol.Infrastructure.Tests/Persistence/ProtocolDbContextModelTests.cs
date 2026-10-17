@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using WardenId.Protocol.Domain.Sessions;
+using WardenId.Protocol.Domain.TokenPolicies;
 using WardenId.Protocol.Infrastructure.Persistence;
 using WardenId.SharedKernel.Persistence.Audit;
 
@@ -71,5 +72,27 @@ public class ProtocolDbContextModelTests
 
         Assert.Equal("audit", audit.GetSchema());
         Assert.True(audit.IsTableExcludedFromMigrations());
+    }
+    [Fact]
+    public void TenantTokenPolicies_MapToProtocolSchema_OneRowPerTenant_WithNullableIntervals()
+    {
+        var policy = Model().FindEntityType(typeof(TenantTokenPolicy))!;
+
+        Assert.Equal(ProtocolDbContext.Schema, policy.GetSchema());
+        Assert.Equal("TenantTokenPolicies", policy.GetTableName());
+        var tenantIndex = Assert.Single(policy.GetIndexes(), i => i.Properties.Single().Name == nameof(TenantTokenPolicy.TenantId));
+        Assert.True(tenantIndex.IsUnique);
+        foreach (var name in new[]
+                 {
+                     nameof(TenantTokenPolicy.AccessTokenLifetime), nameof(TenantTokenPolicy.IdTokenLifetime),
+                     nameof(TenantTokenPolicy.RefreshTokenLifetime), nameof(TenantTokenPolicy.RefreshTokenAbsoluteLifetime),
+                     nameof(TenantTokenPolicy.AuthorizationCodeLifetime), nameof(TenantTokenPolicy.SessionCookieLifetime),
+                     nameof(TenantTokenPolicy.SessionAbsoluteLifetime)
+                 })
+        {
+            var property = policy.FindProperty(name)!;
+            Assert.True(property.IsNullable);
+            Assert.Equal("interval", property.GetColumnType());
+        }
     }
 }

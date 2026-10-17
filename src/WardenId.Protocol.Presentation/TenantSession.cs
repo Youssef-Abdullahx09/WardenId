@@ -3,6 +3,7 @@ using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using WardenId.Protocol.Application;
 using WardenId.SharedKernel.Application;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -21,7 +22,12 @@ public static class TenantSession
 {
     public const string Scheme = "WardenId.TenantSession";
 
-    public static Task SignInAsync(HttpContext httpContext, Guid tenantId, Guid userId, Guid sid, DateTimeOffset authTime)
+    /// <summary>
+    /// Issues the cookie with the tenant's idle lifetime (<paramref name="cookieLifetime"/>): the ticket carries its
+    /// own issued/expires pair, and sliding renewal keeps that span, so tenants can differ under one scheme.
+    /// </summary>
+    public static Task SignInAsync(
+        HttpContext httpContext, Guid tenantId, Guid userId, Guid sid, DateTimeOffset authTime, TimeSpan cookieLifetime)
     {
         var identity = new ClaimsIdentity(Scheme, Claims.Subject, Claims.Role);
         identity.AddClaim(new Claim(Claims.Subject, userId.ToString()));
@@ -33,7 +39,9 @@ public static class TenantSession
             ClaimValueTypes.Integer64));
         identity.AddClaim(new Claim(Claims.AuthenticationMethodReference, "pwd"));
 
-        return httpContext.SignInAsync(Scheme, new ClaimsPrincipal(identity));
+        var now = httpContext.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow();
+        var properties = new AuthenticationProperties { IssuedUtc = now, ExpiresUtc = now + cookieLifetime };
+        return httpContext.SignInAsync(Scheme, new ClaimsPrincipal(identity), properties);
     }
 
     /// <summary>

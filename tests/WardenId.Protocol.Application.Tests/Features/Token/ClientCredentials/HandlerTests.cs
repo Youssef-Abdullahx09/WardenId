@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
 using WardenId.Protocol.Application.Features.Token.ClientCredentials;
+using WardenId.Protocol.Domain.TokenPolicies;
 
 namespace WardenId.Protocol.Application.Tests.Features.Token.ClientCredentials;
 
@@ -13,8 +14,35 @@ public class HandlerTests
             Guid.NewGuid(), "svc", ClientKind.Confidential, true, [AllowedGrant.ClientCredentials],
             ClientAuthMethod.SharedSecret, lifetimeSeconds, null, [], false, [], null));
 
-    private static Handler CreateHandler(FakeSender sender, ProtocolTokenOptions? options = null) =>
-        new(sender, Options.Create(options ?? new ProtocolTokenOptions { IssuerBaseUri = "https://wardenid.test" }));
+    private static Handler CreateHandler(
+        FakeSender sender, ProtocolTokenOptions? options = null, TenantLifetimeOverrides? tenant = null)
+    {
+        var settings = options ?? new ProtocolTokenOptions { IssuerBaseUri = "https://wardenid.test" };
+        return new(sender, Options.Create(settings), new FakeTenantLifetimes(settings, overrides: tenant));
+    }
+
+    private static readonly TenantLifetimeOverrides TenantAccess5Min =
+        TenantLifetimeOverrides.Create(TimeSpan.FromMinutes(5), null, null, null, null, null, null).Value;
+
+    [Fact]
+    public async Task Handle_UsesTenantLifetime_OverGlobal()
+    {
+        var sender = new FakeSender { ClientResponse = Client() };
+
+        var result = await CreateHandler(sender, tenant: TenantAccess5Min).Handle(new Command(TenantId, "acme", "svc"), CancellationToken.None);
+
+        Assert.Equal(TimeSpan.FromMinutes(5), result.Value.AccessTokenLifetime);
+    }
+
+    [Fact]
+    public async Task Handle_ClientLifetimeOverride_WinsOverTenant()
+    {
+        var sender = new FakeSender { ClientResponse = Client(lifetimeSeconds: 60) };
+
+        var result = await CreateHandler(sender, tenant: TenantAccess5Min).Handle(new Command(TenantId, "acme", "svc"), CancellationToken.None);
+
+        Assert.Equal(TimeSpan.FromSeconds(60), result.Value.AccessTokenLifetime);
+    }
 
     [Fact]
     public async Task Handle_UsesDefaultAudienceTemplate_AndDefaultLifetime()

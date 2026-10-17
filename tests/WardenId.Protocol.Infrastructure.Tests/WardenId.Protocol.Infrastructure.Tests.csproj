@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
+    <PackageReference Include="Xunit.SkippableFact" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
@@ -20,6 +21,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WardenId.Protocol.Infrastructure\WardenId.Protocol.Infrastructure.csproj" />
+    <!-- Test-only: proves token-policy writes are captured by the real audit interceptor (Postgres test). -->
+    <ProjectReference Include="..\..\src\WardenId.Audit.Infrastructure\WardenId.Audit.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -34,6 +34,7 @@ public static class DependencyInjection
                 options.Cookie = new TenantPathCookieBuilder();
                 options.SlidingExpiration = true;
             });
+        // Fallback only: TenantSession.SignInAsync sets each ticket's expiry from the tenant's cookie lifetime.
         services.AddOptions<CookieAuthenticationOptions>(TenantSession.Scheme)
             .Configure<IOptions<ProtocolSessionOptions>>((cookie, session) =>
                 cookie.ExpireTimeSpan = session.Value.CookieLifetime);

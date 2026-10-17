@@ -26,5 +26,6 @@ public static class EndpointNames
     public static class Policies
     {
         public const string GetTokens = "GetTokenPolicy";
+        public const string UpdateTokens = "UpdateTokenPolicy";
     }
 }

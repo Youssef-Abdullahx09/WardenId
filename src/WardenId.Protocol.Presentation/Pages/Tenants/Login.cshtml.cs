@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using WardenId.Protocol.Application.Features.Authorize;
 using WardenId.Protocol.Application.Features.Authorize.SignIn;
+using WardenId.Protocol.Application.Features.Policies;
 using WardenId.Protocol.Domain.Sessions;
 using ResolveTenantQuery = WardenId.Protocol.Application.Features.Authorize.ResolveTenant.Query;
 using SignInCommand = WardenId.Protocol.Application.Features.Authorize.SignIn.Command;
@@ -12,7 +13,7 @@ using StartSessionCommand = WardenId.Protocol.Application.Features.Sessions.Star
 
 namespace WardenId.Protocol.Presentation.Pages.Tenants;
 
-public sealed class LoginModel(ISender sender) : PageModel
+public sealed class LoginModel(ISender sender, ITenantLifetimes tenantLifetimes) : PageModel
 {
     // Session.Start failing is an operational fault, not the user's credentials: no detail, no cookie.
     private const string SessionStartFailed = "Sign-in failed. Please try again.";
@@ -55,11 +56,12 @@ public sealed class LoginModel(ISender sender) : PageModel
         }
 
         var userId = result.Value.UserId;
+        var cookieLifetime = (await tenantLifetimes.GetAsync(tenantId, cancellationToken)).SessionCookie;
         var existing = await TenantSession.ReadAsync(HttpContext, tenantId, sender, cancellationToken);
         if (existing is not null && existing.UserId == userId)
         {
             // Same user already signed in here: keep the one session row, just re-issue the cookie.
-            await TenantSession.SignInAsync(HttpContext, tenantId, userId, existing.Sid, existing.AuthTime);
+            await TenantSession.SignInAsync(HttpContext, tenantId, userId, existing.Sid, existing.AuthTime, cookieLifetime);
         }
         else
         {
@@ -76,7 +78,7 @@ public sealed class LoginModel(ISender sender) : PageModel
                 return Page();
             }
 
-            await TenantSession.SignInAsync(HttpContext, tenantId, userId, started.Value.Sid, started.Value.AuthTime);
+            await TenantSession.SignInAsync(HttpContext, tenantId, userId, started.Value.Sid, started.Value.AuthTime, cookieLifetime);
         }
 
         if (ReturnToApplication is not null) return LocalRedirect(ReturnUrl!);

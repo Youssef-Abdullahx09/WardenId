@@ -4,6 +4,7 @@ using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthe
 using WardenId.Identity.Integration.Command.Features.Users.GetForSignIn;
 using WardenId.Protocol.Application.Features.Token;
 using WardenId.Protocol.Application.Features.Token.AuthorizationCode;
+using WardenId.Protocol.Domain.TokenPolicies;
 using RequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
 using UserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
 
@@ -28,11 +29,17 @@ public class HandlerTests
             idTokenSeconds));
 
     private static Task<Result<UserTokenGrant>> HandleAsync(
-        FakeSender sender, DateTimeOffset? authTime = null, params string[] scopes)
+        FakeSender sender, DateTimeOffset? authTime = null, params string[] scopes) =>
+        HandleAsync(sender, tenant: null, authTime, scopes);
+
+    private static Task<Result<UserTokenGrant>> HandleAsync(
+        FakeSender sender, TenantLifetimeOverrides? tenant, DateTimeOffset? authTime, params string[] scopes)
     {
+        var options = new ProtocolTokenOptions { IssuerBaseUri = "https://wardenid.test" };
         var factory = new UserTokenGrantFactory(
             sender,
-            Options.Create(new ProtocolTokenOptions { IssuerBaseUri = "https://wardenid.test" }),
+            Options.Create(options),
+            new FakeTenantLifetimes(options, overrides: tenant),
             new FakeTimeProvider(Now));
         return new Handler(factory).Handle(
             new Command(TenantId, "acme", "web", UserId, scopes, authTime ?? Now.AddMinutes(-1)),
@@ -89,6 +96,49 @@ public class HandlerTests
         var result = await HandleAsync(sender, scopes: ["openid"]);
 
         Assert.Equal(TimeSpan.FromSeconds(60), result.Value.AccessTokenLifetime);
+    }
+
+    private static readonly TenantLifetimeOverrides TenantLifetimes = TenantLifetimeOverrides.Create(
+        accessToken: TimeSpan.FromMinutes(5), idToken: TimeSpan.FromMinutes(3), refreshToken: TimeSpan.FromDays(2),
+        refreshTokenAbsolute: TimeSpan.FromDays(7), authorizationCode: null, sessionCookie: null, sessionAbsolute: null).Value;
+
+    [Fact]
+    public async Task Handle_UsesTenantLifetimes_OverGlobal()
+    {
+        var sender = new FakeSender { SignInUserResponse = User(), ClientResponse = Client() };
+
+        var result = await HandleAsync(sender, TenantLifetimes, Now.AddMinutes(-1), "openid", "offline_access");
+
+        Assert.Equal(TimeSpan.FromMinutes(5), result.Value.AccessTokenLifetime);
+        Assert.Equal(TimeSpan.FromMinutes(3), result.Value.IdTokenLifetime);
+        Assert.Equal(TimeSpan.FromDays(2), result.Value.RefreshTokenLifetime);
+    }
+
+    [Fact]
+    public async Task Handle_ClientOverrides_WinOverTenantLifetimes()
+    {
+        var sender = new FakeSender
+        {
+            SignInUserResponse = User(),
+            ClientResponse = Client(lifetimeSeconds: 60, refreshSeconds: 3600, idTokenSeconds: 120)
+        };
+
+        var result = await HandleAsync(sender, TenantLifetimes, Now.AddMinutes(-1), "openid", "offline_access");
+
+        Assert.Equal(TimeSpan.FromSeconds(60), result.Value.AccessTokenLifetime);
+        Assert.Equal(TimeSpan.FromSeconds(120), result.Value.IdTokenLifetime);
+        Assert.Equal(TimeSpan.FromHours(1), result.Value.RefreshTokenLifetime);
+    }
+
+    [Fact]
+    public async Task Handle_TenantAbsoluteCap_ClampsEvenTheClientRefreshOverride()
+    {
+        // Tenant cap 7 days, session 6.5 days old -> 12h left, under the client's 30-day override.
+        var sender = new FakeSender { SignInUserResponse = User(), ClientResponse = Client(refreshSeconds: 30 * 86400) };
+
+        var result = await HandleAsync(sender, TenantLifetimes, Now.AddDays(-6.5), "openid", "offline_access");
+
+        Assert.Equal(TimeSpan.FromHours(12), result.Value.RefreshTokenLifetime);
     }
 
     [Fact]

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using WardenId.Protocol.Application.Auditing;
+using WardenId.Protocol.Application.Features.Policies;
 using WardenId.Protocol.Application.Features.Token;
 
 namespace WardenId.Protocol.Application;
@@ -18,6 +19,9 @@ public static class DependencyInjection
         // TryAdd: tests register a FakeTimeProvider first; OpenIddict resolves the same TimeProvider.
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<UserTokenGrantFactory>();
+        // Per-tenant lifetimes on the issuance path, cached briefly per tenant (TenantLifetimes.CacheDuration).
+        services.AddMemoryCache();
+        services.AddScoped<ITenantLifetimes, TenantLifetimes>();
         services.AddScoped<IAuthAuditTrail, SenderAuthAuditTrail>();
         services.AddSubscribers();
     }

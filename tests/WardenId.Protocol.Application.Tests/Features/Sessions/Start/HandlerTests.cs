@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using WardenId.Audit.Integration.Command.Features.Events.Record;
 using WardenId.Protocol.Application.Features.Sessions.Start;
+using WardenId.Protocol.Domain.TokenPolicies;
 using Command = WardenId.Protocol.Application.Features.Sessions.Start.Command;
 
 namespace WardenId.Protocol.Application.Tests.Features.Sessions.Start;
@@ -13,9 +14,24 @@ public class HandlerTests
     private static readonly Guid UserId = Guid.NewGuid();
 
     private static Handler CreateHandler(
-        TestProtocolDbContext db, TimeProvider clock, TimeSpan absoluteLifetime, FakeAuthAuditTrail? audit = null) =>
-        new(db, clock, Options.Create(new ProtocolSessionOptions { AbsoluteLifetime = absoluteLifetime }),
+        TestProtocolDbContext db, TimeProvider clock, TimeSpan absoluteLifetime, FakeAuthAuditTrail? audit = null,
+        TenantLifetimeOverrides? tenant = null) =>
+        new(db, clock,
+            new FakeTenantLifetimes(sessions: new ProtocolSessionOptions { AbsoluteLifetime = absoluteLifetime }, overrides: tenant),
             audit ?? new FakeAuthAuditTrail());
+
+    [Fact]
+    public async Task Start_UsesTheTenantAbsoluteLifetime_OverGlobal()
+    {
+        await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());
+        var tenant = TenantLifetimeOverrides.Create(null, null, null, null, null, null, TimeSpan.FromHours(2)).Value;
+        var handler = CreateHandler(db, new FakeTimeProvider(SessionBuilder.Now), TimeSpan.FromHours(12), tenant: tenant);
+
+        var result = await handler.Handle(new Command(TenantId, UserId), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(SessionBuilder.Now.AddHours(2), (await db.Sessions.SingleAsync()).ExpiresAt);
+    }
 
     [Fact]
     public async Task Start_PersistsLiveSession_WithAbsoluteExpiry()
