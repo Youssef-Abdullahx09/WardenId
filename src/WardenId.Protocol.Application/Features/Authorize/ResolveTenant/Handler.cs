@@ -6,9 +6,9 @@ using ResolveForIssuanceQuery = WardenId.Tenancy.Integration.Command.Features.Te
 
 namespace WardenId.Protocol.Application.Features.Authorize.ResolveTenant;
 
-public sealed class Handler(ISender sender) : IRequestHandler<Query, Result<Guid>>
+public sealed class Handler(ISender sender) : IRequestHandler<Query, Result<ResolvedTenant>>
 {
-    public async Task<Result<Guid>> Handle(Query request, CancellationToken cancellationToken)
+    public async Task<Result<ResolvedTenant>> Handle(Query request, CancellationToken cancellationToken)
     {
         // Route constraints are case-insensitive; issuers are not.
         if (!TenantSlugFormat.IsValid(request.Slug)) return Result.Fail(ProtocolErrors.TenantNotFound());
@@ -17,6 +17,8 @@ public sealed class Handler(ISender sender) : IRequestHandler<Query, Result<Guid
         if (result.IsFailed || result.Value.Status != TenantIssuanceStatus.Active)
             return Result.Fail(ProtocolErrors.TenantNotFound());
 
-        return Result.Ok(result.Value.TenantId);
+        var tenant = result.Value;
+        var displayName = string.IsNullOrWhiteSpace(tenant.DisplayName) ? tenant.Slug : tenant.DisplayName.Trim();
+        return Result.Ok(new ResolvedTenant(tenant.TenantId, displayName));
     }
 }

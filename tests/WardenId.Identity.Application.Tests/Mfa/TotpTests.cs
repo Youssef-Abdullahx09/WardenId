@@ -97,4 +97,29 @@ public class TotpTests
             "otpauth://totp/Acme%20Corp:alice%40acme.test?secret=JBSWY3DPEHPK3PXP&issuer=Acme%20Corp&algorithm=SHA1&digits=6&period=30",
             uri);
     }
+
+    [Fact]
+    public void OtpAuthUri_EncodesSpacesAndNonAscii_AndKeepsTheLabelSeparatorUnambiguous()
+    {
+        var uri = Totp.OtpAuthUri("Acme: Café Ops", "alice@acme.test", "JBSWY3DPEHPK3PXP");
+
+        Assert.Equal(
+            "otpauth://totp/Acme%20Caf%C3%A9%20Ops:alice%40acme.test?secret=JBSWY3DPEHPK3PXP" +
+            "&issuer=Acme%3A%20Caf%C3%A9%20Ops&algorithm=SHA1&digits=6&period=30",
+            uri);
+
+        var parsed = new Uri(uri);
+        var label = Uri.UnescapeDataString(parsed.AbsolutePath.TrimStart('/'));
+        Assert.Equal(["Acme Café Ops", "alice@acme.test"], label.Split(':'));
+        var issuer = parsed.Query.TrimStart('?').Split('&').Single(p => p.StartsWith("issuer=", StringComparison.Ordinal));
+        Assert.Equal("Acme: Café Ops", Uri.UnescapeDataString(issuer["issuer=".Length..]));
+    }
+
+    [Fact]
+    public void OtpAuthUri_KeepsAColonInTheAccountName_OutOfTheLabelSeparator()
+    {
+        var uri = Totp.OtpAuthUri("Acme", "ops:alice", "JBSWY3DPEHPK3PXP");
+
+        Assert.StartsWith("otpauth://totp/Acme:ops%20alice?", uri);
+    }
 }

@@ -26,6 +26,7 @@ public class HandlerTests
         Assert.True(result.IsSuccess);
         Assert.Equal(tenant.Id, result.Value.TenantId);
         Assert.Equal("acme", result.Value.Slug);
+        Assert.Equal("Display acme", result.Value.DisplayName);
         Assert.Equal(expected, result.Value.Status);
     }
 

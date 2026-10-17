@@ -12,7 +12,7 @@ public class HandlerTests
 
     private static StubSender Tenant(TenantIssuanceStatus status) =>
         new StubSender().Returns<ResolveForIssuanceQuery, Result<TenantForIssuance>>(
-            Result.Ok(new TenantForIssuance(TenantId, "acme", status)));
+            Result.Ok(new TenantForIssuance(TenantId, "acme", status, "Acme")));
 
     [Fact]
     public async Task ActiveTenant_ReturnsItsClientsOrigins()

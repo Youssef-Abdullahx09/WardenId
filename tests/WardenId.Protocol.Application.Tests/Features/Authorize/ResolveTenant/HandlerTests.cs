@@ -9,16 +9,33 @@ public class HandlerTests
     private static readonly Guid TenantId = Guid.NewGuid();
 
     [Fact]
-    public async Task Handle_ReturnsTenantId_ForActiveTenant()
+    public async Task Handle_ReturnsTenantIdAndDisplayName_ForActiveTenant()
     {
         var sender = new FakeSender
         {
-            ResolveForIssuanceResponse = Result.Ok(new TenantForIssuance(TenantId, "acme", TenantIssuanceStatus.Active))
+            ResolveForIssuanceResponse = Result.Ok(
+                new TenantForIssuance(TenantId, "acme", TenantIssuanceStatus.Active, "Acme: Café Ops"))
         };
 
         var result = await new Handler(sender).Handle(new ResolveTenantQuery("acme"), CancellationToken.None);
 
-        Assert.Equal(TenantId, result.Value);
+        Assert.Equal(new ResolvedTenant(TenantId, "Acme: Café Ops"), result.Value);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_FallsBackToTheSlug_WhenTheDisplayNameIsEmpty(string displayName)
+    {
+        var sender = new FakeSender
+        {
+            ResolveForIssuanceResponse = Result.Ok(
+                new TenantForIssuance(TenantId, "acme", TenantIssuanceStatus.Active, displayName))
+        };
+
+        var result = await new Handler(sender).Handle(new ResolveTenantQuery("acme"), CancellationToken.None);
+
+        Assert.Equal("acme", result.Value.DisplayName);
     }
 
     [Fact]
@@ -26,7 +43,7 @@ public class HandlerTests
     {
         var sender = new FakeSender
         {
-            ResolveForIssuanceResponse = Result.Ok(new TenantForIssuance(TenantId, "acme", TenantIssuanceStatus.Suspended))
+            ResolveForIssuanceResponse = Result.Ok(new TenantForIssuance(TenantId, "acme", TenantIssuanceStatus.Suspended, "Acme"))
         };
 
         var result = await new Handler(sender).Handle(new ResolveTenantQuery("acme"), CancellationToken.None);

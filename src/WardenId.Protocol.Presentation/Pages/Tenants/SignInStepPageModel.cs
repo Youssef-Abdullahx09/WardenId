@@ -20,6 +20,9 @@ public abstract class SignInStepPageModel(ISender sender, ITenantLifetimes tenan
     protected ISender Sender { get; } = sender;
 
     public string Slug { get; private set; } = string.Empty;
+
+    /// <summary>The tenant's display name (the slug when it has none), set with <see cref="Slug"/>.</summary>
+    protected string TenantDisplayName { get; private set; } = string.Empty;
     public string? ErrorMessage { get; protected set; }
 
     /// <summary>The session exists. <see cref="ContinueUrl"/> is where to go next, if anywhere.</summary>
@@ -49,7 +52,10 @@ public abstract class SignInStepPageModel(ISender sender, ITenantLifetimes tenan
     {
         Slug = slug;
         var result = await Sender.Send(new ResolveTenantQuery(slug), cancellationToken);
-        return result.IsSuccess ? result.Value : null;
+        if (result.IsFailed) return null;
+
+        TenantDisplayName = result.Value.DisplayName;
+        return result.Value.TenantId;
     }
 
     /// <summary>

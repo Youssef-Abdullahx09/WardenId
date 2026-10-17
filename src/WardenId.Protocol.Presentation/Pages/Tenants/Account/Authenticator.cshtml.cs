@@ -25,8 +25,8 @@ public sealed class AuthenticatorModel(ISender sender) : TotpEnrollmentPageModel
         if (await LoadAsync(slug, cancellationToken) is { } elsewhere) return elsewhere;
         if (!CanSetUp) return ToOverview();
 
-        // Issuer: the slug, as at sign-in.
-        var started = await Sender.Send(new BeginTotpEnrollmentCommand(TenantId, UserId, slug), cancellationToken);
+        // Issuer: the tenant's display name, as at sign-in.
+        var started = await Sender.Send(new BeginTotpEnrollmentCommand(TenantId, UserId, TenantDisplayName), cancellationToken);
         if (started.IsFailed)
         {
             ErrorMessage = "We couldn't start setting up your authenticator app. Please try again.";

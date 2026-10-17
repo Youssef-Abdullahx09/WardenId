@@ -22,6 +22,9 @@ public abstract class AccountPageModel(ISender sender) : PageModel
     protected ISender Sender { get; } = sender;
 
     protected Guid TenantId { get; private set; }
+
+    /// <summary>The tenant's display name (the slug when it has none): the issuer authenticator apps show.</summary>
+    protected string TenantDisplayName { get; private set; } = string.Empty;
     protected Guid UserId { get; private set; }
 
     /// <summary>The live login session the page runs under: audited with each change, and kept when others end.</summary>
@@ -47,7 +50,8 @@ public abstract class AccountPageModel(ISender sender) : PageModel
         Slug = slug;
         var tenant = await Sender.Send(new ResolveTenantQuery(slug), cancellationToken);
         if (tenant.IsFailed) return NotFound();
-        TenantId = tenant.Value;
+        TenantId = tenant.Value.TenantId;
+        TenantDisplayName = tenant.Value.DisplayName;
 
         var session = await TenantSession.ReadAsync(HttpContext, TenantId, Sender, cancellationToken);
         if (session is null) return ToLogin();

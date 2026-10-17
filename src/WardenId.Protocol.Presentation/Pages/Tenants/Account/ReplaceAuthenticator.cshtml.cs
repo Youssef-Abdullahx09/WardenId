@@ -28,7 +28,7 @@ public sealed class ReplaceAuthenticatorModel(ISender sender) : TotpEnrollmentPa
 
         var code = CurrentCode.Trim();
         CurrentCode = string.Empty;
-        var started = await Sender.Send(new BeginTotpReplacementCommand(TenantId, UserId, Sid, code, slug), cancellationToken);
+        var started = await Sender.Send(new BeginTotpReplacementCommand(TenantId, UserId, Sid, code, TenantDisplayName), cancellationToken);
         if (started.IsFailed)
         {
             ErrorMessage = WrongCode;

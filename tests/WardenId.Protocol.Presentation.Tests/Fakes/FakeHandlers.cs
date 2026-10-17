@@ -45,7 +45,7 @@ public sealed class ResolveForIssuanceHandler(FakeDirectory directory)
 {
     public Task<Result<TenantForIssuance>> Handle(ResolveForIssuanceQuery request, CancellationToken cancellationToken) =>
         Task.FromResult(directory.Tenants.TryGetValue(request.Slug, out var t)
-            ? Result.Ok(new TenantForIssuance(t.TenantId, t.Slug, t.Status))
+            ? Result.Ok(new TenantForIssuance(t.TenantId, t.Slug, t.Status, t.DisplayName))
             : Result.Fail<TenantForIssuance>(Fail.NotFound));
 }
 
@@ -172,6 +172,7 @@ public sealed class BeginTotpEnrollmentHandler(FakeDirectory directory, FakeAudi
         actorScope.Observe("BeginTotpEnrollment");
         var user = directory.Users.Single(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
         user.BeginEnrollmentCalls++;
+        user.LastEnrollmentIssuer = request.Issuer;
         user.UnverifiedFactorId = Guid.NewGuid();
         var uri = $"otpauth://totp/{request.Issuer}:{user.Username}?secret={FakeDirectory.TotpSecret}&issuer={request.Issuer}";
         return Task.FromResult(Result.Ok(new TotpEnrollment(user.UnverifiedFactorId.Value, FakeDirectory.TotpSecret, uri)));
@@ -311,6 +312,7 @@ public sealed class BeginTotpReplacementHandler(FakeDirectory directory, FakeAud
             return Task.FromResult(Result.Fail<TotpEnrollment>(error));
 
         user.BeginEnrollmentCalls++;
+        user.LastEnrollmentIssuer = request.Issuer;
         user.UnverifiedFactorId = Guid.NewGuid();
         var uri = $"otpauth://totp/{request.Issuer}:{user.Username}?secret={FakeDirectory.TotpSecret}&issuer={request.Issuer}";
         return Task.FromResult(Result.Ok(new TotpEnrollment(user.UnverifiedFactorId.Value, FakeDirectory.TotpSecret, uri)));

@@ -94,11 +94,14 @@ public static class Totp
     /// <summary>
     /// The Key URI an authenticator app reads from a QR code:
     /// <c>otpauth://totp/{issuer}:{account}?secret=…&amp;issuer=…&amp;algorithm=SHA1&amp;digits=6&amp;period=30</c>.
+    /// Every part is percent-encoded as UTF-8. The label's only separator is the colon between issuer and account
+    /// (apps split on it after decoding), so colons inside either label part become spaces; the <c>issuer</c>
+    /// parameter, which apps prefer, keeps the name as it is.
     /// </summary>
-    public static string OtpAuthUri(string issuer, string accountName, string base32Secret)
-    {
-        var escapedIssuer = Uri.EscapeDataString(issuer);
-        return $"otpauth://totp/{escapedIssuer}:{Uri.EscapeDataString(accountName)}" +
-               $"?secret={base32Secret}&issuer={escapedIssuer}&algorithm=SHA1&digits={Digits}&period={StepSeconds}";
-    }
+    public static string OtpAuthUri(string issuer, string accountName, string base32Secret) =>
+        $"otpauth://totp/{Uri.EscapeDataString(LabelPart(issuer))}:{Uri.EscapeDataString(LabelPart(accountName))}" +
+        $"?secret={base32Secret}&issuer={Uri.EscapeDataString(issuer)}&algorithm=SHA1&digits={Digits}&period={StepSeconds}";
+
+    private static string LabelPart(string value) =>
+        string.Join(' ', value.Split(':', ' ').Where(part => part.Length > 0));
 }

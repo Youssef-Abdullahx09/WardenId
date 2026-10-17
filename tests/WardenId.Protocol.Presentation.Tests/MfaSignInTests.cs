@@ -224,6 +224,17 @@ public partial class MfaSignInTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Enrollment_NamesTheTenantByItsDisplayName_NotItsSlug()
+    {
+        var browser = _host.CreateBrowser();
+        await PostLoginAsync(browser, "frank");
+
+        await browser.GetAsync(EnrollPath);
+
+        Assert.Equal(FakeDirectory.AcmeDisplayName, _host.Directory.User("frank").LastEnrollmentIssuer);
+    }
+
+    [Fact]
     public async Task Enrollment_WrongCode_ReRendersTheSameQr_AndAuditsIt()
     {
         var browser = _host.CreateBrowser();

@@ -351,6 +351,16 @@ public partial class AccountPagesTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Setup_NamesTheTenantByItsDisplayName_NotItsSlug()
+    {
+        var browser = await SignedInAsync("alice");
+
+        await HtmlAsync(await PostAsync(browser, SetupPath, [], handler: "Start"));
+
+        Assert.Equal(FakeDirectory.AcmeDisplayName, _host.Directory.User("alice").LastEnrollmentIssuer);
+    }
+
+    [Fact]
     public async Task Setup_Flow_QrThenWrongCodeThenRightCode_ShowsRecoveryCodesOnce()
     {
         var browser = await SignedInAsync("alice");
@@ -482,6 +492,7 @@ public partial class AccountPagesTests : IAsyncLifetime
         var started = await HtmlAsync(await PostAsync(browser, ReplacePath,
             new() { ["CurrentCode"] = "erin1-recov" }, handler: "Start"));
         Assert.Contains("JBSW Y3DP EHPK 3PXP", started);
+        Assert.Equal(FakeDirectory.AcmeDisplayName, _host.Directory.User("erin").LastEnrollmentIssuer);
 
         var done = await HtmlAsync(await PostFromAsync(browser, started, ReplacePath,
             new() { ["State"] = State(started), ["Code"] = FakeDirectory.TotpCode }, handler: "Verify"));

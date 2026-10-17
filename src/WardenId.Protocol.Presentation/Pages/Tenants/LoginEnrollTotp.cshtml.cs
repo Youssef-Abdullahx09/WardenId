@@ -34,9 +34,9 @@ public sealed class LoginEnrollTotpModel(ISender sender, ITenantLifetimes tenant
 
         if (ticket.Enrollment is null)
         {
-            // Issuer: the slug — Protocol has no cheap way to the tenant's display name.
+            // Issuer: the name the authenticator app shows for this account.
             var started = await Sender.Send(
-                new BeginTotpEnrollmentCommand(ticket.TenantId, ticket.UserId, slug), cancellationToken);
+                new BeginTotpEnrollmentCommand(ticket.TenantId, ticket.UserId, TenantDisplayName), cancellationToken);
             if (started.IsFailed)
             {
                 ErrorMessage = EnrollmentFailed;

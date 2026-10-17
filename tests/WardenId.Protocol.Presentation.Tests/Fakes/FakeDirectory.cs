@@ -14,7 +14,11 @@ public sealed class FakeDirectory
     public const string AcmeRotatedSecret = "acme-rotated";
     public const string GlobexSecret = "globex-primary";
 
-    public sealed record TenantEntry(Guid TenantId, string Slug, TenantIssuanceStatus Status, Guid KeyId, ECDsa Key);
+    public sealed record TenantEntry(
+        Guid TenantId, string Slug, TenantIssuanceStatus Status, Guid KeyId, ECDsa Key, string DisplayName);
+
+    /// <summary>Acme's display name: a colon, a space and non-ASCII, as the authenticator app issuer.</summary>
+    public const string AcmeDisplayName = "Acme: Café Ops";
 
     public sealed record ClientEntry(
         Guid TenantId, Guid Id, string ClientId, ClientKind Kind, bool Enabled,
@@ -64,6 +68,9 @@ public sealed class FakeDirectory
 
         public int BeginEnrollmentCalls { get; set; }
 
+        /// <summary>The issuer of the last BeginTotpEnrollment/BeginTotpReplacement for this user.</summary>
+        public string? LastEnrollmentIssuer { get; set; }
+
         public DateTimeOffset? TermsAcceptedAt { get; set; }
 
         public int AcceptTermsCalls { get; set; }
@@ -92,9 +99,9 @@ public sealed class FakeDirectory
 
     public FakeDirectory()
     {
-        var acme = AddTenant("acme", TenantIssuanceStatus.Active);
-        var globex = AddTenant("globex", TenantIssuanceStatus.Active);
-        var frozen = AddTenant("frozen", TenantIssuanceStatus.Suspended);
+        var acme = AddTenant("acme", TenantIssuanceStatus.Active, AcmeDisplayName);
+        var globex = AddTenant("globex", TenantIssuanceStatus.Active, "Globex");
+        var frozen = AddTenant("frozen", TenantIssuanceStatus.Suspended, "Frozen");
 
         AddClient(acme, "svc", secrets: [AcmeSecret, AcmeRotatedSecret]);
         AddClient(globex, "svc", secrets: [GlobexSecret]);
@@ -158,9 +165,10 @@ public sealed class FakeDirectory
     public ClientEntry? FindClient(Guid tenantId, string clientId) =>
         Clients.FirstOrDefault(c => c.TenantId == tenantId && c.ClientId == clientId);
 
-    private TenantEntry AddTenant(string slug, TenantIssuanceStatus status)
+    private TenantEntry AddTenant(string slug, TenantIssuanceStatus status, string displayName)
     {
-        var entry = new TenantEntry(Guid.NewGuid(), slug, status, Guid.NewGuid(), ECDsa.Create(ECCurve.NamedCurves.nistP256));
+        var entry = new TenantEntry(
+            Guid.NewGuid(), slug, status, Guid.NewGuid(), ECDsa.Create(ECCurve.NamedCurves.nistP256), displayName);
         Tenants[slug] = entry;
         return entry;
     }

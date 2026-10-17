@@ -28,6 +28,6 @@ public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query
         if (tenant is null) return Result.Fail(TenantErrors.NotFound);
 
         var status = tenant.Status == Status.Suspended ? TenantIssuanceStatus.Suspended : TenantIssuanceStatus.Active;
-        return Result.Ok(new TenantForIssuance(tenant.Id, tenant.Slug.Value, status));
+        return Result.Ok(new TenantForIssuance(tenant.Id, tenant.Slug.Value, status, tenant.DisplayName));
     }
 }
