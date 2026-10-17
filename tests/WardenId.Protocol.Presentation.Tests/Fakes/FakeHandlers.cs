@@ -18,6 +18,12 @@ using GetReferenceQuery = WardenId.ClientManagement.Integration.Command.Features
 using ListCorsOriginsQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.ListCorsOrigins.Query;
 using VerifySecretQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.VerifySecret.Query;
 using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Events.Record.Command;
+using WardenId.Identity.Integration.Command.Features.Users.VerifySecondFactor;
+using BeginTotpEnrollmentCommand = WardenId.Identity.Integration.Command.Features.Users.BeginTotpEnrollment.Command;
+using TotpEnrollment = WardenId.Identity.Integration.Command.Features.Users.BeginTotpEnrollment.TotpEnrollment;
+using CompleteTotpEnrollmentCommand = WardenId.Identity.Integration.Command.Features.Users.CompleteTotpEnrollment.Command;
+using CompletedTotpEnrollment = WardenId.Identity.Integration.Command.Features.Users.CompleteTotpEnrollment.CompletedTotpEnrollment;
+using VerifySecondFactorCommand = WardenId.Identity.Integration.Command.Features.Users.VerifySecondFactor.Command;
 
 namespace WardenId.Protocol.Presentation.Tests.Fakes;
 
@@ -123,7 +129,8 @@ public sealed class AuthenticateHandler(FakeDirectory directory)
             _ => null
         };
         return Task.FromResult(failure is null
-            ? Result.Ok(new AuthenticatedUser(user!.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray(), HasSecondFactor: false))
+            ? Result.Ok(new AuthenticatedUser(
+                user!.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray(), user.HasFactor))
             : Result.Fail<AuthenticatedUser>(
                 AuthenticationFailure.Tag(new Error("Invalid credentials."), failure.Value, user?.UserId)));
     }
@@ -147,4 +154,54 @@ public sealed class RecordAuditEventHandler(FakeAuditLog log) : IRequestHandler<
         log.Add(request);
         return Task.FromResult(Result.Ok());
     }
+}
+
+public sealed class BeginTotpEnrollmentHandler(FakeDirectory directory)
+    : IRequestHandler<BeginTotpEnrollmentCommand, Result<TotpEnrollment>>
+{
+    public Task<Result<TotpEnrollment>> Handle(BeginTotpEnrollmentCommand request, CancellationToken cancellationToken)
+    {
+        var user = directory.Users.Single(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
+        user.BeginEnrollmentCalls++;
+        user.UnverifiedFactorId = Guid.NewGuid();
+        var uri = $"otpauth://totp/{request.Issuer}:{user.Username}?secret={FakeDirectory.TotpSecret}&issuer={request.Issuer}";
+        return Task.FromResult(Result.Ok(new TotpEnrollment(user.UnverifiedFactorId.Value, FakeDirectory.TotpSecret, uri)));
+    }
+}
+
+public sealed class CompleteTotpEnrollmentHandler(FakeDirectory directory)
+    : IRequestHandler<CompleteTotpEnrollmentCommand, Result<CompletedTotpEnrollment>>
+{
+    public Task<Result<CompletedTotpEnrollment>> Handle(CompleteTotpEnrollmentCommand request, CancellationToken cancellationToken)
+    {
+        var user = directory.Users.Single(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
+        if (user.UnverifiedFactorId != request.FactorId || request.Code != FakeDirectory.TotpCode)
+            return Task.FromResult(Result.Fail<CompletedTotpEnrollment>("Invalid code."));
+
+        user.HasFactor = true;
+        user.UnverifiedFactorId = null;
+        user.PendingActions.Remove(RequiredAction.EnrollMfa);
+        user.RecoveryCodes.Clear();
+        user.RecoveryCodes.AddRange(Enumerable.Range(1, 10).Select(i => $"code{i:00}-{user.Username}"));
+        return Task.FromResult(Result.Ok(new CompletedTotpEnrollment(user.RecoveryCodes.ToArray())));
+    }
+}
+
+public sealed class VerifySecondFactorHandler(FakeDirectory directory)
+    : IRequestHandler<VerifySecondFactorCommand, Result<SecondFactorVerified>>
+{
+    public Task<Result<SecondFactorVerified>> Handle(VerifySecondFactorCommand request, CancellationToken cancellationToken)
+    {
+        var user = directory.Users.Single(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
+        if (user.Status != UserStatus.Active) return Fail(SecondFactorFailureReason.AccountInactive);
+        if (!user.HasFactor) return Fail(SecondFactorFailureReason.NotEnrolled);
+        if (request.Code == FakeDirectory.TotpCode)
+            return Task.FromResult(Result.Ok(new SecondFactorVerified(SecondFactorMethod.Totp, user.RecoveryCodes.Count)));
+        if (user.RecoveryCodes.Remove(request.Code))
+            return Task.FromResult(Result.Ok(new SecondFactorVerified(SecondFactorMethod.RecoveryCode, user.RecoveryCodes.Count)));
+        return Fail(SecondFactorFailureReason.InvalidCode);
+    }
+
+    private static Task<Result<SecondFactorVerified>> Fail(SecondFactorFailureReason reason) =>
+        Task.FromResult(Result.Fail<SecondFactorVerified>(SecondFactorFailure.Tag(new Error("Invalid code."), reason)));
 }

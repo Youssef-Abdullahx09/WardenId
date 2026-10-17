@@ -2,6 +2,7 @@ using FluentResults;
 using MediatR;
 using WardenId.Audit.Integration.Command.Features.Events.Record;
 using WardenId.Protocol.Application.Auditing;
+using WardenId.Protocol.Application.Features.Authorize;
 using WardenId.Protocol.Application.Features.Policies;
 using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Domain.Sessions;
@@ -10,7 +11,7 @@ using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Even
 namespace WardenId.Protocol.Application.Features.Sessions.Start;
 
 /// <summary>
-/// Starts the login session after a password sign-in (the login page is the only caller) and audits it as the
+/// Starts the login session once sign-in is complete (password, plus any MFA step) and audits it as the
 /// interactive sign-in success.
 /// </summary>
 public sealed class Handler(
@@ -19,9 +20,6 @@ public sealed class Handler(
     ITenantLifetimes tenantLifetimes,
     IAuthAuditTrail audit) : IRequestHandler<Command, Result<StartedSession>>
 {
-    // The cookie's amr (TenantSession): the password is the only sign-in method today.
-    private const string PasswordAmr = "pwd";
-
     public async Task<Result<StartedSession>> Handle(Command request, CancellationToken cancellationToken)
     {
         // auth_time is whole seconds in the cookie and tokens; storing the same value keeps all three equal.
@@ -43,7 +41,7 @@ public sealed class Handler(
             authTime,
             Actor.User(session.SubjectId),
             [Target.User(session.SubjectId), Target.Session(session.Id)],
-            Session: new SessionContext(session.Id, session.AuthTime, [PasswordAmr])));
+            Session: new SessionContext(session.Id, session.AuthTime, request.Amr ?? AuthenticationMethods.PasswordOnly)));
 
         return Result.Ok(new StartedSession(session.Id, session.AuthTime));
     }

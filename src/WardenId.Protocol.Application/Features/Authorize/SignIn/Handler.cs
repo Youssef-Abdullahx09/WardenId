@@ -6,7 +6,6 @@ using WardenId.Protocol.Domain;
 using AuthenticateCommand = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
 using AuthenticationFailure = WardenId.Identity.Integration.Command.Features.Users.Authenticate.AuthenticationFailure;
 using FailureReason = WardenId.Identity.Integration.Command.Features.Users.Authenticate.FailureReason;
-using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Events.Record.Command;
 using RequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
 using UserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
 
@@ -15,7 +14,8 @@ namespace WardenId.Protocol.Application.Features.Authorize.SignIn;
 /// <summary>
 /// Checks the credentials and whether the user may sign in now. Every refusal is audited as a failed sign-in
 /// with its real reason; the user still sees one message for all of them. A success is audited by the session
-/// start that follows (Sessions/Start), which knows the sid.
+/// start that follows (Sessions/Start), which knows the sid. Blocks come first; only an unblocked user gets the
+/// MFA steps: the code step when a factor is enabled, then enrollment when EnrollMfa is pending.
 /// </summary>
 public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider timeProvider)
     : IRequestHandler<Command, Result<SignInOutcome>>
@@ -25,8 +25,7 @@ public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider 
     [
         (RequiredAction.VerifyEmail, SignInBlockReason.VerifyEmail),
         (RequiredAction.ResetPassword, SignInBlockReason.ResetPassword),
-        (RequiredAction.AcceptTos, SignInBlockReason.AcceptTos),
-        (RequiredAction.EnrollMfa, SignInBlockReason.EnrollMfa)
+        (RequiredAction.AcceptTos, SignInBlockReason.AcceptTos)
     ];
 
     public async Task<Result<SignInOutcome>> Handle(Command request, CancellationToken cancellationToken)
@@ -67,20 +66,20 @@ public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider 
             blocked = SignInBlockReason.PendingVerification;
 
         if (blocked is { } blockReason)
+        {
             await RecordFailureAsync(request.TenantId, user.UserId, ToOutcomeReason(blockReason));
+            return Result.Ok(new SignInOutcome(user.UserId, blockReason, []));
+        }
 
-        return Result.Ok(new SignInOutcome(user.UserId, blocked));
+        List<SignInStep> steps = [];
+        if (user.HasSecondFactor) steps.Add(SignInStep.SecondFactor);
+        if (user.PendingActions.Contains(RequiredAction.EnrollMfa)) steps.Add(SignInStep.EnrollTotp);
+
+        return Result.Ok(new SignInOutcome(user.UserId, null, steps));
     }
 
-    /// <summary>An attempt against no known account is anonymous: the typed identifier is never recorded.</summary>
     private Task RecordFailureAsync(Guid tenantId, Guid? userId, OutcomeReason reason) =>
-        audit.RecordAsync(new RecordAuditEventCommand(
-            SecurityEvent.SignInFailed,
-            tenantId,
-            timeProvider.GetUtcNow(),
-            userId is { } actorId ? Actor.User(actorId) : Actor.Anonymous,
-            userId is { } targetId ? [Target.User(targetId)] : [],
-            reason));
+        audit.RecordAsync(SignInAudit.Failed(tenantId, userId, reason, timeProvider.GetUtcNow()));
 
     private static OutcomeReason ToOutcomeReason(FailureReason reason) => reason switch
     {
@@ -98,7 +97,6 @@ public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider 
         SignInBlockReason.VerifyEmail => OutcomeReason.EmailNotVerified,
         SignInBlockReason.ResetPassword => OutcomeReason.PasswordResetRequired,
         SignInBlockReason.AcceptTos => OutcomeReason.TermsNotAccepted,
-        SignInBlockReason.EnrollMfa => OutcomeReason.MfaEnrollmentRequired,
         _ => OutcomeReason.PendingVerification
     };
 }

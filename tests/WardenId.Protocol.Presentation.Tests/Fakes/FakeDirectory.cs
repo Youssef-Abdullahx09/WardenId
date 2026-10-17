@@ -40,6 +40,11 @@ public sealed class FakeDirectory
 
     public const string UserPassword = "correct horse";
 
+    /// <summary>The code every fake authenticator shows (Identity's TOTP math is tested in Identity).</summary>
+    public const string TotpCode = "123456";
+
+    public const string TotpSecret = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
+
     public sealed class UserEntry(Guid tenantId, string username, UserStatus status, params RequiredAction[] pendingActions)
     {
         public Guid TenantId { get; } = tenantId;
@@ -48,6 +53,16 @@ public sealed class FakeDirectory
         public string Email => $"{Username}@example.test";
         public UserStatus Status { get; set; } = status;
         public List<RequiredAction> PendingActions { get; } = [.. pendingActions];
+
+        /// <summary>An enabled TOTP factor: sign-in has a code step.</summary>
+        public bool HasFactor { get; set; }
+
+        /// <summary>The factor BeginTotpEnrollment started and CompleteTotpEnrollment may enable.</summary>
+        public Guid? UnverifiedFactorId { get; set; }
+
+        public List<string> RecoveryCodes { get; } = [];
+
+        public int BeginEnrollmentCalls { get; set; }
     }
 
     public List<UserEntry> Users { get; } = [];
@@ -91,6 +106,10 @@ public sealed class FakeDirectory
         Users.Add(new UserEntry(acme.TenantId, "dave", UserStatus.Active));
         Users.Add(new UserEntry(acme.TenantId, "bob", UserStatus.PendingVerification, RequiredAction.VerifyEmail));
         Users.Add(new UserEntry(acme.TenantId, "carol", UserStatus.Disabled));
+        // MFA: erin has an authenticator app, frank must set one up, gina has one and must set up another.
+        Users.Add(new UserEntry(acme.TenantId, "erin", UserStatus.Active) { HasFactor = true, RecoveryCodes = { "erin1-recov" } });
+        Users.Add(new UserEntry(acme.TenantId, "frank", UserStatus.Active, RequiredAction.EnrollMfa));
+        Users.Add(new UserEntry(acme.TenantId, "gina", UserStatus.Active, RequiredAction.EnrollMfa) { HasFactor = true });
     }
 
     public TenantEntry Tenant(string slug) => Tenants[slug];

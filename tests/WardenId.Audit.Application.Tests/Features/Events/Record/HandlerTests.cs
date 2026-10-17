@@ -64,6 +64,7 @@ public class HandlerTests
     [InlineData(OutcomeReason.TermsNotAccepted, "terms_not_accepted")]
     [InlineData(OutcomeReason.MfaEnrollmentRequired, "mfa_enrollment_required")]
     [InlineData(OutcomeReason.PendingVerification, "pending_verification")]
+    [InlineData(OutcomeReason.InvalidSecondFactor, "invalid_second_factor")]
     public async Task SignInFailed_KnownUser_CarriesTheReason_AndTheUserAsActorAndTarget(OutcomeReason reason, string key)
     {
         var (recorded, _) = await RecordSingleAsync(new Command(

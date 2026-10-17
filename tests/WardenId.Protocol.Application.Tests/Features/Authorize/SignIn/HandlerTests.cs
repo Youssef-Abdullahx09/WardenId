@@ -29,6 +29,9 @@ public class HandlerTests
     private static Result<AuthenticatedUser> User(UserStatus status, params RequiredAction[] actions) =>
         Result.Ok(new AuthenticatedUser(UserId, "alice@acme.test", "alice", status, actions, HasSecondFactor: false));
 
+    private static Result<AuthenticatedUser> UserWithFactor(UserStatus status, params RequiredAction[] actions) =>
+        Result.Ok(new AuthenticatedUser(UserId, "alice@acme.test", "alice", status, actions, HasSecondFactor: true));
+
     [Fact]
     public async Task Handle_SignsIn_ActiveUserWithoutActions()
     {
@@ -37,6 +40,64 @@ public class HandlerTests
         Assert.True(result.IsSuccess);
         Assert.Equal(UserId, result.Value.UserId);
         Assert.Null(result.Value.BlockedReason);
+        Assert.Empty(result.Value.PendingSteps);
+    }
+
+    [Fact]
+    public async Task Handle_UserWithAFactor_GetsTheCodeStep()
+    {
+        var result = await SignInAsync(UserWithFactor(UserStatus.Active));
+
+        Assert.Null(result.Value.BlockedReason);
+        Assert.Equal([SignInStep.SecondFactor], result.Value.PendingSteps);
+    }
+
+    [Fact]
+    public async Task Handle_EnrollMfa_IsAStep_NotABlock()
+    {
+        var result = await SignInAsync(User(UserStatus.Active, RequiredAction.EnrollMfa));
+
+        Assert.Null(result.Value.BlockedReason);
+        Assert.Equal([SignInStep.EnrollTotp], result.Value.PendingSteps);
+    }
+
+    [Fact]
+    public async Task Handle_FactorAndEnrollMfa_CodeStepComesFirst()
+    {
+        var result = await SignInAsync(UserWithFactor(UserStatus.Active, RequiredAction.EnrollMfa));
+
+        Assert.Equal([SignInStep.SecondFactor, SignInStep.EnrollTotp], result.Value.PendingSteps);
+    }
+
+    [Theory]
+    [InlineData(RequiredAction.VerifyEmail, SignInBlockReason.VerifyEmail)]
+    [InlineData(RequiredAction.ResetPassword, SignInBlockReason.ResetPassword)]
+    [InlineData(RequiredAction.AcceptTos, SignInBlockReason.AcceptTos)]
+    public async Task Handle_Blocks_RunBeforeTheMfaSteps(RequiredAction action, SignInBlockReason expected)
+    {
+        var result = await SignInAsync(UserWithFactor(UserStatus.Active, action, RequiredAction.EnrollMfa));
+
+        Assert.Equal(expected, result.Value.BlockedReason);
+        Assert.Empty(result.Value.PendingSteps);
+    }
+
+    [Fact]
+    public async Task Handle_PendingVerification_BlocksEvenWithAFactor()
+    {
+        var result = await SignInAsync(UserWithFactor(UserStatus.PendingVerification));
+
+        Assert.Equal(SignInBlockReason.PendingVerification, result.Value.BlockedReason);
+        Assert.Empty(result.Value.PendingSteps);
+    }
+
+    [Fact]
+    public async Task MfaSteps_RecordNothing_TheyAreNotRefusals()
+    {
+        var audit = new FakeAuthAuditTrail();
+
+        await SignInAsync(UserWithFactor(UserStatus.Active, RequiredAction.EnrollMfa), audit);
+
+        Assert.Empty(audit.Recorded);
     }
 
     [Fact]
@@ -63,7 +124,6 @@ public class HandlerTests
     [InlineData(RequiredAction.VerifyEmail, SignInBlockReason.VerifyEmail)]
     [InlineData(RequiredAction.ResetPassword, SignInBlockReason.ResetPassword)]
     [InlineData(RequiredAction.AcceptTos, SignInBlockReason.AcceptTos)]
-    [InlineData(RequiredAction.EnrollMfa, SignInBlockReason.EnrollMfa)]
     public async Task Handle_Blocks_ForEachPendingAction(RequiredAction action, SignInBlockReason expected)
     {
         var result = await SignInAsync(User(UserStatus.Active, action));
@@ -164,7 +224,6 @@ public class HandlerTests
     [InlineData(RequiredAction.VerifyEmail, OutcomeReason.EmailNotVerified)]
     [InlineData(RequiredAction.ResetPassword, OutcomeReason.PasswordResetRequired)]
     [InlineData(RequiredAction.AcceptTos, OutcomeReason.TermsNotAccepted)]
-    [InlineData(RequiredAction.EnrollMfa, OutcomeReason.MfaEnrollmentRequired)]
     public async Task PendingAction_RecordsAFailure_WithTheBlockingAction(RequiredAction action, OutcomeReason expected)
     {
         var audit = new FakeAuthAuditTrail();

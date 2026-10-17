@@ -21,6 +21,10 @@ public static class ProtocolErrors
     public static Error InvalidCredentials()
         => new Error("Invalid username or password.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.InvalidCredentials);
 
+    // One message for every wrong TOTP or recovery code, whatever Identity's reason (lockout included).
+    public static Error InvalidSecondFactor()
+        => new Error("That code didn't work. Please try again.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.InvalidCredentials);
+
     public static Error InvalidGrant()
         => new Error("The grant is not valid.").WithMetadata(ProtocolErrorCodes.MetadataKey, ProtocolErrorCodes.InvalidGrant);
 

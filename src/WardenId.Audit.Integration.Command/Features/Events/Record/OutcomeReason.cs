@@ -30,5 +30,8 @@ public enum OutcomeReason
     AdminEnded = 17,
 
     // Token failures.
-    InvalidGrant = 18
+    InvalidGrant = 18,
+
+    /// <summary>A wrong TOTP or recovery code at sign-in (also a wrong first code while enrolling).</summary>
+    InvalidSecondFactor = 19
 }

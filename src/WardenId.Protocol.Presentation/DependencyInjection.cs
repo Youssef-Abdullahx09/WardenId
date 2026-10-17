@@ -27,7 +27,8 @@ public static class DependencyInjection
                     "/Tenants", model => model.Filters.Add(new AuthPageHeadersFilter())))
             .AddApplicationPart(typeof(DependencyInjection).Assembly);
 
-        // No default scheme on purpose: only the login page and /authorize read this cookie.
+        // No default scheme on purpose: only the sign-in pages and /authorize read this cookie. The pending MFA
+        // sign-in (PendingSignIn) is a separate, plain Data Protection cookie, not an authentication scheme.
         services.AddAuthentication()
             .AddCookie(TenantSession.Scheme, options =>
             {

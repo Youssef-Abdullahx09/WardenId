@@ -101,6 +101,19 @@ public class HandlerTests
     }
 
     [Fact]
+    public async Task Start_RecordsTheGivenAmr_AfterAnMfaSignIn()
+    {
+        await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());
+        var audit = new FakeAuthAuditTrail();
+        var handler = CreateHandler(db, new FakeTimeProvider(SessionBuilder.Now), TimeSpan.FromHours(12), audit);
+
+        await handler.Handle(
+            new Command(TenantId, UserId, ["pwd", "otp", "mfa"]), CancellationToken.None);
+
+        Assert.Equal(["pwd", "otp", "mfa"], Assert.Single(audit.Recorded).Session!.Amr);
+    }
+
+    [Fact]
     public async Task Start_Failure_RecordsNothing()
     {
         await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());

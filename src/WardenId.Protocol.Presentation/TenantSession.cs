@@ -5,9 +5,13 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Features.Policies;
+using WardenId.Protocol.Domain.Sessions;
 using WardenId.SharedKernel.Application;
 using static OpenIddict.Abstractions.OpenIddictConstants;
+using EndSessionCommand = WardenId.Protocol.Application.Features.Sessions.End.Command;
 using GetLiveSessionQuery = WardenId.Protocol.Application.Features.Sessions.GetLive.Query;
+using StartSessionCommand = WardenId.Protocol.Application.Features.Sessions.Start.Command;
 
 namespace WardenId.Protocol.Presentation;
 
@@ -27,7 +31,8 @@ public static class TenantSession
     /// own issued/expires pair, and sliding renewal keeps that span, so tenants can differ under one scheme.
     /// </summary>
     public static Task SignInAsync(
-        HttpContext httpContext, Guid tenantId, Guid userId, Guid sid, DateTimeOffset authTime, TimeSpan cookieLifetime)
+        HttpContext httpContext, Guid tenantId, Guid userId, Guid sid, DateTimeOffset authTime, TimeSpan cookieLifetime,
+        IReadOnlyList<string> amr)
     {
         var identity = new ClaimsIdentity(Scheme, Claims.Subject, Claims.Role);
         identity.AddClaim(new Claim(Claims.Subject, userId.ToString()));
@@ -37,11 +42,40 @@ public static class TenantSession
             Claims.AuthenticationTime,
             authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
             ClaimValueTypes.Integer64));
-        identity.AddClaim(new Claim(Claims.AuthenticationMethodReference, "pwd"));
+        foreach (var method in amr) identity.AddClaim(new Claim(Claims.AuthenticationMethodReference, method));
 
         var now = httpContext.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow();
         var properties = new AuthenticationProperties { IssuedUtc = now, ExpiresUtc = now + cookieLifetime };
         return httpContext.SignInAsync(Scheme, new ClaimsPrincipal(identity), properties);
+    }
+
+    /// <summary>
+    /// Finishes a sign-in (login page, code step, enrollment alike): the same user's live session here is kept and
+    /// its cookie re-issued; another user's is ended so it isn't orphaned (a live row with no cookie); otherwise a
+    /// new session starts. False when the session could not start — an operational fault; no cookie is set.
+    /// </summary>
+    public static async Task<bool> EstablishAsync(
+        HttpContext httpContext, Guid tenantId, Guid userId, IReadOnlyList<string> amr,
+        ISender sender, ITenantLifetimes tenantLifetimes, CancellationToken cancellationToken)
+    {
+        var cookieLifetime = (await tenantLifetimes.GetAsync(tenantId, cancellationToken)).SessionCookie;
+        var existing = await ReadAsync(httpContext, tenantId, sender, cancellationToken);
+        if (existing is not null && existing.UserId == userId)
+        {
+            await SignInAsync(httpContext, tenantId, userId, existing.Sid, existing.AuthTime, cookieLifetime, amr);
+            return true;
+        }
+
+        if (existing is not null)
+            await sender.Send(
+                new EndSessionCommand(tenantId, existing.Sid, EndReason.UserLogout, RequireExisting: false),
+                cancellationToken);
+
+        var started = await sender.Send(new StartSessionCommand(tenantId, userId, amr), cancellationToken);
+        if (started.IsFailed) return false;
+
+        await SignInAsync(httpContext, tenantId, userId, started.Value.Sid, started.Value.AuthTime, cookieLifetime, amr);
+        return true;
     }
 
     /// <summary>

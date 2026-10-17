@@ -174,6 +174,7 @@ public sealed class Handler(IAuditRecorder recorder, IAuditContextAccessor ambie
         OutcomeReason.UserDeleted => AuditOutcomeReason.UserDeleted,
         OutcomeReason.AdminEnded => AuditOutcomeReason.AdminEnded,
         OutcomeReason.InvalidGrant => AuditOutcomeReason.InvalidGrant,
+        OutcomeReason.InvalidSecondFactor => AuditOutcomeReason.InvalidSecondFactor,
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown outcome reason.")
     };
 }
