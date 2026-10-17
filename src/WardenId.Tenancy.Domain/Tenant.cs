@@ -4,8 +4,24 @@ using WardenId.Tenancy.Domain.Events;
 
 namespace WardenId.Tenancy.Domain;
 
-public sealed class Tenant : AggregateRoot
+public sealed class Tenant : AggregateRoot, IAuditableAggregate
 {
+    // Tenant settings are platform configuration, so admin.config rather than admin.directory (users).
+    // Signing keys are diffed too (a rotation or retirement changes only them); their key material is
+    // redacted — the public JWK as well, since JWKS already publishes it and the log needn't repeat it.
+    private static readonly IReadOnlySet<string> AuditSensitive = new HashSet<string>
+    {
+        $"{nameof(SigningKeys)}.{nameof(SigningKey.EncryptedPrivateKey)}",
+        $"{nameof(SigningKeys)}.{nameof(SigningKey.PublicKeyJwk)}"
+    };
+
+    private static readonly IReadOnlySet<string> AuditNavigations = new HashSet<string> { nameof(SigningKeys) };
+
+    public string AuditTargetTypeKey => "tenant";
+    public AuditableChannel AuditChannel => AuditableChannel.AdminConfig;
+    public IReadOnlySet<string> AuditSensitivePropertyNames => AuditSensitive;
+    public IReadOnlySet<string> AuditedNavigationNames => AuditNavigations;
+
     private Tenant(
         Slug slug,
         string displayName)

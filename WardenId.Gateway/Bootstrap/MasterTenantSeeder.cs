@@ -1,3 +1,5 @@
+using WardenId.Audit.Application;
+using WardenId.Audit.Domain;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Domain;
 using WardenId.Tenancy.Infrastructure;
@@ -58,7 +60,17 @@ public static class MasterTenantSeeder
         }
 
         var tenant = tenantResult.Value;
-        await repository.CreateAsync(tenant, Guid.Empty, CancellationToken.None);
+
+        // No request, so no AuditContextMiddleware: AuditCaptureInterceptor fails closed without an
+        // ambient audit context, and a Tenant is audited. Same System actor pattern as MasterAdminSeeder.
+        var auditContextAccessor = scope.ServiceProvider.GetRequiredService<IAuditContextAccessor>();
+        var systemActor = Actor.Create(ActorType.System, "master-tenant-seeder", ActorScope.Platform()).Value;
+        using (auditContextAccessor.BeginScope(
+                   new AuditAmbientContext(systemActor, tenant.Id, Correlation.None(), ClientContext.Unknown())))
+        {
+            await repository.CreateAsync(tenant, Guid.Empty, CancellationToken.None);
+        }
+
         logger.LogInformation("Master tenant '{Slug}' seeded with id {TenantId}.", slug.Value, tenant.Id);
     }
 }

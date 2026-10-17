@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddSingleton<ISealableEventReader, PgSealableEventReader>();
         services.AddSingleton<IChannelAdvisoryLock, PgChannelAdvisoryLock>();
         services.AddSingleton<IAuditCheckpointSigner, Es256CheckpointSigner>();
+        services.AddSingleton<IAuditCheckpointKeyRotator, Es256CheckpointKeyRotator>();
 
         var noWitnessConfigured = !AddCheckpointWitnesses(services, configuration);
         services.AddHostedService<AuditSealerService>();

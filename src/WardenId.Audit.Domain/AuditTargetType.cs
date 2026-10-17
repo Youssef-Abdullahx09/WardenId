@@ -38,13 +38,17 @@ public sealed class AuditTargetType : Enumeration<AuditTargetType>
     /// <summary>A grant's token family; the id is the OpenIddict authorization id.</summary>
     public static readonly AuditTargetType TokenFamily = new(5, nameof(TokenFamily), "token_family");
 
+    /// <summary>A key that signs audit checkpoints; the id is its kid.</summary>
+    public static readonly AuditTargetType CheckpointSigningKey = new(6, nameof(CheckpointSigningKey), "checkpoint_signing_key");
+
     public static readonly IReadOnlyList<AuditTargetType> All =
     [
         Tenant,
         User,
         Session,
         OAuthClient,
-        TokenFamily
+        TokenFamily,
+        CheckpointSigningKey
     ];
 
     /// <summary>Resolves a catalog entry from its persisted taxonomy string — canonical deserialization only.</summary>

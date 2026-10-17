@@ -12,6 +12,10 @@ public static class AuditErrors
         => new Error(reason)
             .WithMetadata(AuditErrorCodes.MetadataKey, AuditErrorCodes.Validation);
 
+    public static Error CheckpointKeyRotationConflict()
+        => new Error("Another checkpoint key rotation finished first; nothing was changed. Retry if a new key is still wanted.")
+            .WithMetadata(AuditErrorCodes.MetadataKey, AuditErrorCodes.Conflict);
+
     public static Error SchemaVersionMustBePositive()
         => Validation("Schema version must be a positive integer.");
 

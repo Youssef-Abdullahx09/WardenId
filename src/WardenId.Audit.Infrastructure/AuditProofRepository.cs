@@ -78,7 +78,10 @@ public sealed class AuditProofRepository(IDbContextFactory<AuditDbContext> dbCon
         await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var records = await db.AuditCheckpointSigningKeys.ToListAsync(cancellationToken);
         return records
-            .Select(k => new CheckpointKeyRow(k.Id.ToString("N"), k.PublicKeyJwk, k.IsActive, k.CreatedAt))
+            .OrderBy(k => k.CreatedAt)
+            .Select(k => new CheckpointKeyRow(
+                k.Id.ToString("N"), k.PublicKeyJwk, k.IsActive, k.CreatedAt,
+                k.PreviousKeyId?.ToString("N"), k.RotationAttestation, k.DeactivatedAt))
             .ToList();
     }
 

@@ -69,6 +69,10 @@ public sealed class AuditEventType : Enumeration<AuditEventType>
     public static readonly AuditEventType TokenRefreshReplay =
         new(13, nameof(TokenRefreshReplay), "token.refresh.replay");
 
+    /// <summary>The checkpoint signing key was rotated; the target is the new key, the change is the active kid.</summary>
+    public static readonly AuditEventType AuditCheckpointKeyRotate =
+        new(14, nameof(AuditCheckpointKeyRotate), "admin.audit.checkpointkey.rotate");
+
     public static readonly IReadOnlyList<AuditEventType> All =
     [
         UserSessionStart,
@@ -83,7 +87,8 @@ public sealed class AuditEventType : Enumeration<AuditEventType>
         TokenIssueRefreshToken,
         TokenIssueClientCredentials,
         TokenRevoke,
-        TokenRefreshReplay
+        TokenRefreshReplay,
+        AuditCheckpointKeyRotate
     ];
 
     /// <summary>Resolves a catalog entry from its persisted taxonomy string — canonical deserialization only.</summary>

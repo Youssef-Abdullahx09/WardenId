@@ -10,7 +10,9 @@ public sealed class Handler(IAuditProofRepository repository) : IRequestHandler<
     {
         var keys = await repository.GetCheckpointKeysAsync(cancellationToken);
         IReadOnlyList<CheckpointKeySummary> summaries =
-            keys.Select(k => new CheckpointKeySummary(k.Kid, k.PublicKeyJwk, k.IsActive, k.CreatedAt)).ToList();
+            keys.Select(k => new CheckpointKeySummary(
+                    k.Kid, k.PublicKeyJwk, k.IsActive, k.CreatedAt, k.PreviousKid, k.RotationAttestation, k.DeactivatedAt))
+                .ToList();
 
         return Result.Ok(summaries);
     }

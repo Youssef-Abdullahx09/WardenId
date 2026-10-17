@@ -33,7 +33,21 @@ public static class ChainFixture
 
     public sealed record SigningKey(string Kid, ECDsa Ecdsa, CheckpointKeyRow Row);
 
-    public static SigningKey CreateSigningKey()
+    /// <summary>
+    /// A new key whose rotation statement is signed by <paramref name="attester"/> (the outgoing key unless a
+    /// test forges it); the outgoing key's row becomes inactive.
+    /// </summary>
+    public static SigningKey RotateSigningKey(SigningKey previous, DateTimeOffset createdAt, SigningKey? attester = null)
+    {
+        var next = CreateSigningKey(createdAt);
+        var point = next.Ecdsa.ExportParameters(includePrivateParameters: false).Q;
+        var body = CheckpointKeyRotation.BuildUnsignedBody(previous.Kid, next.Kid, Base64UrlEncode(point.X!), Base64UrlEncode(point.Y!));
+        var attestation = (attester ?? previous).Ecdsa.SignData(body, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+
+        return next with { Row = next.Row with { PreviousKid = previous.Kid, RotationAttestation = attestation } };
+    }
+
+    public static SigningKey CreateSigningKey(DateTimeOffset? createdAt = null)
     {
         var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var kid = Guid.NewGuid().ToString("N");
@@ -49,7 +63,7 @@ public static class ChainFixture
             kid
         });
 
-        return new SigningKey(kid, ecdsa, new CheckpointKeyRow(kid, jwk, IsActive: true, DateTimeOffset.UtcNow));
+        return new SigningKey(kid, ecdsa, new CheckpointKeyRow(kid, jwk, IsActive: true, createdAt ?? DateTimeOffset.UtcNow));
     }
 
     public static CheckpointRow SignCheckpoint(

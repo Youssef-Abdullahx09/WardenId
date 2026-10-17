@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Metadata;
 using WardenId.Audit.Application;
 using WardenId.Audit.Domain;
 using WardenId.SharedKernel.Domain;
@@ -17,9 +18,11 @@ namespace WardenId.Audit.Infrastructure;
 /// catalog — an admin action whose actor or classification can't be determined should block
 /// the save, not silently persist unaudited (I10).
 ///
-/// Only scalar properties are diffed — navigation/collection changes on child entities are
-/// out of scope for this generic mechanism; a handler that needs those audited explicitly
-/// builds its own AuditEvent via IAuditRecorder instead.
+/// The aggregate's own scalar properties are always diffed. Children (child entities, owned
+/// collections and references) are diffed only for the navigations the aggregate lists in
+/// IAuditableAggregate.AuditedNavigationNames, as "{Navigation}[{child key}].{Property}" — so a
+/// child holding secrets (a user's credentials, MFA factors) never lands in the log by accident.
+/// A save that changes only opted-in children still produces an update event for the aggregate.
 ///
 /// EntityState.Deleted never reaches here: DbContextBase.CheckAndUpdateEntities converts a
 /// hard delete into IsDeleted=true + EntityState.Modified before this interceptor runs, so a
@@ -40,24 +43,27 @@ public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAc
 
     private void Capture(DbContext context)
     {
-        var entries = context.ChangeTracker.Entries()
-            .Where(e => e is { Entity: IAuditableAggregate, State: EntityState.Added or EntityState.Modified })
+        var pending = context.ChangeTracker.Entries()
+            .Where(e => e.Entity is IAuditableAggregate)
+            .Select(e => (Entry: e, Auditable: (IAuditableAggregate)e.Entity))
+            .Where(p => p.Entry.State is EntityState.Added or EntityState.Modified
+                        || (p.Entry.State == EntityState.Unchanged && p.Auditable.AuditedNavigationNames.Count > 0))
+            .Select(p => (p.Entry, p.Auditable, Changes: BuildChanges(context, p.Entry, p.Auditable)))
+            .Where(p => p.Entry.State != EntityState.Unchanged || p.Changes.Count > 0)
             .ToList();
 
-        if (entries.Count == 0) return;
+        if (pending.Count == 0) return;
 
         var ambient = auditContextAccessor.Current ?? throw new InvalidOperationException(
             "No ambient audit context — an admin.* write must have IAuditContextAccessor.Current set before SaveChanges.");
 
-        foreach (var entry in entries)
+        foreach (var (entry, auditable, changes) in pending)
         {
-            var auditable = (IAuditableAggregate)entry.Entity;
-            var changes = BuildPropertyChanges(entry, auditable.AuditSensitivePropertyNames);
             var eventType = ResolveEventType(entry.State, changes);
             var targetType = AuditTargetType.FromKey(auditable.AuditTargetTypeKey) ?? throw new InvalidOperationException(
                 $"'{auditable.AuditTargetTypeKey}' is not a registered AuditTargetType key.");
             var channel = ResolveChannel(auditable.AuditChannel);
-            var targetId = entry.Property(nameof(IEntity.Id)).CurrentValue?.ToString() ?? "";
+            var targetId = auditable.AuditTargetId ?? entry.Property(nameof(IEntity.Id)).CurrentValue?.ToString() ?? "";
             var target = AuditTarget.Create(targetType, targetId).Value;
 
             var auditEvent = AuditEvent.Create(
@@ -79,6 +85,18 @@ public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAc
         }
     }
 
+    private static List<PropertyChange> BuildChanges(DbContext context, EntityEntry entry, IAuditableAggregate auditable)
+    {
+        var changes = entry.State == EntityState.Unchanged
+            ? []
+            : BuildPropertyChanges(entry, auditable.AuditSensitivePropertyNames);
+
+        foreach (var navigationName in auditable.AuditedNavigationNames)
+            changes.AddRange(BuildChildChanges(context, entry, navigationName, auditable.AuditSensitivePropertyNames));
+
+        return changes;
+    }
+
     private static List<PropertyChange> BuildPropertyChanges(EntityEntry entry, IReadOnlySet<string> sensitiveProperties)
     {
         var changes = new List<PropertyChange>();
@@ -97,15 +115,104 @@ public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAc
         return changes;
     }
 
+    /// <summary>
+    /// Diffs the added, modified and deleted children of one navigation. Children are found through the
+    /// change tracker rather than the navigation's current value, because a removed child is no longer in
+    /// it. An owned value replaced by an equal-keyed one (a new owned reference instance) shows up as a
+    /// deleted plus an added entry for the same key; they are merged into one old/new pair per property.
+    /// </summary>
+    private static IEnumerable<PropertyChange> BuildChildChanges(
+        DbContext context, EntityEntry owner, string navigationName, IReadOnlySet<string> sensitiveProperties)
+    {
+        var navigation = owner.Metadata.FindNavigation(navigationName) ?? throw new InvalidOperationException(
+            $"'{owner.Metadata.DisplayName()}' lists '{navigationName}' in AuditedNavigationNames, but it is not a navigation.");
+
+        var foreignKey = navigation.ForeignKey;
+        var ownerKey = foreignKey.PrincipalKey.Properties.Select(p => owner.Property(p.Name).CurrentValue).ToList();
+
+        var children = context.ChangeTracker.Entries()
+            .Where(e => e.Metadata == navigation.TargetEntityType
+                        && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
+                        && BelongsTo(e, foreignKey.Properties, ownerKey))
+            .ToList();
+
+        // The key is in the change's name, so key properties are left out — unless the key is all the
+        // child has (an owned value such as a redirect URI, keyed by owner + value).
+        var foreignKeyNames = foreignKey.Properties.Select(p => p.Name).ToHashSet();
+        var primaryKeyNames = (navigation.TargetEntityType.FindPrimaryKey()?.Properties ?? []).Select(p => p.Name).ToHashSet();
+        var hasNonKeyProperties = navigation.TargetEntityType.GetProperties()
+            .Any(p => !foreignKeyNames.Contains(p.Name) && !primaryKeyNames.Contains(p.Name));
+        var skipped = hasNonKeyProperties ? foreignKeyNames.Union(primaryKeyNames).ToHashSet() : foreignKeyNames;
+
+        foreach (var group in children.GroupBy(child => ChildLabel(navigation, child)))
+        {
+            var before = group.FirstOrDefault(e => e.State is EntityState.Deleted or EntityState.Modified);
+            var after = group.FirstOrDefault(e => e.State is EntityState.Added or EntityState.Modified);
+
+            foreach (var property in navigation.TargetEntityType.GetProperties().Where(p => !skipped.Contains(p.Name)))
+            {
+                if (before is { State: EntityState.Modified } && !before.Property(property.Name).IsModified) continue;
+
+                var oldRaw = before?.Property(property.Name).OriginalValue;
+                var newRaw = after?.Property(property.Name).CurrentValue;
+                if (before is not null && after is not null && RenderRaw(oldRaw) == RenderRaw(newRaw)) continue;
+
+                var isSensitive = sensitiveProperties.Contains($"{navigationName}.{property.Name}");
+                yield return PropertyChange.Create(
+                    $"{group.Key}.{property.Name}",
+                    before is null ? null : Render(oldRaw, isSensitive),
+                    after is null ? null : Render(newRaw, isSensitive)).Value;
+            }
+        }
+    }
+
+    private static bool BelongsTo(EntityEntry child, IReadOnlyList<IProperty> foreignKey, List<object?> ownerKey)
+    {
+        for (var i = 0; i < foreignKey.Count; i++)
+        {
+            var property = child.Property(foreignKey[i].Name);
+            var value = child.State == EntityState.Deleted ? property.OriginalValue : property.CurrentValue;
+            if (!Equals(value, ownerKey[i])) return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>"Keys[{id}]" for a collection child, keyed by its primary key minus the owner's foreign key; "Limits" for a reference.</summary>
+    private static string ChildLabel(INavigation navigation, EntityEntry child)
+    {
+        if (!navigation.IsCollection) return navigation.Name;
+
+        var foreignKey = navigation.ForeignKey.Properties.Select(p => p.Name).ToHashSet();
+        var keyParts = (navigation.TargetEntityType.FindPrimaryKey()?.Properties ?? [])
+            .Where(p => !foreignKey.Contains(p.Name))
+            .Select(p => RenderRaw(child.State == EntityState.Deleted
+                ? child.Property(p.Name).OriginalValue
+                : child.Property(p.Name).CurrentValue));
+
+        return $"{navigation.Name}[{string.Join(",", keyParts)}]";
+    }
+
     private static AuditValue Render(object? value, bool isSensitive)
     {
-        var text = value?.ToString() ?? "null";
+        var text = RenderRaw(value);
 
         // An empty string carries no secret material to protect — redacting it would throw
         // (ProtectedValue.Redact rejects empty input) for no security benefit.
         if (isSensitive && text.Length > 0) return new AuditValue.Redacted(ProtectedValue.Redact(text));
         return new AuditValue.Plain(text);
     }
+
+    // Bytes (key material) as base64 so a sensitive value's hash covers the actual content, a collection
+    // (assigned scope ids) as its items — ToString() would give the type name for both.
+    private static string RenderRaw(object? value) => value switch
+    {
+        null => "null",
+        byte[] bytes => Convert.ToBase64String(bytes),
+        string text => text,
+        System.Collections.IEnumerable items => $"[{string.Join(", ", items.Cast<object?>().Select(RenderRaw))}]",
+        _ => value.ToString() ?? "null"
+    };
 
     private static AuditEventType ResolveEventType(EntityState state, IReadOnlyList<PropertyChange> changes)
     {

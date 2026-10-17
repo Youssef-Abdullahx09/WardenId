@@ -10,6 +10,7 @@ public static class EndpointNames
     public static class CheckpointKeys
     {
         public const string List = "ListCheckpointKeys";
+        public const string Rotate = "RotateCheckpointKey";
     }
 
     public static class Events

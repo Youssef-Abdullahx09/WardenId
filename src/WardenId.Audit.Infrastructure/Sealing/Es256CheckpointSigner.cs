@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using WardenId.Audit.Infrastructure.Persistence;
@@ -25,7 +23,7 @@ public sealed class Es256CheckpointSigner(
 {
     // Bump the version suffix if the protection scheme ever changes incompatibly — existing
     // encrypted keys become undecryptable across a purpose-string change.
-    private const string DataProtectionPurpose = "WardenId.Audit.CheckpointKeys.v1";
+    internal const string DataProtectionPurpose = "WardenId.Audit.CheckpointKeys.v1";
 
     private readonly IDataProtector _protector = dataProtectionProvider.CreateProtector(DataProtectionPurpose);
 
@@ -34,18 +32,7 @@ public sealed class Es256CheckpointSigner(
         await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var keyRecord = await GetOrCreateActiveKeyAsync(db, cancellationToken);
 
-        var privateKeyPkcs8 = _protector.Unprotect(keyRecord.EncryptedPrivateKey);
-        try
-        {
-            using var ecdsa = ECDsa.Create();
-            ecdsa.ImportPkcs8PrivateKey(privateKeyPkcs8, out _);
-            var signature = ecdsa.SignData(unsignedBody, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
-            return (keyRecord.Id.ToString("N"), signature);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(privateKeyPkcs8);
-        }
+        return (CheckpointSigningKeyFactory.Kid(keyRecord), CheckpointSigningKeyFactory.Sign(_protector, keyRecord, unsignedBody));
     }
 
     private async Task<AuditCheckpointSigningKeyRecord> GetOrCreateActiveKeyAsync(
@@ -72,46 +59,5 @@ public sealed class Es256CheckpointSigner(
         }
     }
 
-    private AuditCheckpointSigningKeyRecord CreateKeyRecord()
-    {
-        var id = Guid.CreateVersion7();
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-
-        var publicKeyJwk = ExportPublicJwk(ecdsa, id);
-        var privateKeyPkcs8 = ecdsa.ExportPkcs8PrivateKey();
-        try
-        {
-            return new AuditCheckpointSigningKeyRecord
-            {
-                Id = id,
-                PublicKeyJwk = publicKeyJwk,
-                EncryptedPrivateKey = _protector.Protect(privateKeyPkcs8),
-                IsActive = true,
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(privateKeyPkcs8);
-        }
-    }
-
-    private static string ExportPublicJwk(ECDsa ecdsa, Guid keyId)
-    {
-        var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
-        var jwk = new
-        {
-            kty = "EC",
-            crv = "P-256",
-            x = Base64UrlEncode(parameters.Q.X!),
-            y = Base64UrlEncode(parameters.Q.Y!),
-            alg = "ES256",
-            use = "sig",
-            kid = keyId.ToString("N")
-        };
-        return JsonSerializer.Serialize(jwk);
-    }
-
-    private static string Base64UrlEncode(byte[] input) =>
-        Convert.ToBase64String(input).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    private AuditCheckpointSigningKeyRecord CreateKeyRecord() => CheckpointSigningKeyFactory.Create(_protector).Record;
 }

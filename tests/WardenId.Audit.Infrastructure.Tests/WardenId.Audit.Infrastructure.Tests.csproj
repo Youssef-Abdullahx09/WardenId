@@ -16,6 +16,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WardenId.Audit.Infrastructure\WardenId.Audit.Infrastructure.csproj" />
+    <!-- Test-only: proves the real Tenancy and ClientManagement contexts are captured by the audit interceptor. -->
+    <ProjectReference Include="..\..\src\WardenId.Tenancy.Infrastructure\WardenId.Tenancy.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\WardenId.ClientManagement.Infrastructure\WardenId.ClientManagement.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

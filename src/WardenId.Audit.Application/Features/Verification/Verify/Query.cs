@@ -18,22 +18,29 @@ public sealed record SegmentVerification(
     public bool Passed => SequenceDense && Contiguous && MerkleRootMatches && HeaderChainMatches;
 }
 
+/// <param name="Kid">The key that signed the checkpoint.</param>
+/// <param name="SigningKeyContinuous">
+/// The signing key traces back to the first checkpoint key through rotation statements, each signed by
+/// the key it replaced (spec §6) — so a key slipped into the key table without the outgoing key's
+/// signature fails here even though its own signatures check out.
+/// </param>
 public sealed record CheckpointVerification(
     Guid CheckpointId,
     long TreeSize,
     bool RootHashMatches,
     bool SignatureValid,
-    bool SigningKeyKnown)
+    bool SigningKeyKnown,
+    bool SigningKeyContinuous,
+    string Kid)
 {
-    public bool Passed => RootHashMatches && SignatureValid && SigningKeyKnown;
+    public bool Passed => RootHashMatches && SignatureValid && SigningKeyKnown && SigningKeyContinuous;
 }
 
 /// <summary>
-/// Key-rotation continuity (spec §6 — verifying a checkpoint under a new key traces back to
-/// the outgoing key's attestation) is NOT checked here: no rotation mechanism exists yet
-/// (Es256CheckpointSigner never rotates — see docs/audit/PLAN.md phase 3). Every checkpoint
-/// is checked against ITS OWN kid's known public key, which is everything there currently is
-/// to verify.
+/// Every checkpoint is checked against its own kid's public key, and that key against the rotation
+/// chain (<see cref="CheckpointVerification.SigningKeyContinuous"/>). The chain starts at the earliest
+/// key, which is trusted as published; anchoring that first key is up to the verifier (e.g. a witness's
+/// copy of the first checkpoint or of the key list).
 /// </summary>
 public sealed record VerificationReport(
     AuditChannel Channel,

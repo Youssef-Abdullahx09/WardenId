@@ -39,6 +39,7 @@ public static class IResultExtensions
             ErrorCodes.Forbidden => StatusCodes.Status403Forbidden,
             ErrorCodes.NotFound => StatusCodes.Status404NotFound,
             ErrorCodes.DuplicateIdentity => StatusCodes.Status409Conflict,
+            ErrorCodes.Conflict => StatusCodes.Status409Conflict,
             ErrorCodes.AccountLocked => StatusCodes.Status423Locked,
             _ => StatusCodes.Status400BadRequest
         };

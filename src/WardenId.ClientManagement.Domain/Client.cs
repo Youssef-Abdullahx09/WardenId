@@ -4,8 +4,33 @@ using WardenId.SharedKernel.Domain;
 
 namespace WardenId.ClientManagement.Domain;
 
-public sealed class Client : AggregateRoot
+public sealed class Client : AggregateRoot, IAuditableAggregate
 {
+    // Client settings are configuration, so admin.config. Every child collection is diffed; secret hashes
+    // and public keys are redacted. The audit target is the public client_id, the id the protocol's own
+    // audit events (token issue, revoke) already use for this client.
+    private static readonly IReadOnlySet<string> AuditSensitive = new HashSet<string>
+    {
+        $"{nameof(Secrets)}.{nameof(ClientSecret.HashedValue)}",
+        $"{nameof(SigningKeys)}.{nameof(ClientSigningKey.PublicKeyJwk)}"
+    };
+
+    private static readonly IReadOnlySet<string> AuditNavigations = new HashSet<string>
+    {
+        nameof(RedirectUris),
+        nameof(PostLogoutRedirectUris),
+        nameof(CorsOrigins),
+        nameof(Secrets),
+        nameof(SigningKeys),
+        nameof(TokenLifetimeOverrides)
+    };
+
+    public string AuditTargetTypeKey => "oauth_client";
+    public AuditableChannel AuditChannel => AuditableChannel.AdminConfig;
+    public IReadOnlySet<string> AuditSensitivePropertyNames => AuditSensitive;
+    public IReadOnlySet<string> AuditedNavigationNames => AuditNavigations;
+    public string AuditTargetId => ClientId.Value;
+
     // Matches the column length in ClientConfiguration.
     public const int DescriptionMaxLength = 1000;
 

@@ -12,4 +12,5 @@ public static class ErrorCodes
     public const string NotFound = "NotFound";
     public const string PasswordPolicy = "PasswordPolicy";
     public const string Forbidden = "Forbidden";
+    public const string Conflict = "Conflict";
 }

@@ -12,7 +12,17 @@ public sealed record SegmentRow(
 public sealed record CheckpointRow(
     Guid Id, Guid SegmentId, long TreeSize, byte[] RootHash, string Kid, byte[] Signature, DateTimeOffset SignedAt);
 
-public sealed record CheckpointKeyRow(string Kid, string PublicKeyJwk, bool IsActive, DateTimeOffset CreatedAt);
+/// <param name="PreviousKid">The key this one replaced; null for the first key.</param>
+/// <param name="RotationAttestation">The previous key's signature over the <see cref="CheckpointKeyRotation"/> statement for this key.</param>
+/// <param name="DeactivatedAt">When a rotation replaced this key; null while active.</param>
+public sealed record CheckpointKeyRow(
+    string Kid,
+    string PublicKeyJwk,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    string? PreviousKid = null,
+    byte[]? RotationAttestation = null,
+    DateTimeOffset? DeactivatedAt = null);
 
 /// <summary>
 /// Read-only access for proof generation and full verification (spec §7) — deliberately its

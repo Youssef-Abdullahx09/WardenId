@@ -8,8 +8,8 @@ using WardenId.Audit.Domain;
 namespace WardenId.Audit.Application.Features.Verification.Verify;
 
 /// <summary>
-/// Full verification per spec §7: (1) checkpoint signature (key-rotation continuity is a
-/// documented non-check — see VerificationReport), (2) header chain, (3) per-segment root
+/// Full verification per spec §7: (1) checkpoint signature and key-rotation continuity
+/// (see VerificationReport), (2) header chain, (3) per-segment root
 /// recomputation, (4) sequence density + contiguity. Always returns Result.Ok — a failed
 /// verification is a normal, successfully-computed report (Verified = false), not an HTTP
 /// error; only "the channel/tenant scope couldn't be read at all" would be a failure, which
@@ -21,7 +21,9 @@ public sealed class Handler(IAuditProofRepository repository) : IRequestHandler<
     {
         var segments = await repository.GetSegmentsAsync(request.Channel, request.TenantId, cancellationToken);
         var checkpoints = await repository.GetCheckpointsAsync(request.Channel, request.TenantId, cancellationToken);
-        var keysByKid = (await repository.GetCheckpointKeysAsync(cancellationToken)).ToDictionary(k => k.Kid);
+        var keys = await repository.GetCheckpointKeysAsync(cancellationToken);
+        var keysByKid = keys.ToDictionary(k => k.Kid);
+        var continuousKids = ContinuousKids(keys);
 
         var segmentResults = new List<SegmentVerification>();
         for (var i = 0; i < segments.Count; i++)
@@ -62,7 +64,8 @@ public sealed class Handler(IAuditProofRepository repository) : IRequestHandler<
             var signatureValid = signingKeyKnown && VerifySignature(request.Channel, request.TenantId, checkpoint, key!);
 
             checkpointResults.Add(new CheckpointVerification(
-                checkpoint.Id, checkpoint.TreeSize, rootMatches, signatureValid, signingKeyKnown));
+                checkpoint.Id, checkpoint.TreeSize, rootMatches, signatureValid, signingKeyKnown,
+                continuousKids.Contains(checkpoint.Kid), checkpoint.Kid));
         }
 
         return Result.Ok(new VerificationReport(request.Channel, request.TenantId, segmentResults, checkpointResults));
@@ -70,24 +73,69 @@ public sealed class Handler(IAuditProofRepository repository) : IRequestHandler<
 
     private static bool VerifySignature(AuditChannel channel, Guid? tenantId, CheckpointRow checkpoint, CheckpointKeyRow key)
     {
+        var scopeLabel = tenantId?.ToString() ?? "platform";
+        var unsignedBody = AuditCheckpoint.BuildUnsignedBody(channel, scopeLabel, checkpoint.TreeSize, checkpoint.RootHash);
+        return VerifyEs256(key.PublicKeyJwk, unsignedBody, checkpoint.Signature);
+    }
+
+    /// <summary>
+    /// The kids reachable from the first key through valid rotation statements. The first key (earliest
+    /// created) is the root; any other key needs a PreviousKid that is itself continuous and whose public
+    /// key verifies the statement naming this key's kid and public point.
+    /// </summary>
+    private static HashSet<string> ContinuousKids(IReadOnlyList<CheckpointKeyRow> keys)
+    {
+        var continuous = new HashSet<string>();
+        var ordered = keys.OrderBy(k => k.CreatedAt).ToList();
+        if (ordered.Count == 0) return continuous;
+
+        if (ordered[0].PreviousKid is null) continuous.Add(ordered[0].Kid);
+
+        var keysByKid = keys.ToDictionary(k => k.Kid);
+        foreach (var key in ordered.Skip(1))
+        {
+            if (key.PreviousKid is null || key.RotationAttestation is null) continue;
+            if (!continuous.Contains(key.PreviousKid) || !keysByKid.TryGetValue(key.PreviousKid, out var previous)) continue;
+            if (!TryReadPoint(key.PublicKeyJwk, out var x, out var y)) continue;
+
+            var statement = CheckpointKeyRotation.BuildUnsignedBody(previous.Kid, key.Kid, x, y);
+            if (VerifyEs256(previous.PublicKeyJwk, statement, key.RotationAttestation)) continuous.Add(key.Kid);
+        }
+
+        return continuous;
+    }
+
+    private static bool TryReadPoint(string publicKeyJwk, out string x, out string y)
+    {
+        x = y = "";
+        try
+        {
+            using var jwk = JsonDocument.Parse(publicKeyJwk);
+            x = jwk.RootElement.GetProperty("x").GetString() ?? "";
+            y = jwk.RootElement.GetProperty("y").GetString() ?? "";
+            return x.Length > 0 && y.Length > 0;
+        }
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    private static bool VerifyEs256(string publicKeyJwk, byte[] data, byte[] signature)
+    {
         // A tampered/malformed public key row (bad JWK JSON, a byte string that isn't a
         // valid curve point) must fail verification, not crash the whole report.
         try
         {
-            using var jwk = JsonDocument.Parse(key.PublicKeyJwk);
-            var x = Base64UrlDecode(jwk.RootElement.GetProperty("x").GetString()!);
-            var y = Base64UrlDecode(jwk.RootElement.GetProperty("y").GetString()!);
+            if (!TryReadPoint(publicKeyJwk, out var x, out var y)) return false;
 
             using var ecdsa = ECDsa.Create(new ECParameters
             {
                 Curve = ECCurve.NamedCurves.nistP256,
-                Q = new ECPoint { X = x, Y = y }
+                Q = new ECPoint { X = Base64UrlDecode(x), Y = Base64UrlDecode(y) }
             });
 
-            var scopeLabel = tenantId?.ToString() ?? "platform";
-            var unsignedBody = AuditCheckpoint.BuildUnsignedBody(channel, scopeLabel, checkpoint.TreeSize, checkpoint.RootHash);
-
-            return ecdsa.VerifyData(unsignedBody, checkpoint.Signature, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+            return ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
         catch (Exception ex) when (ex is JsonException or CryptographicException or FormatException or InvalidOperationException)
         {

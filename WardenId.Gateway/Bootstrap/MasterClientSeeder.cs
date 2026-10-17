@@ -1,3 +1,5 @@
+using WardenId.Audit.Application;
+using WardenId.Audit.Domain;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
 using WardenId.ClientManagement.Application;
@@ -120,7 +122,17 @@ public static class MasterClientSeeder
         }
 
         var repository = scope.ServiceProvider.GetRequiredService<IClientRepository>();
-        await repository.CreateAsync(client, Guid.Empty, CancellationToken.None);
+
+        // No request, so no AuditContextMiddleware: AuditCaptureInterceptor fails closed without an
+        // ambient audit context, and a Client is audited. Same System actor pattern as MasterAdminSeeder.
+        var auditContextAccessor = scope.ServiceProvider.GetRequiredService<IAuditContextAccessor>();
+        var systemActor = Actor.Create(ActorType.System, "master-client-seeder", ActorScope.Platform()).Value;
+        using (auditContextAccessor.BeginScope(
+                   new AuditAmbientContext(systemActor, tenantId, Correlation.None(), ClientContext.Unknown())))
+        {
+            await repository.CreateAsync(client, Guid.Empty, CancellationToken.None);
+        }
+
         logger.LogInformation(
             "Master client '{ClientId}' seeded for tenant '{Slug}'.", clientId.Value, slug.Value);
     }

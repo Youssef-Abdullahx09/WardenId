@@ -6,4 +6,5 @@ public static class AuditErrorCodes
 
     public const string NotFound = "NotFound";
     public const string Validation = "Validation";
+    public const string Conflict = "Conflict";
 }

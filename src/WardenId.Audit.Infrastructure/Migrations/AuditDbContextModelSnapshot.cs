@@ -120,6 +120,9 @@ namespace WardenId.Audit.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("DeactivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<byte[]>("EncryptedPrivateKey")
                         .IsRequired()
                         .HasColumnType("bytea");
@@ -127,9 +130,15 @@ namespace WardenId.Audit.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("PreviousKeyId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PublicKeyJwk")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<byte[]>("RotationAttestation")
+                        .HasColumnType("bytea");
 
                     b.HasKey("Id");
 
