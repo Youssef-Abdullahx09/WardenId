@@ -15,7 +15,8 @@ namespace WardenId.Protocol.Application.Features.Authorize.SignIn;
 /// Checks the credentials and whether the user may sign in now. Every refusal is audited as a failed sign-in
 /// with its real reason; the user still sees one message for all of them. A success is audited by the session
 /// start that follows (Sessions/Start), which knows the sid. Blocks come first; only an unblocked user gets the
-/// MFA steps: the code step when a factor is enabled, then enrollment when EnrollMfa is pending.
+/// steps, which aren't refusals and aren't audited: the code step when a factor is enabled, then the terms when
+/// AcceptTos is pending, then enrollment when EnrollMfa is pending.
 /// </summary>
 public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider timeProvider)
     : IRequestHandler<Command, Result<SignInOutcome>>
@@ -24,8 +25,7 @@ public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider 
     private static readonly (RequiredAction Action, SignInBlockReason Reason)[] BlockPriority =
     [
         (RequiredAction.VerifyEmail, SignInBlockReason.VerifyEmail),
-        (RequiredAction.ResetPassword, SignInBlockReason.ResetPassword),
-        (RequiredAction.AcceptTos, SignInBlockReason.AcceptTos)
+        (RequiredAction.ResetPassword, SignInBlockReason.ResetPassword)
     ];
 
     public async Task<Result<SignInOutcome>> Handle(Command request, CancellationToken cancellationToken)
@@ -73,6 +73,7 @@ public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider 
 
         List<SignInStep> steps = [];
         if (user.HasSecondFactor) steps.Add(SignInStep.SecondFactor);
+        if (user.PendingActions.Contains(RequiredAction.AcceptTos)) steps.Add(SignInStep.AcceptTerms);
         if (user.PendingActions.Contains(RequiredAction.EnrollMfa)) steps.Add(SignInStep.EnrollTotp);
 
         return Result.Ok(new SignInOutcome(user.UserId, null, steps));
@@ -96,7 +97,6 @@ public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider 
     {
         SignInBlockReason.VerifyEmail => OutcomeReason.EmailNotVerified,
         SignInBlockReason.ResetPassword => OutcomeReason.PasswordResetRequired,
-        SignInBlockReason.AcceptTos => OutcomeReason.TermsNotAccepted,
         _ => OutcomeReason.PendingVerification
     };
 }

@@ -63,7 +63,25 @@ public sealed class FakeDirectory
         public List<string> RecoveryCodes { get; } = [];
 
         public int BeginEnrollmentCalls { get; set; }
+
+        public DateTimeOffset? TermsAcceptedAt { get; set; }
+
+        public int AcceptTermsCalls { get; set; }
+
+        public int CompleteEnrollmentCalls { get; set; }
+
+        public bool PasswordChanged { get; set; }
     }
+
+    /// <summary>The tenants' terms link as Identity's GetAccount returns it (null: none set).</summary>
+    public string? TermsUrl { get; set; }
+
+    /// <summary>Tenant MFA policy as Identity's GetAccount reports it.</summary>
+    public bool MfaAvailable { get; set; } = true;
+
+    public bool MfaRequired { get; set; }
+
+    public static readonly DateTimeOffset FactorEnrolledAt = DateTimeOffset.Parse("2026-09-01T10:00:00Z");
 
     public List<UserEntry> Users { get; } = [];
 
@@ -110,6 +128,11 @@ public sealed class FakeDirectory
         Users.Add(new UserEntry(acme.TenantId, "erin", UserStatus.Active) { HasFactor = true, RecoveryCodes = { "erin1-recov" } });
         Users.Add(new UserEntry(acme.TenantId, "frank", UserStatus.Active, RequiredAction.EnrollMfa));
         Users.Add(new UserEntry(acme.TenantId, "gina", UserStatus.Active, RequiredAction.EnrollMfa) { HasFactor = true });
+        // Terms: tess must accept them; hank has a factor, must accept them and must set up another factor.
+        Users.Add(new UserEntry(acme.TenantId, "tess", UserStatus.Active, RequiredAction.AcceptTos));
+        Users.Add(new UserEntry(acme.TenantId, "hank", UserStatus.Active, RequiredAction.AcceptTos, RequiredAction.EnrollMfa)
+            { HasFactor = true });
+        Users.Add(new UserEntry(globex.TenantId, "gwen", UserStatus.Active));
     }
 
     public TenantEntry Tenant(string slug) => Tenants[slug];

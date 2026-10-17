@@ -25,7 +25,7 @@ public abstract class SignInStepPageModel(ISender sender, ITenantLifetimes tenan
     /// <summary>The session exists. <see cref="ContinueUrl"/> is where to go next, if anywhere.</summary>
     public bool SignedIn { get; private set; }
 
-    /// <summary>The authorize request to resume (already checked against this tenant), or null.</summary>
+    /// <summary>The authorize request or account page to go to (already checked against this tenant), or null.</summary>
     public string? ContinueUrl { get; private set; }
 
     public ReturnToApplication? ReturnToApplication { get; protected set; }
@@ -35,9 +35,13 @@ public abstract class SignInStepPageModel(ISender sender, ITenantLifetimes tenan
         ? $"/tenants/{Slug}/login"
         : $"/tenants/{Slug}/login?ReturnUrl={Uri.EscapeDataString(ContinueUrl)}";
 
+    /// <summary>The account page, linked once the user is signed in.</summary>
+    public string AccountUrl => $"/tenants/{Slug}/account";
+
     public static string StepPath(string slug, SignInStep step) => step switch
     {
         SignInStep.SecondFactor => $"/tenants/{slug}/login/code",
+        SignInStep.AcceptTerms => $"/tenants/{slug}/login/terms",
         _ => $"/tenants/{slug}/login/enroll-totp"
     };
 
@@ -48,7 +52,10 @@ public abstract class SignInStepPageModel(ISender sender, ITenantLifetimes tenan
         return result.IsSuccess ? result.Value : null;
     }
 
-    /// <summary>Sets the return URL (only this tenant's authorize endpoint) and the Cancel button for it.</summary>
+    /// <summary>
+    /// Sets the return URL (only this tenant's authorize endpoint or account pages) and, for an authorize request,
+    /// the Cancel button.
+    /// </summary>
     protected void UseReturnUrl(string? returnUrl)
     {
         ContinueUrl = AuthorizeReturnUrl.IsAllowed(returnUrl, Slug) ? returnUrl : null;

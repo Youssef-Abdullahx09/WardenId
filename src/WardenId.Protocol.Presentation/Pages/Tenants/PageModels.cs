@@ -9,7 +9,7 @@ public sealed record ReturnToApplication(string Slug, IReadOnlyList<KeyValuePair
     /// <summary>Null unless <paramref name="returnUrl"/> is this tenant's authorize endpoint.</summary>
     public static ReturnToApplication? For(string? returnUrl, string slug, string label)
     {
-        if (!AuthorizeReturnUrl.IsAllowed(returnUrl, slug)) return null;
+        if (!AuthorizeReturnUrl.IsAuthorizeRequest(returnUrl, slug)) return null;
 
         var query = QueryHelpers.ParseQuery(new Uri("https://local" + returnUrl).Query);
         var parameters = query
@@ -20,3 +20,14 @@ public sealed record ReturnToApplication(string Slug, IReadOnlyList<KeyValuePair
 }
 
 public sealed record SignInBlockedView(string Message, ReturnToApplication? Back);
+
+/// <summary>An authenticator app being set up, as shown: QR code, the secret to type by hand, and the code form.</summary>
+/// <param name="State">The protected account enrollment state to post back, or null during sign-in (ticket cookie).</param>
+public sealed record TotpEnrollmentView(string QrCodeSvgMarkup, string GroupedSecret, string? State)
+{
+    public static TotpEnrollmentView For(PendingTotpEnrollment enrollment, string? state = null) =>
+        new(
+            QrCodeSvg.Render(enrollment.OtpAuthUri, "QR code to scan with your authenticator app"),
+            string.Join(' ', enrollment.Secret.Chunk(4).Select(c => new string(c))),
+            state);
+}

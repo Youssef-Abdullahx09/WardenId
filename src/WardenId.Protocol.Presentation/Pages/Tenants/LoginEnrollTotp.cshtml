@@ -7,12 +7,7 @@
     <h1>Save your recovery codes</h1>
     <p>Your authenticator app is set up. If you lose it, you can sign in with one of these codes instead.
         Each code works once. Keep them somewhere safe: they won't be shown again.</p>
-    <ul class="codes">
-        @foreach (var code in codes)
-        {
-            <li><code>@code</code></li>
-        }
-    </ul>
+    <partial name="_RecoveryCodes" model="codes" />
     @if (Model.ErrorMessage is { } error)
     {
         <p class="error" role="alert">@error</p>
@@ -25,6 +20,7 @@
     else
     {
         <p>You are signed in. You can close this window and return to the application.</p>
+        <p class="links"><a href="@Model.AccountUrl">Manage your account</a></p>
     }
 }
 else
@@ -34,17 +30,9 @@ else
     {
         <p class="error" role="alert">@error</p>
     }
-    @if (Model.Enrollment is not null)
+    @if (Model.EnrollmentView is { } enrollment)
     {
-        <p>Scan this QR code with an authenticator app, then enter the 6-digit code it shows.</p>
-        <div class="qr">@Html.Raw(Model.QrCodeSvgMarkup)</div>
-        <p>Can't scan it? Enter this key in the app instead:</p>
-        <p><code class="secret">@Model.GroupedSecret</code></p>
-        <form method="post">
-            <label for="Code">Code</label>
-            <input id="Code" name="Code" inputmode="numeric" pattern="[0-9 ]*" autocomplete="one-time-code" maxlength="8" required autofocus />
-            <button type="submit">Verify and turn on</button>
-        </form>
+        <partial name="_TotpEnrollment" model="enrollment" />
     }
     <p class="links"><a href="@Model.StartOverUrl">Start over</a></p>
     @if (Model.ReturnToApplication is { } back)

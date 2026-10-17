@@ -10,10 +10,15 @@ else if (Model.SignedIn)
 {
     <h1>You are signed in</h1>
     <p>You can close this window and return to the application.</p>
+    <p class="links"><a href="@Model.AccountUrl">Manage your account</a></p>
 }
 else
 {
     <h1>Sign in</h1>
+    @if (Model.AlreadySignedIn)
+    {
+        <p class="links">You are already signed in. <a href="@Model.AccountUrl">Manage your account</a></p>
+    }
     @if (Model.ErrorMessage is { } error)
     {
         <p class="error" role="alert">@error</p>

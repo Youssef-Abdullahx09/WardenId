@@ -25,14 +25,7 @@ public sealed class LoginEnrollTotpModel(ISender sender, ITenantLifetimes tenant
     /// <summary>Set once the factor is enabled: shown on this response only.</summary>
     public IReadOnlyList<string>? RecoveryCodes { get; private set; }
 
-    public string QrCodeSvgMarkup => Enrollment is null
-        ? string.Empty
-        : QrCodeSvg.Render(Enrollment.OtpAuthUri, "QR code to scan with your authenticator app");
-
-    /// <summary>The secret in groups of four, easier to type into an app by hand.</summary>
-    public string GroupedSecret => Enrollment is null
-        ? string.Empty
-        : string.Join(' ', Enrollment.Secret.Chunk(4).Select(c => new string(c)));
+    public TotpEnrollmentView? EnrollmentView => Enrollment is null ? null : TotpEnrollmentView.For(Enrollment);
 
     public async Task<IActionResult> OnGetAsync(string slug, CancellationToken cancellationToken)
     {

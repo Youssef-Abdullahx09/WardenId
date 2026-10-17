@@ -16,11 +16,15 @@ public sealed class LoginModel(ISender sender, ITenantLifetimes tenantLifetimes)
 
     public string? BlockedMessage { get; private set; }
 
+    /// <summary>A live session exists already: the page links the account page.</summary>
+    public bool AlreadySignedIn { get; private set; }
+
     public async Task<IActionResult> OnGetAsync(string slug, CancellationToken cancellationToken)
     {
-        if (await ResolveTenantAsync(slug, cancellationToken) is null) return NotFound();
+        if (await ResolveTenantAsync(slug, cancellationToken) is not { } tenantId) return NotFound();
 
         UseReturnUrl(ReturnUrl);
+        AlreadySignedIn = await TenantSession.ReadAsync(HttpContext, tenantId, Sender, cancellationToken) is not null;
         return Page();
     }
 
@@ -63,7 +67,6 @@ public sealed class LoginModel(ISender sender, ITenantLifetimes tenantLifetimes)
         SignInBlockReason.VerifyEmail or SignInBlockReason.PendingVerification =>
             "Please verify your email address using the link we sent you, then try again.",
         SignInBlockReason.ResetPassword => "You need to reset your password before you can sign in.",
-        SignInBlockReason.AcceptTos => "You need to accept the updated terms of service before you can sign in.",
         _ => "Your account needs attention before you can sign in."
     };
 }

@@ -24,6 +24,14 @@ using TotpEnrollment = WardenId.Identity.Integration.Command.Features.Users.Begi
 using CompleteTotpEnrollmentCommand = WardenId.Identity.Integration.Command.Features.Users.CompleteTotpEnrollment.Command;
 using CompletedTotpEnrollment = WardenId.Identity.Integration.Command.Features.Users.CompleteTotpEnrollment.CompletedTotpEnrollment;
 using VerifySecondFactorCommand = WardenId.Identity.Integration.Command.Features.Users.VerifySecondFactor.Command;
+using AcceptTermsCommand = WardenId.Identity.Integration.Command.Features.Users.AcceptTerms.Command;
+using AccountFactor = WardenId.Identity.Integration.Command.Features.Users.GetAccount.AccountFactor;
+using AccountView = WardenId.Identity.Integration.Command.Features.Users.GetAccount.AccountView;
+using BeginTotpReplacementCommand = WardenId.Identity.Integration.Command.Features.Users.BeginTotpReplacement.Command;
+using ChangeOwnPasswordCommand = WardenId.Identity.Integration.Command.Features.Users.ChangeOwnPassword.Command;
+using GetAccountQuery = WardenId.Identity.Integration.Command.Features.Users.GetAccount.Query;
+using RegenerateRecoveryCodesCommand = WardenId.Identity.Integration.Command.Features.Users.RegenerateRecoveryCodes.Command;
+using RemoveMfaCommand = WardenId.Identity.Integration.Command.Features.Users.RemoveMfa.Command;
 
 namespace WardenId.Protocol.Presentation.Tests.Fakes;
 
@@ -175,6 +183,7 @@ public sealed class CompleteTotpEnrollmentHandler(FakeDirectory directory)
     public Task<Result<CompletedTotpEnrollment>> Handle(CompleteTotpEnrollmentCommand request, CancellationToken cancellationToken)
     {
         var user = directory.Users.Single(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
+        user.CompleteEnrollmentCalls++;
         if (user.UnverifiedFactorId != request.FactorId || request.Code != FakeDirectory.TotpCode)
             return Task.FromResult(Result.Fail<CompletedTotpEnrollment>("Invalid code."));
 
@@ -204,4 +213,108 @@ public sealed class VerifySecondFactorHandler(FakeDirectory directory)
 
     private static Task<Result<SecondFactorVerified>> Fail(SecondFactorFailureReason reason) =>
         Task.FromResult(Result.Fail<SecondFactorVerified>(SecondFactorFailure.Tag(new Error("Invalid code."), reason)));
+}
+
+/// <summary>The code check shared by the account step-ups, tagged like Identity's (TOTP, or a recovery code if allowed).</summary>
+internal static class FakeStepUp
+{
+    public static Error? Check(FakeDirectory.UserEntry user, string code, bool allowRecoveryCode)
+    {
+        if (!user.HasFactor) return SecondFactorFailure.Tag(new Error("Invalid code."), SecondFactorFailureReason.NotEnrolled);
+        if (code == FakeDirectory.TotpCode) return null;
+        if (allowRecoveryCode && user.RecoveryCodes.Remove(code)) return null;
+        return SecondFactorFailure.Tag(new Error("Invalid code."), SecondFactorFailureReason.InvalidCode);
+    }
+
+    public static FakeDirectory.UserEntry User(FakeDirectory directory, Guid tenantId, Guid userId) =>
+        directory.Users.Single(u => u.TenantId == tenantId && u.UserId == userId);
+}
+
+public sealed class AcceptTermsHandler(FakeDirectory directory, TimeProvider timeProvider) : IRequestHandler<AcceptTermsCommand, Result>
+{
+    public Task<Result> Handle(AcceptTermsCommand request, CancellationToken cancellationToken)
+    {
+        var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
+        user.AcceptTermsCalls++;
+        user.PendingActions.Remove(RequiredAction.AcceptTos);
+        user.TermsAcceptedAt = timeProvider.GetUtcNow();
+        return Task.FromResult(Result.Ok());
+    }
+}
+
+public sealed class GetAccountHandler(FakeDirectory directory) : IRequestHandler<GetAccountQuery, Result<AccountView>>
+{
+    public Task<Result<AccountView>> Handle(GetAccountQuery request, CancellationToken cancellationToken)
+    {
+        var user = directory.Users.FirstOrDefault(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
+        if (user is null) return Task.FromResult(Result.Fail<AccountView>(Fail.NotFound));
+
+        IReadOnlyList<AccountFactor> factors = user.HasFactor
+            ? [new AccountFactor(Guid.NewGuid(), "Totp", FakeDirectory.FactorEnrolledAt, null)]
+            : [];
+        return Task.FromResult(Result.Ok(new AccountView(
+            user.Email, user.Username, user.TermsAcceptedAt, directory.TermsUrl, directory.MfaAvailable,
+            directory.MfaRequired, factors, user.RecoveryCodes.Count)));
+    }
+}
+
+public sealed class ChangeOwnPasswordHandler(FakeDirectory directory) : IRequestHandler<ChangeOwnPasswordCommand, Result>
+{
+    public const string WrongPassword = "Your current password is incorrect.";
+    public const string TooShort = "The new password must be at least 12 characters long.";
+
+    public Task<Result> Handle(ChangeOwnPasswordCommand request, CancellationToken cancellationToken)
+    {
+        var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
+        if (request.CurrentPassword != FakeDirectory.UserPassword) return Task.FromResult(Result.Fail(WrongPassword));
+        if (request.NewPassword.Length < 12) return Task.FromResult(Result.Fail(TooShort));
+
+        user.PasswordChanged = true;
+        return Task.FromResult(Result.Ok());
+    }
+}
+
+public sealed class RegenerateRecoveryCodesHandler(FakeDirectory directory)
+    : IRequestHandler<RegenerateRecoveryCodesCommand, Result<IReadOnlyList<string>>>
+{
+    public Task<Result<IReadOnlyList<string>>> Handle(RegenerateRecoveryCodesCommand request, CancellationToken cancellationToken)
+    {
+        var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
+        if (FakeStepUp.Check(user, request.Code, allowRecoveryCode: false) is { } error)
+            return Task.FromResult(Result.Fail<IReadOnlyList<string>>(error));
+
+        user.RecoveryCodes.Clear();
+        user.RecoveryCodes.AddRange(Enumerable.Range(1, 10).Select(i => $"new{i:00}-{user.Username}"));
+        return Task.FromResult(Result.Ok<IReadOnlyList<string>>(user.RecoveryCodes.ToArray()));
+    }
+}
+
+public sealed class BeginTotpReplacementHandler(FakeDirectory directory)
+    : IRequestHandler<BeginTotpReplacementCommand, Result<TotpEnrollment>>
+{
+    public Task<Result<TotpEnrollment>> Handle(BeginTotpReplacementCommand request, CancellationToken cancellationToken)
+    {
+        var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
+        if (FakeStepUp.Check(user, request.Code, allowRecoveryCode: true) is { } error)
+            return Task.FromResult(Result.Fail<TotpEnrollment>(error));
+
+        user.BeginEnrollmentCalls++;
+        user.UnverifiedFactorId = Guid.NewGuid();
+        var uri = $"otpauth://totp/{request.Issuer}:{user.Username}?secret={FakeDirectory.TotpSecret}&issuer={request.Issuer}";
+        return Task.FromResult(Result.Ok(new TotpEnrollment(user.UnverifiedFactorId.Value, FakeDirectory.TotpSecret, uri)));
+    }
+}
+
+public sealed class RemoveMfaHandler(FakeDirectory directory) : IRequestHandler<RemoveMfaCommand, Result>
+{
+    public Task<Result> Handle(RemoveMfaCommand request, CancellationToken cancellationToken)
+    {
+        var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
+        if (directory.MfaRequired) return Task.FromResult(Result.Fail("The tenant requires MFA."));
+        if (FakeStepUp.Check(user, request.Code, allowRecoveryCode: true) is { } error) return Task.FromResult(Result.Fail(error));
+
+        user.HasFactor = false;
+        user.RecoveryCodes.Clear();
+        return Task.FromResult(Result.Ok());
+    }
 }
