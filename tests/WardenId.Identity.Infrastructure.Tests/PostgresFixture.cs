@@ -81,9 +81,24 @@ public sealed class PostgresFixture : IAsyncLifetime
         return (long)(await command.ExecuteScalarAsync())!;
     }
 
+    /// <summary>A new empty database on the same server, for a test that needs the schema at an older migration.</summary>
+    public async Task<string> CreateScratchDatabaseAsync()
+    {
+        var name = $"wardenid_identity_scratch_{Guid.NewGuid():N}";
+        await ExecuteOnServerAsync($"CREATE DATABASE \"{name}\"");
+        return new NpgsqlConnectionStringBuilder(ConnectionString) { Database = name }.ConnectionString;
+    }
+
+    public async Task DropScratchDatabaseAsync(string connectionString)
+    {
+        NpgsqlConnection.ClearAllPools();
+        var name = new NpgsqlConnectionStringBuilder(connectionString).Database;
+        await ExecuteOnServerAsync($"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+    }
+
     private async Task ExecuteOnServerAsync(string sql)
     {
-        var builder = new NpgsqlConnectionStringBuilder(_serverConnectionString) { Database = "postgres" };
+        var builder = new NpgsqlConnectionStringBuilder(_serverConnectionString ?? ConnectionString) { Database = "postgres" };
         await using var connection = new NpgsqlConnection(builder.ConnectionString);
         await connection.OpenAsync();
         await using var command = new NpgsqlCommand(sql, connection);

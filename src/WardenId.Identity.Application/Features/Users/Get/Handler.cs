@@ -13,6 +13,7 @@ public sealed class Handler(IIdentityDbContext dbContext) : IRequestHandler<Quer
         var user = await dbContext.Users
             .Include(u => u.Attributes)
             .Include(u => u.MfaFactors)
+            .Include(u => u.RecoveryCodes)
             .Where(u => u.Id == request.UserId && u.TenantId == request.TenantId && !u.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -27,7 +28,11 @@ public sealed class Handler(IIdentityDbContext dbContext) : IRequestHandler<Quer
             user.Lockout.LockedUntilUtc,
             user.PendingActions.ToArray(),
             user.Attributes.Select(a => new UserAttributeSummary(a.Key, a.Value, a.ValueType)).ToArray(),
-            user.MfaFactors.Select(f => new MfaFactorSummary(f.Id, f.FactorType, f.Enabled)).ToArray(),
+            user.MfaFactors
+                .OrderBy(f => f.EnrolledAtUtc)
+                .Select(f => new MfaFactorSummary(f.Id, f.FactorType, f.Enabled, f.EnrolledAtUtc, f.VerifiedAtUtc, f.LastUsedAtUtc))
+                .ToArray(),
+            user.RemainingRecoveryCodeCount,
             user.CreatedAt);
 
         return Result.Ok(detail);

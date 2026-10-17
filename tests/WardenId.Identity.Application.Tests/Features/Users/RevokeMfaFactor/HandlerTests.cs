@@ -7,9 +7,7 @@ public class HandlerTests
     private static async Task<(User User, MfaFactor Factor, FakeUserRepository Repository)> SeedUserWithEnabledFactorAsync(Guid tenantId)
     {
         var user = TestUsers.CreatePendingVerification(tenantId);
-        var factor = MfaFactor.Create(MfaFactorType.Totp, "opaque-blob");
-        factor.Verify();
-        user.EnrollMfaFactor(factor, []);
+        var factor = user.AddEnabledTotp();
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
         return (user, factor, repository);
@@ -66,9 +64,7 @@ public class HandlerTests
     {
         var tenantId = Guid.NewGuid();
         var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
-        var second = MfaFactor.Create(MfaFactorType.Totp, "opaque-blob-2");
-        second.Verify();
-        user.EnrollMfaFactor(second, []);
+        var second = user.AddEnabledTotp();
         var handler = new Handler(repository, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.RequiredForAdmins }));
 
         var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);

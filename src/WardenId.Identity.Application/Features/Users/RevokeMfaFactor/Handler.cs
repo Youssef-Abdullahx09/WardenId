@@ -26,7 +26,8 @@ public sealed class Handler(
         var revokeResult = user.RevokeMfaFactor(request.FactorId, policy);
         if (revokeResult.IsFailed) return revokeResult;
 
-        await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);
+        var saveResult = await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);
+        if (saveResult.IsFailed) return Result.Fail(saveResult.Errors);
 
         return Result.Ok();
     }

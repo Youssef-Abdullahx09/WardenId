@@ -17,7 +17,8 @@ public sealed class Handler(IUserRepository repository) : IRequestHandler<Comman
         var verifyResult = user.VerifyEmail(tokenHash);
         if (verifyResult.IsFailed) return verifyResult;
 
-        await repository.UpdateAsync(user, user.Id, cancellationToken);
+        var saveResult = await repository.UpdateAsync(user, user.Id, cancellationToken);
+        if (saveResult.IsFailed) return Result.Fail(saveResult.Errors);
 
         return Result.Ok();
     }

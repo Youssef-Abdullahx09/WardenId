@@ -13,7 +13,6 @@ public static class EndpointNames
         public const string ChangePassword = "ChangeUserPassword";
         public const string Disable = "DisableUser";
         public const string Enable = "EnableUser";
-        public const string EnrollMfaFactor = "EnrollUserMfaFactor";
         public const string Get = "GetUser";
         public const string List = "ListUsers";
         public const string Register = "RegisterUser";
@@ -23,6 +22,7 @@ public static class EndpointNames
         public const string SendPasswordReset = "SendUserPasswordReset";
         public const string AddRequiredAction = "AddUserRequiredAction";
         public const string ClearRequiredActions = "ClearUserRequiredActions";
+        public const string ResetMfa = "ResetUserMfa";
         public const string ResetPassword = "ResetUserPassword";
         public const string RevokeMfaFactor = "RevokeUserMfaFactor";
         public const string SetAttribute = "SetUserAttribute";
@@ -32,7 +32,6 @@ public static class EndpointNames
         public const string Unlock = "UnlockUser";
         public const string Update = "UpdateUser";
         public const string VerifyEmail = "VerifyUserEmail";
-        public const string VerifyMfaFactor = "VerifyUserMfaFactor";
     }
 
     public static class Policies

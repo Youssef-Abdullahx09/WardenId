@@ -15,5 +15,12 @@ public sealed class MfaFactorConfiguration : IEntityTypeConfiguration<MfaFactor>
         builder.Property(f => f.Enabled).IsRequired();
         builder.Property(f => f.EnrolledAtUtc).IsRequired();
         builder.Property(f => f.VerifiedAtUtc);
+        builder.Property(f => f.LastUsedAtUtc);
+        builder.Property(f => f.LastAcceptedTimeStep);
+
+        // Concurrency token: a uint row version is mapped by Npgsql to the system column "xmin" (no real column).
+        // A save that updates or deletes this row fails if another request changed it first — see
+        // UserRepository.SaveAsync. It's a shadow property: the domain has no use for it.
+        builder.Property<uint>(SchemaConsts.RowVersion).IsRowVersion();
     }
 }

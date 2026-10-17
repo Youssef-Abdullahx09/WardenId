@@ -237,31 +237,88 @@ public sealed class User : AggregateRoot, IAuditableAggregate
 
     private bool IsEmailVerified => _emailVerificationTokens.Any(t => t.ConsumedAtUtc is not null);
 
-    public Result EnrollMfaFactor(MfaFactor factor, IEnumerable<RecoveryCode> recoveryCodes)
+    /// <summary>Whether the user has an enabled MFA factor, so sign-in needs a code step.</summary>
+    public bool HasEnabledMfaFactor => _mfaFactors.Any(f => f.Enabled);
+
+    public int RemainingRecoveryCodeCount => _recoveryCodes.Count(c => !c.IsUsed);
+
+    /// <summary>
+    /// Adds an unverified factor, replacing any other unverified factor of the same type: only the latest
+    /// enrollment can be completed. Enabled factors are kept.
+    /// </summary>
+    public Result BeginMfaEnrollment(MfaFactor factor)
     {
         var ensureMutable = EnsureMutable();
         if (ensureMutable.IsFailed) return ensureMutable;
 
+        _mfaFactors.RemoveAll(f => f.IsPendingVerification && f.FactorType == factor.FactorType);
         _mfaFactors.Add(factor);
+        return Result.Ok();
+    }
+
+    /// <summary>
+    /// Enables a factor started by <see cref="BeginMfaEnrollment"/> with its first code (for
+    /// <paramref name="timeStep"/>), clears the EnrollMfa required action and replaces every recovery code with
+    /// <paramref name="recoveryCodes"/>: codes issued before stop working.
+    /// </summary>
+    public Result CompleteMfaEnrollment(
+        Guid factorId, long timeStep, IEnumerable<RecoveryCode> recoveryCodes, DateTimeOffset nowUtc)
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+
+        var factor = _mfaFactors.FirstOrDefault(f => f.Id == factorId);
+        if (factor is null) return Result.Fail(UserErrors.MfaFactorNotFound());
+
+        var verifyResult = factor.Verify(timeStep, nowUtc);
+        if (verifyResult.IsFailed) return verifyResult;
+
+        _recoveryCodes.Clear();
         _recoveryCodes.AddRange(recoveryCodes);
+        _pendingActions.Remove(RequiredAction.EnrollMfa);
         RaiseDomainEvent(new MfaFactorEnrolledDomainEvent(factor.Id, factor.FactorType));
         return Result.Ok();
     }
 
-    public Result VerifyMfaFactor(Guid factorId)
+    /// <summary>Records a TOTP code of an enabled factor accepted at sign-in (see <see cref="MfaFactor.AcceptCode"/>).</summary>
+    public Result AcceptMfaCode(Guid factorId, long timeStep, DateTimeOffset nowUtc)
     {
         var factor = _mfaFactors.FirstOrDefault(f => f.Id == factorId);
         if (factor is null) return Result.Fail(UserErrors.MfaFactorNotFound());
 
-        return factor.Verify();
+        return factor.AcceptCode(timeStep, nowUtc);
     }
 
-    public Result ConsumeRecoveryCode(string codeHash)
+    /// <summary>Uses up the unused recovery code with this hash.</summary>
+    public Result ConsumeRecoveryCode(string codeHash, DateTimeOffset nowUtc)
     {
         var code = _recoveryCodes.FirstOrDefault(c => c.Matches(codeHash));
         if (code is null) return Result.Fail(UserErrors.RecoveryCodeInvalid());
 
-        return code.Consume();
+        var consumeResult = code.Consume(nowUtc);
+        if (consumeResult.IsFailed) return consumeResult;
+
+        RaiseDomainEvent(new RecoveryCodeUsedDomainEvent(RemainingRecoveryCodeCount));
+        return Result.Ok();
+    }
+
+    /// <summary>
+    /// An admin's reset: removes every MFA factor (enabled or not) and every recovery code, and asks the user to
+    /// enroll again at their next sign-in. Unlike <see cref="RevokeMfaFactor"/>, the MFA policy doesn't stop it:
+    /// it's how a user who lost their authenticator gets back in.
+    /// </summary>
+    public Result ResetMfa()
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+
+        var removedFactorCount = _mfaFactors.Count;
+        var removedRecoveryCodeCount = _recoveryCodes.Count;
+        _mfaFactors.Clear();
+        _recoveryCodes.Clear();
+        AddRequiredAction(RequiredAction.EnrollMfa);
+        RaiseDomainEvent(new MfaResetDomainEvent(removedFactorCount, removedRecoveryCodeCount));
+        return Result.Ok();
     }
 
     public Result RehashCredential(string newHash, int newAlgorithmVersion)

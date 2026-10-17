@@ -23,8 +23,7 @@ public sealed class Handler(
         if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
             return Result.Fail(UserErrors.InvalidStatusTransition());
 
-        await _issuer.IssueAsync(user, request.ActorUserId, cancellationToken);
-
-        return Result.Ok();
+        var issueResult = await _issuer.IssueAsync(user, request.ActorUserId, cancellationToken);
+        return issueResult.IsFailed ? Result.Fail(issueResult.Errors) : Result.Ok();
     }
 }

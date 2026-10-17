@@ -22,10 +22,16 @@ public interface IUserRepository
     /// <summary>Whether any user in the tenant, soft-deleted ones included, has this username.</summary>
     Task<bool> ExistsByUsernameAsync(Guid tenantId, Username username, CancellationToken cancellationToken = default);
 
-    Task UpdateAsync(User user, Guid userId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Saves the user. Fails with <see cref="UserErrors.ConcurrencyConflict"/>, saving nothing, when another request
+    /// changed the user, or one of the factors or recovery codes this save touches, since it was loaded. After a
+    /// conflict the repository forgets what it loaded: load the user again before retrying.
+    /// </summary>
+    Task<Result> UpdateAsync(User user, Guid userId, CancellationToken cancellationToken = default);
 
-    Task SoftDeleteAsync(User user, Guid userId, CancellationToken cancellationToken = default);
+    /// <summary>Fails like <see cref="UpdateAsync"/> on a concurrent change.</summary>
+    Task<Result> SoftDeleteAsync(User user, Guid userId, CancellationToken cancellationToken = default);
 
-    /// <summary>Undoes <see cref="SoftDeleteAsync"/>: the user is found by the normal lookups again.</summary>
-    Task RestoreAsync(User user, Guid userId, CancellationToken cancellationToken = default);
+    /// <summary>Undoes <see cref="SoftDeleteAsync"/>: the user is found by the normal lookups again. Fails like <see cref="UpdateAsync"/> on a concurrent change.</summary>
+    Task<Result> RestoreAsync(User user, Guid userId, CancellationToken cancellationToken = default);
 }

@@ -14,4 +14,7 @@ public static class SchemaConsts
 
     // The shadow foreign key every child table of Users has.
     public const string UserForeignKey = "UserId";
+
+    // The shadow xmin concurrency token of Users, MfaFactors and RecoveryCodes.
+    public const string RowVersion = "Version";
 }

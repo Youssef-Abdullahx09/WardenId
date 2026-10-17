@@ -39,8 +39,10 @@ public class HandlerTests
         var user = TestUsers.CreatePendingVerification(tenantId, "someone@example.com", "someone");
         user.MarkAsCreated(Guid.NewGuid());
         user.SetAttribute("department", "engineering", UserAttributeValueType.String);
-        var factor = MfaFactor.Create(MfaFactorType.Totp, "opaque-blob");
-        user.EnrollMfaFactor(factor, []);
+        var factor = user.AddEnabledTotp(recoveryCodes: [RecoveryCode.Create("hash-1"), RecoveryCode.Create("hash-2")]);
+        user.ConsumeRecoveryCode("hash-1", TestMfa.Now);
+        var pending = MfaFactor.Create(MfaFactorType.Totp, "protected:", TestMfa.Now);
+        user.BeginMfaEnrollment(pending);
 
         using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
         {
@@ -58,9 +60,17 @@ public class HandlerTests
         Assert.Equal("department", attribute.Key);
         Assert.Equal("engineering", attribute.Value);
         Assert.Equal(UserAttributeValueType.String, attribute.ValueType);
-        var mfaFactor = Assert.Single(result.Value.MfaFactors);
-        Assert.Equal(factor.Id, mfaFactor.Id);
+        Assert.Equal([factor.Id, pending.Id], result.Value.MfaFactors.Select(f => f.Id));
+        var mfaFactor = result.Value.MfaFactors.First();
         Assert.Equal(MfaFactorType.Totp, mfaFactor.FactorType);
+        Assert.True(mfaFactor.Enabled);
+        Assert.Equal(factor.EnrolledAtUtc, mfaFactor.EnrolledAtUtc);
+        Assert.Equal(factor.VerifiedAtUtc, mfaFactor.VerifiedAtUtc);
+        Assert.Equal(factor.LastUsedAtUtc, mfaFactor.LastUsedAtUtc);
+        var pendingSummary = result.Value.MfaFactors.Last();
+        Assert.False(pendingSummary.Enabled);
+        Assert.Null(pendingSummary.VerifiedAtUtc);
+        Assert.Equal(1, result.Value.RemainingRecoveryCodes);
     }
 
     [Fact]

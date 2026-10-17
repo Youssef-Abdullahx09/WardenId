@@ -16,7 +16,8 @@ public sealed class Handler(IUserRepository repository) : IRequestHandler<Comman
         var softDeleteResult = user.SoftDelete();
         if (softDeleteResult.IsFailed) return softDeleteResult;
 
-        await repository.SoftDeleteAsync(user, request.ActorUserId, cancellationToken);
+        var saveResult = await repository.SoftDeleteAsync(user, request.ActorUserId, cancellationToken);
+        if (saveResult.IsFailed) return Result.Fail(saveResult.Errors);
 
         return Result.Ok();
     }

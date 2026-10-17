@@ -24,7 +24,8 @@ public sealed class Handler(
         var token = EmailVerificationToken.Create(tokenHash, expiresAtUtc);
         user.AddEmailVerificationToken(token);
 
-        await repository.UpdateAsync(user, user.Id, cancellationToken);
+        var saveResult = await repository.UpdateAsync(user, user.Id, cancellationToken);
+        if (saveResult.IsFailed) return Result.Fail(saveResult.Errors);
 
         await emailSender.SendEmailVerificationAsync(user.Email.Value, user.Username.Value, rawToken, expiresAtUtc, cancellationToken);
 

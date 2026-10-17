@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IIdentityTenantPolicyRepository, IdentityTenantPolicyRepository>();
         services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
+        services.AddSingleton<ITotpSecretProtector, DataProtectionTotpSecretProtector>();
         services.AddHttpClient<IBreachedPasswordChecker, HaveIBeenPwnedBreachedPasswordChecker>(client =>
         {
             client.BaseAddress = HaveIBeenPwnedRangeApiBaseAddress;

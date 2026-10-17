@@ -20,8 +20,7 @@ public class MfaPolicyEvaluatorTests
     public void CanRevokeFactor_SucceedsWhenPolicyDoesNotRequireMfa()
     {
         var user = User.Register(Guid.NewGuid(), Email.Create("someone@example.com").Value, Username.Create("someone").Value).Value;
-        var factor = MfaFactor.Create(MfaFactorType.Totp, "encrypted-secret");
-        user.EnrollMfaFactor(factor, []);
+        var factor = user.AddEnabledTotp();
 
         var result = MfaPolicyEvaluator.CanRevokeFactor(MfaPolicy.Create(MfaPolicyMode.Optional), user, factor);
 
@@ -32,9 +31,7 @@ public class MfaPolicyEvaluatorTests
     public void CanRevokeFactor_FailsWhenItIsTheOnlyEnabledFactorAndPolicyRequiresMfa()
     {
         var user = User.Register(Guid.NewGuid(), Email.Create("someone@example.com").Value, Username.Create("someone").Value).Value;
-        var factor = MfaFactor.Create(MfaFactorType.Totp, "encrypted-secret");
-        factor.Verify();
-        user.EnrollMfaFactor(factor, []);
+        var factor = user.AddEnabledTotp();
 
         var result = MfaPolicyEvaluator.CanRevokeFactor(MfaPolicy.Create(MfaPolicyMode.Required), user, factor);
 
@@ -45,12 +42,8 @@ public class MfaPolicyEvaluatorTests
     public void CanRevokeFactor_SucceedsWhenAnotherEnabledFactorRemains()
     {
         var user = User.Register(Guid.NewGuid(), Email.Create("someone@example.com").Value, Username.Create("someone").Value).Value;
-        var factorA = MfaFactor.Create(MfaFactorType.Totp, "secret-a");
-        factorA.Verify();
-        var factorB = MfaFactor.Create(MfaFactorType.Totp, "secret-b");
-        factorB.Verify();
-        user.EnrollMfaFactor(factorA, []);
-        user.EnrollMfaFactor(factorB, []);
+        var factorA = user.AddEnabledTotp(credentialData: "secret-a");
+        user.AddEnabledTotp(credentialData: "secret-b");
 
         var result = MfaPolicyEvaluator.CanRevokeFactor(MfaPolicy.Create(MfaPolicyMode.Required), user, factorA);
 
@@ -61,9 +54,7 @@ public class MfaPolicyEvaluatorTests
     public void CanRevokeFactor_FailsWhenItIsTheOnlyEnabledFactorAndPolicyIsRequiredForAdmins()
     {
         var user = User.Register(Guid.NewGuid(), Email.Create("someone@example.com").Value, Username.Create("someone").Value).Value;
-        var factor = MfaFactor.Create(MfaFactorType.Totp, "encrypted-secret");
-        factor.Verify();
-        user.EnrollMfaFactor(factor, []);
+        var factor = user.AddEnabledTotp();
 
         var result = MfaPolicyEvaluator.CanRevokeFactor(MfaPolicy.Create(MfaPolicyMode.RequiredForAdmins), user, factor);
 

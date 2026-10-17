@@ -26,9 +26,27 @@ it was built.
 | `PasswordCredential` | Mutates in place over time (rehash replaces `Hash`/`AlgorithmVersion` on the same logical credential); `PasswordHistory` entries need to reference prior instances by identity. |
 | `PasswordHistoryEntry` | A retired credential snapshot — needs its own identity/audit trail distinct from the live `Credential`. |
 | `EmailVerificationToken` / `PasswordResetToken` | Kept as two separate classes (not a shared base) despite an identical shape today — their consumption side effects differ (reset also clears lockout), and a shared base would force them to change in lockstep later. |
-| `MfaFactor` | Has its own lifecycle (`Create` → unverified/disabled → `Verify()` → enabled) independent of any single request. |
+| `MfaFactor` | Has its own lifecycle (`User.BeginMfaEnrollment` → unverified/disabled → `User.CompleteMfaEnrollment` → enabled) spanning requests, and keeps `LastAcceptedTimeStep` so a TOTP code is never accepted twice. |
 | `RecoveryCode` | One-time-use, needs individual consumption tracking (`UsedAtUtc`) — a plain string list on `User` couldn't express that. |
 | `UserAttribute` | Typed key/value pairs need their own identity for update-in-place semantics (`UpdateValue`). |
+
+## MFA (TOTP)
+
+Users enroll their own factor at sign-in (Protocol's pages, through `Identity.Integration.Command`'s
+`BeginTotpEnrollment`/`CompleteTotpEnrollment`); admins can only revoke one factor or reset them all
+(`User.ResetMfa`, which adds the EnrollMfa required action whatever the policy). The domain never sees a raw
+secret or code: `MfaFactor.CredentialData` holds the Data Protection-protected secret (purpose
+`WardenId.Identity.TotpSecret.v1`), `RecoveryCode.CodeHash` a SHA-256 hash, and the TOTP math (RFC 6238,
+SHA-1, 6 digits, 30 s, ±1 step) lives in `Identity.Application/Mfa`. A wrong code at sign-in is a failed
+login (`RecordFailedLogin`); for a user with a second factor, only the code step resets the counter.
+
+The `AddTotpFactorUsage` migration deletes every factor and recovery code stored before it: they came from the
+removed admin enroll endpoint, which stored no usable secret. Their users aren't given EnrollMfa; Authenticate asks
+for enrollment whenever the tenant's policy requires MFA and the user has no enabled factor.
+
+Users, MfaFactors and RecoveryCodes carry an xmin concurrency token, so racing sign-in steps can't both accept one
+code or lose a failed attempt: `IUserRepository` saves fail with `UserErrors.ConcurrencyConflict` (409 over HTTP),
+and the sign-in handlers reload and try again (Authenticate 3 times, VerifySecondFactor 5).
 
 ## Explicitly out of scope in this pass
 

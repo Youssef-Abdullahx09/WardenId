@@ -27,7 +27,7 @@ public class HandlerTests
         Result.Fail<AuthenticatedUser>(AuthenticationFailure.Tag(new Error("Invalid credentials."), reason, userId));
 
     private static Result<AuthenticatedUser> User(UserStatus status, params RequiredAction[] actions) =>
-        Result.Ok(new AuthenticatedUser(UserId, "alice@acme.test", "alice", status, actions));
+        Result.Ok(new AuthenticatedUser(UserId, "alice@acme.test", "alice", status, actions, HasSecondFactor: false));
 
     [Fact]
     public async Task Handle_SignsIn_ActiveUserWithoutActions()

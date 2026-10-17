@@ -123,7 +123,7 @@ public sealed class AuthenticateHandler(FakeDirectory directory)
             _ => null
         };
         return Task.FromResult(failure is null
-            ? Result.Ok(new AuthenticatedUser(user!.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray()))
+            ? Result.Ok(new AuthenticatedUser(user!.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray(), HasSecondFactor: false))
             : Result.Fail<AuthenticatedUser>(
                 AuthenticationFailure.Tag(new Error("Invalid credentials."), failure.Value, user?.UserId)));
     }

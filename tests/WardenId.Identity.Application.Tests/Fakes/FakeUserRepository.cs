@@ -56,28 +56,45 @@ public sealed class FakeUserRepository : IUserRepository
     public Task<bool> ExistsByUsernameAsync(Guid tenantId, Username username, CancellationToken cancellationToken = default) =>
         Task.FromResult(_usersById.Values.Any(u => u.TenantId == tenantId && u.Username == username));
 
-    public Task UpdateAsync(User user, Guid userId, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// How many of the next saves fail with a concurrency conflict. The fake can't undo the changes a handler
+    /// made to the (shared, in-memory) user before saving, so use it to test how a conflict is answered, not counts.
+    /// </summary>
+    public int ConflictsToSimulate { get; set; }
+
+    public Task<Result> UpdateAsync(User user, Guid userId, CancellationToken cancellationToken = default)
     {
         LastActorId = userId;
         UpdateCallCount++;
+        if (TrySimulateConflict(out var conflict)) return Task.FromResult(conflict);
         _usersById[user.Id] = user;
-        return Task.CompletedTask;
+        return Task.FromResult(Result.Ok());
     }
 
-    public Task SoftDeleteAsync(User user, Guid userId, CancellationToken cancellationToken = default)
+    public Task<Result> SoftDeleteAsync(User user, Guid userId, CancellationToken cancellationToken = default)
     {
         LastActorId = userId;
         SoftDeleteCallCount++;
+        if (TrySimulateConflict(out var conflict)) return Task.FromResult(conflict);
         _usersById[user.Id] = user;
-        return Task.CompletedTask;
+        return Task.FromResult(Result.Ok());
     }
 
-    public Task RestoreAsync(User user, Guid userId, CancellationToken cancellationToken = default)
+    public Task<Result> RestoreAsync(User user, Guid userId, CancellationToken cancellationToken = default)
     {
         LastActorId = userId;
         RestoreCallCount++;
+        if (TrySimulateConflict(out var conflict)) return Task.FromResult(conflict);
         user.MarkAsRestored();
         _usersById[user.Id] = user;
-        return Task.CompletedTask;
+        return Task.FromResult(Result.Ok());
+    }
+
+    private bool TrySimulateConflict(out Result conflict)
+    {
+        conflict = Result.Fail(UserErrors.ConcurrencyConflict());
+        if (ConflictsToSimulate <= 0) return false;
+        ConflictsToSimulate--;
+        return true;
     }
 }

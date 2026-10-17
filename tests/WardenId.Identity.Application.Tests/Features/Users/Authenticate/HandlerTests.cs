@@ -2,6 +2,8 @@ using WardenId.Identity.Application.Features.Users.Authenticate;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
 using Command = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
 using UserStatus = WardenId.Identity.Domain.UserStatus;
+using ContractRequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
+using DomainRequiredAction = WardenId.Identity.Domain.RequiredAction;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.Authenticate;
 
@@ -270,5 +272,113 @@ public class HandlerTests
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task Handle_ReportsNoSecondFactor_AndNoEnrollment_WhenMfaIsOptional()
+    {
+        var (tenantId, _, repository, hasher) = await SeedActiveUserAsync();
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Optional }));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.False(result.Value.HasSecondFactor);
+        Assert.DoesNotContain(ContractRequiredAction.EnrollMfa, result.Value.PendingActions);
+    }
+
+    [Theory]
+    [InlineData(MfaPolicyMode.Required)]
+    [InlineData(MfaPolicyMode.RequiredForAdmins)]
+    public async Task Handle_AddsEnrollMfa_WhenThePolicyRequiresMfa_AndTheUserHasNoFactor(MfaPolicyMode mode)
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = mode }));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(result.Value.HasSecondFactor);
+        Assert.Single(result.Value.PendingActions, a => a == ContractRequiredAction.EnrollMfa);
+        Assert.DoesNotContain(DomainRequiredAction.EnrollMfa, user.PendingActions);
+    }
+
+    [Fact]
+    public async Task Handle_KeepsAStoredEnrollMfa_Once()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.AddRequiredAction(DomainRequiredAction.EnrollMfa);
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Required }));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.Single(result.Value.PendingActions, a => a == ContractRequiredAction.EnrollMfa);
+    }
+
+    [Fact]
+    public async Task Handle_ReportsASecondFactor_AndNoEnrollment_WhenTheUserHasAnEnabledFactor()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.AddEnabledTotp();
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Required }));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.Value.HasSecondFactor);
+        Assert.DoesNotContain(ContractRequiredAction.EnrollMfa, result.Value.PendingActions);
+    }
+
+    [Fact]
+    public async Task Handle_AnUnverifiedFactor_IsNoSecondFactor()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.BeginMfaEnrollment(MfaFactor.Create(MfaFactorType.Totp, "protected:", TestMfa.Now));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.False(result.Value.HasSecondFactor);
+    }
+
+    // Otherwise someone who knows the password could reset the count between wrong codes and guess forever.
+    [Fact]
+    public async Task Handle_TheRightPassword_KeepsTheFailedAttempts_WhenACodeStepFollows()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.AddEnabledTotp();
+        user.RecordFailedLogin(5, TimeSpan.FromMinutes(15));
+        user.RecordFailedLogin(5, TimeSpan.FromMinutes(15));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, user.Lockout.FailedAttemptCount);
+    }
+
+    [Fact]
+    public async Task Handle_TheRightPassword_ResetsTheFailedAttempts_WithoutASecondFactor()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.RecordFailedLogin(5, TimeSpan.FromMinutes(15));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
+
+        await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.Equal(0, user.Lockout.FailedAttemptCount);
+    }
+
+    [Fact]
+    public async Task Handle_EndsAnExpiredLockout_EvenWhenACodeStepFollows()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        user.AddEnabledTotp();
+        user.RecordFailedLogin(1, TimeSpan.FromMinutes(-1));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(UserStatus.Active, user.Status);
+        Assert.True(result.Value.HasSecondFactor);
     }
 }

@@ -66,7 +66,8 @@ public sealed class Handler(
             if (changeEmailResult.IsFailed) return changeEmailResult;
         }
 
-        await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);
+        var saveResult = await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);
+        if (saveResult.IsFailed) return Result.Fail(saveResult.Errors);
 
         if (rawToken is not null)
             await emailSender.SendEmailVerificationAsync(user.Email.Value, user.Username.Value, rawToken, expiresAtUtc, cancellationToken);

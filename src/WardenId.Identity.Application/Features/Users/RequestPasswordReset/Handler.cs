@@ -26,8 +26,11 @@ public sealed class Handler(
         if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
             return Result.Ok<PasswordResetRequested?>(null);
 
-        var rawToken = await _issuer.IssueAsync(user, user.Id, cancellationToken);
+        // A concurrent change to the user is answered like "no such user" too: a distinguishing failure would leak
+        // that the account exists. Nothing was saved or sent; the user can ask again.
+        var issueResult = await _issuer.IssueAsync(user, user.Id, cancellationToken);
+        if (issueResult.IsFailed) return Result.Ok<PasswordResetRequested?>(null);
 
-        return Result.Ok<PasswordResetRequested?>(new PasswordResetRequested(rawToken));
+        return Result.Ok<PasswordResetRequested?>(new PasswordResetRequested(issueResult.Value));
     }
 }

@@ -96,5 +96,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Navigation(u => u.PasswordResetTokens).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.Ignore(u => u.DomainEvents);
+
+        // Concurrency token: a uint row version is mapped by Npgsql to the system column "xmin" (no real column).
+        // A save that updates or deletes this row fails if another request changed it first — see
+        // UserRepository.SaveAsync. It's a shadow property: the domain has no use for it.
+        builder.Property<uint>(SchemaConsts.RowVersion).IsRowVersion();
     }
 }

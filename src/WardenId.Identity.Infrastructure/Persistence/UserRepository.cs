@@ -80,21 +80,19 @@ public sealed class UserRepository(
         CancellationToken cancellationToken = default) =>
         dbContext.Users.AnyAsync(u => u.Username == username && u.TenantId == tenantId, cancellationToken);
 
-    public async Task UpdateAsync(
+    public Task<Result> UpdateAsync(
         User user,
         Guid userId,
-        CancellationToken cancellationToken = default)
-    {
-        await dbContext.SaveChangesAsync(userId, cancellationToken);
-    }
+        CancellationToken cancellationToken = default) =>
+        SaveAsync(userId, cancellationToken);
 
-    public async Task SoftDeleteAsync(
+    public Task<Result> SoftDeleteAsync(
         User user,
         Guid userId,
         CancellationToken cancellationToken = default)
     {
         dbContext.Users.Remove(user);
-        await dbContext.SaveChangesAsync(userId, cancellationToken);
+        return SaveAsync(userId, cancellationToken);
     }
 
     // The unique (TenantId, Email) and (TenantId, Username) indexes include soft-deleted rows,
@@ -102,14 +100,32 @@ public sealed class UserRepository(
     // The child rows (credential, MFA factors, ...) were soft-deleted with the user by the
     // cascade, and are undeleted with it. Children the user dropped earlier are not among them:
     // IdentityDbContext deletes those rows outright.
-    public async Task RestoreAsync(
+    public Task<Result> RestoreAsync(
         User user,
         Guid userId,
         CancellationToken cancellationToken = default)
     {
         user.MarkAsRestored();
         foreach (var child in ChildrenOf(user).Where(c => c.IsDeleted)) child.MarkAsRestored();
-        await dbContext.SaveChangesAsync(userId, cancellationToken);
+        return SaveAsync(userId, cancellationToken);
+    }
+
+    // Users, MfaFactors and RecoveryCodes carry an xmin concurrency token (UserConfiguration and siblings): an
+    // UPDATE or DELETE of a row someone else changed since it was loaded matches no row and EF throws. The
+    // transaction is rolled back, so nothing of this save is kept, and the tracked state no longer matches the
+    // database: it is dropped, so the caller's next load reads the current rows.
+    private async Task<Result> SaveAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(userId, cancellationToken);
+            return Result.Ok();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            ((DbContext)dbContext).ChangeTracker.Clear();
+            return Result.Fail(UserErrors.ConcurrencyConflict());
+        }
     }
 
     private static IEnumerable<Entity> ChildrenOf(User user) =>

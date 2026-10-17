@@ -10,6 +10,7 @@ namespace WardenId.Identity.Infrastructure.Tests.Persistence;
 public sealed class UserRepositoryTests(PostgresFixture database)
 {
     private static readonly Guid Actor = Guid.NewGuid();
+    private static readonly DateTimeOffset Now = new(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
     private static readonly MfaPolicy OptionalMfa = MfaPolicy.Create(MfaPolicyMode.Optional);
     private static readonly PasswordPolicy KeepTwoPasswords = PasswordPolicy.FromTrustedSource(8, false, false, false, false, historyCount: 2);
 
@@ -57,6 +58,63 @@ public sealed class UserRepositoryTests(PostgresFixture database)
         Assert.Empty(reloaded.RecoveryCodes);
         Assert.Equal(0, await database.CountAsync("""SELECT count(*) FROM "Identity"."RecoveryCodes" WHERE "Id" = ANY($1)""", codeIds));
         Assert.Equal(0, await database.CountAsync("""SELECT count(*) FROM "Identity"."MfaFactors" WHERE "UserId" IS NULL"""));
+    }
+
+    [SkippableFact]
+    public async Task TotpEnrollmentAndSignIn_PersistTheFactorsUsage()
+    {
+        Skip.If(database.SkipReason is not null, database.SkipReason);
+        var userId = await SeedUserAsync();
+        var pendingId = Guid.Empty;
+
+        await InRequestAsync(async repository =>
+        {
+            var user = await LoadAsync(repository, userId);
+            var pending = MfaFactor.Create(MfaFactorType.Totp, "secret-3", Now);
+            Assert.True(user.BeginMfaEnrollment(pending).IsSuccess);
+            pendingId = pending.Id;
+            await repository.UpdateAsync(user, Actor);
+        });
+
+        var later = Now.AddMinutes(10);
+        await InRequestAsync(async repository =>
+        {
+            var user = await LoadAsync(repository, userId);
+            Assert.True(user.CompleteMfaEnrollment(pendingId, 200, [RecoveryCode.Create("code-3")], later).IsSuccess);
+            Assert.True(user.AcceptMfaCode(pendingId, 201, later).IsSuccess);
+            Assert.True(user.ConsumeRecoveryCode("code-3", later).IsSuccess);
+            await repository.UpdateAsync(user, Actor);
+        });
+
+        var reloaded = await InRequestAsync(repository => LoadAsync(repository, userId));
+        var factor = reloaded.MfaFactors.Single(f => f.Id == pendingId);
+        Assert.True(factor.Enabled);
+        Assert.Equal(later, factor.VerifiedAtUtc);
+        Assert.Equal(later, factor.LastUsedAtUtc);
+        Assert.Equal(201, factor.LastAcceptedTimeStep);
+        Assert.Equal(0, reloaded.RemainingRecoveryCodeCount);
+        Assert.Equal(later, Assert.Single(reloaded.RecoveryCodes).UsedAtUtc);
+    }
+
+    [SkippableFact]
+    public async Task ResettingMfa_DeletesEveryFactorAndRecoveryCodeRow()
+    {
+        Skip.If(database.SkipReason is not null, database.SkipReason);
+        var userId = await SeedUserAsync();
+
+        await InRequestAsync(async repository =>
+        {
+            var user = await LoadAsync(repository, userId);
+            Assert.True(user.ResetMfa().IsSuccess);
+            await repository.UpdateAsync(user, Actor);
+        });
+
+        var reloaded = await InRequestAsync(repository => LoadAsync(repository, userId));
+        Assert.Empty(reloaded.MfaFactors);
+        Assert.Empty(reloaded.RecoveryCodes);
+        Assert.Contains(RequiredAction.EnrollMfa, reloaded.PendingActions);
+        Assert.Equal(0, await database.CountAsync("""SELECT count(*) FROM "Identity"."MfaFactors" WHERE "UserId" = $1""", userId));
+        Assert.Equal(0, await database.CountAsync("""SELECT count(*) FROM "Identity"."RecoveryCodes" WHERE "UserId" = $1""", userId));
     }
 
     [SkippableFact]
@@ -219,12 +277,12 @@ public sealed class UserRepositoryTests(PostgresFixture database)
         var user = User.Register(_tenantId, Email.FromTrustedSource($"{suffix}@example.test"), Username.FromTrustedSource($"user{suffix}")).Value;
         user.SetPassword(PasswordCredential.Create("hash-0", "argon2id", 1, DateTimeOffset.UtcNow), KeepTwoPasswords);
 
-        var first = MfaFactor.Create(MfaFactorType.Totp, "secret-1");
-        var second = MfaFactor.Create(MfaFactorType.Totp, "secret-2");
-        user.EnrollMfaFactor(first, [RecoveryCode.Create("code-1"), RecoveryCode.Create("code-2")]);
-        user.EnrollMfaFactor(second, []);
-        first.Verify();
-        second.Verify();
+        var first = MfaFactor.Create(MfaFactorType.Totp, "secret-1", Now);
+        user.BeginMfaEnrollment(first);
+        user.CompleteMfaEnrollment(first.Id, 100, [], Now);
+        var second = MfaFactor.Create(MfaFactorType.Totp, "secret-2", Now);
+        user.BeginMfaEnrollment(second);
+        user.CompleteMfaEnrollment(second.Id, 100, [RecoveryCode.Create("code-1"), RecoveryCode.Create("code-2")], Now);
 
         await InRequestAsync(repository => repository.CreateAsync(user, Actor));
         return user.Id;

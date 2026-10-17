@@ -14,4 +14,7 @@ public static class UserErrorCodes
 
     // Matches WardenId.SharedKernel.Presentation.ErrorCodes.Forbidden, so HandleApiFailure maps it to 403.
     public const string Forbidden = "Forbidden";
+
+    // Matches WardenId.SharedKernel.Presentation.ErrorCodes.Conflict, so HandleApiFailure maps it to 409.
+    public const string Conflict = "Conflict";
 }

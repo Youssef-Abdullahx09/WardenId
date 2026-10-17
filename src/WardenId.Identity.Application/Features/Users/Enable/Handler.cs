@@ -16,7 +16,8 @@ public sealed class Handler(IUserRepository repository) : IRequestHandler<Comman
         var enableResult = user.Enable();
         if (enableResult.IsFailed) return enableResult;
 
-        await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);
+        var saveResult = await repository.UpdateAsync(user, request.ActorUserId, cancellationToken);
+        if (saveResult.IsFailed) return Result.Fail(saveResult.Errors);
 
         return Result.Ok();
     }

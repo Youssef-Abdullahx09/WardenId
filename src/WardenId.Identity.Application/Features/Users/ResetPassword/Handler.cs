@@ -45,7 +45,8 @@ public sealed class Handler(
         var resetResult = user.ResetPassword(tokenHash, credential, policy);
         if (resetResult.IsFailed) return resetResult;
 
-        await repository.UpdateAsync(user, user.Id, cancellationToken);
+        var saveResult = await repository.UpdateAsync(user, user.Id, cancellationToken);
+        if (saveResult.IsFailed) return Result.Fail(saveResult.Errors);
 
         return Result.Ok();
     }

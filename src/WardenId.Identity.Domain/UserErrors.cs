@@ -16,6 +16,11 @@ public static class UserErrors
         => new Error($"Account is locked until {lockedUntilUtc:O}.")
             .WithMetadata(UserErrorCodes.MetadataKey, UserErrorCodes.AccountLocked);
 
+    /// <summary>Someone else changed the user between this request's read and its save; nothing was saved.</summary>
+    public static Error ConcurrencyConflict()
+        => new Error("The user was changed by another request. Try again.")
+            .WithMetadata(UserErrorCodes.MetadataKey, UserErrorCodes.Conflict);
+
     public static Error SelfRegistrationDisabled()
         => new Error("Self-registration is disabled for this tenant.")
             .WithMetadata(UserErrorCodes.MetadataKey, UserErrorCodes.Forbidden);
@@ -51,6 +56,10 @@ public static class UserErrors
 
     public static Error MfaFactorNotFound() => Validation("MFA factor not found.");
     public static Error MfaFactorAlreadyVerified() => Validation("MFA factor is already verified.");
+    public static Error MfaCodeInvalid() => Validation("The code is invalid.");
+    public static Error MfaEnrollmentNotRequired() => Validation("The user has no MFA enrollment to do.");
+    public static Error TotpIssuerRequired() => Validation("An issuer name is required.");
+    public static Error MfaNotEnrolled() => Validation("The user has no enabled MFA factor.");
     public static Error CannotRevokeLastRequiredFactor() => Validation("Cannot revoke the last MFA factor while MFA is required for this account.");
 
     public static Error AttributeKeyRequired() => Validation("Attribute key is required.");
