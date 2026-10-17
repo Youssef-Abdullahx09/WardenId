@@ -1,6 +1,5 @@
 using FluentResults;
 using MediatR;
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Domain;
 
@@ -10,7 +9,7 @@ public sealed class Handler(
     IUserRepository repository,
     IPasswordHasher passwordHasher,
     IBreachedPasswordChecker breachedPasswordChecker,
-    IOptions<IdentityPolicyOptions> options) : IRequestHandler<Command, Result>
+    IdentityPolicyResolver policies) : IRequestHandler<Command, Result>
 {
     public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
     {
@@ -31,16 +30,17 @@ public sealed class Handler(
             .Any(t => t.Matches(tokenHash) && t.ConsumedAtUtc is null && t.ExpiresAtUtc > nowUtc);
         if (!tokenIsValid) return Result.Fail(UserErrors.TokenInvalid());
 
-        var policyResult = PasswordPolicyFactory.Create(options.Value);
+        var policyResult = await policies.ResolveAsync(request.TenantId, cancellationToken);
         if (policyResult.IsFailed) return Result.Fail(policyResult.Errors);
-        var policy = policyResult.Value;
+        var effective = policyResult.Value;
+        var policy = effective.Password;
 
         var evaluateResult = await PasswordPolicyEvaluator.EvaluateAsync(
             policy, request.NewPassword, user.Credential, user.PasswordHistory, passwordHasher, breachedPasswordChecker);
         if (evaluateResult.IsFailed) return evaluateResult;
 
         var credential = PasswordCredential.Create(
-            passwordHasher.Hash(request.NewPassword), passwordHasher.Algorithm, options.Value.CurrentPasswordAlgorithmVersion, DateTimeOffset.UtcNow);
+            passwordHasher.Hash(request.NewPassword), passwordHasher.Algorithm, effective.CurrentPasswordAlgorithmVersion, DateTimeOffset.UtcNow);
 
         var resetResult = user.ResetPassword(tokenHash, credential, policy);
         if (resetResult.IsFailed) return resetResult;

@@ -1,5 +1,4 @@
 using FluentResults;
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Application.Features.Users.Register;
 using WardenId.Identity.Domain;
@@ -14,15 +13,16 @@ internal sealed class UserRegistration(
     IUserRepository repository,
     IPasswordHasher passwordHasher,
     IBreachedPasswordChecker breachedPasswordChecker,
-    IIdentityEmailSender emailSender,
-    IOptions<IdentityPolicyOptions> options)
+    IIdentityEmailSender emailSender)
 {
     private static readonly TimeSpan VerificationTokenLifetime = TimeSpan.FromHours(24);
 
+    /// <param name="effectivePolicy">The tenant's policy, resolved by the caller.</param>
     /// <param name="actorUserId">Who is creating the user; null for self-registration (the user themselves).</param>
     /// <param name="requiredActions">Extra steps for the first sign-in, beyond verifying the email.</param>
     public async Task<Result<UserRegistered>> RegisterAsync(
         Guid tenantId,
+        EffectiveIdentityPolicy effectivePolicy,
         string rawEmail,
         string rawUsername,
         string password,
@@ -45,10 +45,7 @@ internal sealed class UserRegistration(
         if (await repository.ExistsByUsernameAsync(tenantId, username, cancellationToken))
             return Result.Fail(UserErrors.UsernameAlreadyInUse());
 
-        var policyResult = PasswordPolicyFactory.Create(options.Value);
-        if (policyResult.IsFailed) return Result.Fail(policyResult.Errors);
-
-        var policy = policyResult.Value;
+        var policy = effectivePolicy.Password;
         var evaluateResult = await PasswordPolicyEvaluator.EvaluateAsync(
             policy, password, currentCredential: null, history: [], passwordHasher, breachedPasswordChecker);
         if (evaluateResult.IsFailed) return evaluateResult;
@@ -64,7 +61,7 @@ internal sealed class UserRegistration(
         var credential = PasswordCredential.Create(
             passwordHasher.Hash(password),
             passwordHasher.Algorithm,
-            options.Value.CurrentPasswordAlgorithmVersion,
+            effectivePolicy.CurrentPasswordAlgorithmVersion,
             DateTimeOffset.UtcNow);
         var setPasswordResult = user.SetPassword(credential, policy);
         if (setPasswordResult.IsFailed) return Result.Fail(setPasswordResult.Errors);

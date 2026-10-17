@@ -8,6 +8,7 @@ public sealed class TestIdentityDbContext(DbContextOptions<TestIdentityDbContext
     : DbContext(options), IIdentityDbContext
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<IdentityTenantPolicy> TenantPolicies => Set<IdentityTenantPolicy>();
 
     public Task<int> SaveChangesAsync(Guid userId, CancellationToken cancellationToken) =>
         SaveChangesAsync(cancellationToken);
@@ -20,6 +21,8 @@ public sealed class TestIdentityDbContext(DbContextOptions<TestIdentityDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<IdentityTenantPolicy>().Ignore(p => p.DomainEvents);
+
         modelBuilder.Entity<User>(builder =>
         {
             builder.Ignore(u => u.DomainEvents);

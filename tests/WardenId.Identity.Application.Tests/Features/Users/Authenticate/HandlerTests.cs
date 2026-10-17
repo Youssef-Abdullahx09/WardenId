@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Features.Users.Authenticate;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
 using Command = WardenId.Identity.Integration.Command.Features.Users.Authenticate.Command;
@@ -25,7 +24,7 @@ public class HandlerTests
     public async Task Handle_Succeeds_WithCorrectPasswordByEmail()
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -37,7 +36,7 @@ public class HandlerTests
     public async Task Handle_Succeeds_WithCorrectPasswordByUsername()
     {
         var (tenantId, _, repository, hasher) = await SeedActiveUserAsync();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone", Password), CancellationToken.None);
 
@@ -48,7 +47,7 @@ public class HandlerTests
     public async Task Handle_Fails_WithWrongPassword_AndRecordsFailedLogin()
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", "wrong-password"), CancellationToken.None);
 
@@ -59,7 +58,7 @@ public class HandlerTests
     [Fact]
     public async Task Handle_Fails_WithUnknownEmail_SameErrorAsWrongPassword()
     {
-        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "unknown@example.com", "whatever"), CancellationToken.None);
 
@@ -71,7 +70,7 @@ public class HandlerTests
     public async Task Handle_Locks_AfterMaxFailedAttempts()
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions { MaxFailedLoginAttempts = 1 }));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions { MaxFailedLoginAttempts = 1 }));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", "wrong-password"), CancellationToken.None);
 
@@ -85,7 +84,7 @@ public class HandlerTests
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
         user.RecordFailedLogin(1, TimeSpan.FromMinutes(15));
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -99,7 +98,7 @@ public class HandlerTests
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
         user.RecordFailedLogin(1, TimeSpan.FromMinutes(-1));
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -113,7 +112,7 @@ public class HandlerTests
     public async Task Handle_RehashesCredential_WhenAlgorithmVersionIsStale()
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions { CurrentPasswordAlgorithmVersion = 2 }));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions { CurrentPasswordAlgorithmVersion = 2 }));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -127,7 +126,7 @@ public class HandlerTests
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
         user.Disable("reason");
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -139,7 +138,7 @@ public class HandlerTests
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
         user.SoftDelete();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -158,7 +157,7 @@ public class HandlerTests
     [Fact]
     public async Task Failure_UnknownAccount_IsTaggedUnknownUser_WithoutUserId()
     {
-        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "unknown@example.com", "whatever"), CancellationToken.None);
 
@@ -169,7 +168,7 @@ public class HandlerTests
     [Fact]
     public async Task Failure_InvalidUsernameFormat_IsTaggedUnknownUser()
     {
-        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "!", "whatever"), CancellationToken.None);
 
@@ -180,7 +179,7 @@ public class HandlerTests
     public async Task Failure_WrongPassword_IsTaggedInvalidPassword_WithUserId()
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", "wrong-password"), CancellationToken.None);
 
@@ -192,7 +191,7 @@ public class HandlerTests
     public async Task Failure_WrongPasswordThatLocksTheAccount_IsTaggedLockedOut()
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions { MaxFailedLoginAttempts = 1 }));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions { MaxFailedLoginAttempts = 1 }));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", "wrong-password"), CancellationToken.None);
 
@@ -205,7 +204,7 @@ public class HandlerTests
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
         user.RecordFailedLogin(1, TimeSpan.FromMinutes(15));
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -217,7 +216,7 @@ public class HandlerTests
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
         user.Disable("reason");
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -229,7 +228,7 @@ public class HandlerTests
     {
         var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
         user.SoftDelete();
-        var handler = new Handler(repository, hasher, Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
 
@@ -240,5 +239,36 @@ public class HandlerTests
     public void Read_UntaggedErrors_IsNull()
     {
         Assert.Null(AuthenticationFailure.Read([new Error("boom")]));
+    }
+
+    [Fact]
+    public async Task Handle_LocksOnTheTenantsMaxFailedAttempts_ForTheTenantsDuration()
+    {
+        var (tenantId, user, repository, hasher) = await SeedActiveUserAsync();
+        var tenantPolicies = new FakeIdentityTenantPolicyRepository().With(tenantId, IdentityPolicyOverrides.None with
+        {
+            MaxFailedLoginAttempts = 1,
+            LockoutDuration = TimeSpan.FromHours(2)
+        });
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions(), tenantPolicies));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", "wrong-password"), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserStatus.Locked, user.Status);
+        Assert.True(user.Lockout.LockedUntilUtc > DateTimeOffset.UtcNow.AddMinutes(110));
+    }
+
+    [Fact]
+    public async Task Handle_SignsIn_WhenTheExistingPasswordIsWeakerThanTheTenantsNewRules()
+    {
+        var (tenantId, _, repository, hasher) = await SeedActiveUserAsync();
+        var tenantPolicies = new FakeIdentityTenantPolicyRepository()
+            .With(tenantId, IdentityPolicyOverrides.None with { PasswordMinLength = 32, PasswordRequireSymbol = true });
+        var handler = new Handler(repository, hasher, TestPolicies.Resolver(new IdentityPolicyOptions(), tenantPolicies));
+
+        var result = await handler.Handle(new Command(tenantId, "someone@example.com", Password), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
     }
 }

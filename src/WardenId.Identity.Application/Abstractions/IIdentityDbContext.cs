@@ -7,4 +7,5 @@ namespace WardenId.Identity.Application.Abstractions;
 public interface IIdentityDbContext : IDbContext
 {
     DbSet<User> Users { get; }
+    DbSet<IdentityTenantPolicy> TenantPolicies { get; }
 }

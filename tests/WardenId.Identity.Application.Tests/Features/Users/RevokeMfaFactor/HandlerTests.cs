@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Features.Users.RevokeMfaFactor;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.RevokeMfaFactor;
@@ -22,7 +21,7 @@ public class HandlerTests
         var tenantId = Guid.NewGuid();
         var actorUserId = Guid.NewGuid();
         var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
-        var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Optional }));
+        var handler = new Handler(repository, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Optional }));
 
         var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, actorUserId), CancellationToken.None);
 
@@ -37,7 +36,7 @@ public class HandlerTests
     {
         var tenantId = Guid.NewGuid();
         var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
-        var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Required }));
+        var handler = new Handler(repository, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Required }));
 
         var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
 
@@ -53,7 +52,7 @@ public class HandlerTests
     {
         var tenantId = Guid.NewGuid();
         var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
-        var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.RequiredForAdmins }));
+        var handler = new Handler(repository, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.RequiredForAdmins }));
 
         var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
 
@@ -70,7 +69,7 @@ public class HandlerTests
         var second = MfaFactor.Create(MfaFactorType.Totp, "opaque-blob-2");
         second.Verify();
         user.EnrollMfaFactor(second, []);
-        var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.RequiredForAdmins }));
+        var handler = new Handler(repository, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.RequiredForAdmins }));
 
         var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
 
@@ -84,12 +83,28 @@ public class HandlerTests
         var tenantId = Guid.NewGuid();
         var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
         user.Disable("policy violation");
-        var handler = new Handler(repository, Options.Create(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Optional }));
+        var handler = new Handler(repository, TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Optional }));
 
         var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Single(user.MfaFactors);
         Assert.Equal(0, repository.UpdateCallCount);
+    }
+
+    [Fact]
+    public async Task Handle_Fails_WhenTheTenantRequiresMfa_OverAGlobalOptional()
+    {
+        var tenantId = Guid.NewGuid();
+        var (user, factor, repository) = await SeedUserWithEnabledFactorAsync(tenantId);
+        var tenantPolicies = new FakeIdentityTenantPolicyRepository()
+            .With(tenantId, IdentityPolicyOverrides.None with { MfaMode = MfaPolicyMode.Required });
+        var handler = new Handler(repository,
+            TestPolicies.Resolver(new IdentityPolicyOptions { MfaPolicyMode = MfaPolicyMode.Optional }, tenantPolicies));
+
+        var result = await handler.Handle(new Command(tenantId, user.Id, factor.Id, Guid.NewGuid()), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Single(user.MfaFactors);
     }
 }

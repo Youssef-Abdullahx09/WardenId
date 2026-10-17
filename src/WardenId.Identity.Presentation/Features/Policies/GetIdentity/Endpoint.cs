@@ -34,9 +34,10 @@ public sealed class Endpoint : IEndpoint
             .WithTags("Identity - Policies")
             .WithSummary("Get the identity policy")
             .WithDescription(
-                "Returns the password, lockout and MFA policy in effect for the tenant. Read-only. These values are global " +
-                "today (the IdentityPolicy config section, with code defaults), so every tenant gets the same ones and " +
-                "scope is \"global\"; tenantId is accepted for future per-tenant policies and is not checked for existence. " +
+                "Returns the password, lockout, MFA and self-registration policy in effect for the tenant: the tenant's " +
+                "overrides (set with PUT) over the global values (the IdentityPolicy config section, with code defaults). " +
+                "overrides lists the fields that come from the tenant, as paths into this response (e.g. \"password.minLength\"); " +
+                "scope is \"tenant\" when that list is non-empty, else \"global\". tenantId is not checked for existence. " +
                 "lockout.lockoutDuration is an ISO 8601 duration (e.g. \"PT15M\").")
             .Produces<IdentityPolicy>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized);

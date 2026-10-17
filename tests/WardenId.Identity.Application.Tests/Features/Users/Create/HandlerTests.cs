@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Features.Users.Create;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.Create;
@@ -17,7 +16,7 @@ public class HandlerTests
             new FakePasswordHasher(),
             new FakeBreachedPasswordChecker(),
             emailSender,
-            Options.Create(new IdentityPolicyOptions()));
+            TestPolicies.Resolver(new IdentityPolicyOptions()));
         return (handler, repository, emailSender);
     }
 
@@ -71,5 +70,19 @@ public class HandlerTests
         Assert.True(result.IsFailed);
         Assert.Empty(emailSender.SentVerificationEmails);
         Assert.False(await repository.ExistsByUsernameAsync(TenantId, Username.Create("newuser").Value, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Handle_CreatesTheUser_EvenWhenTheTenantDisabledSelfRegistration()
+    {
+        var tenantPolicies = new FakeIdentityTenantPolicyRepository()
+            .With(TenantId, IdentityPolicyOverrides.None with { SelfRegistrationEnabled = false });
+        var handler = new Handler(
+            new FakeUserRepository(), new FakePasswordHasher(), new FakeBreachedPasswordChecker(), new FakeIdentityEmailSender(),
+            TestPolicies.Resolver(new IdentityPolicyOptions { SelfRegistrationEnabled = false }, tenantPolicies));
+
+        var result = await handler.Handle(NewUser(), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
     }
 }

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Features.Users.ChangePassword;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.ChangePassword;
@@ -25,7 +24,7 @@ public class HandlerTests
     public async Task Handle_UpdatesPassword_WhenCurrentPasswordIsCorrect()
     {
         var (user, repository, hasher) = await SeedUserAsync();
-        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(
             new Command(user.TenantId, user.Id, CurrentPassword, "N3wP@ssword"),
@@ -41,7 +40,7 @@ public class HandlerTests
     public async Task Handle_Fails_WhenCurrentPasswordIsWrong()
     {
         var (user, repository, hasher) = await SeedUserAsync();
-        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(
             new Command(user.TenantId, user.Id, "wrong-current-password", "N3wP@ssword"),
@@ -54,7 +53,7 @@ public class HandlerTests
     public async Task Handle_DoesNotPersist_WhenCurrentPasswordIsWrong()
     {
         var (user, repository, hasher) = await SeedUserAsync();
-        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(
             new Command(user.TenantId, user.Id, "wrong-current-password", "N3wP@ssword"),
@@ -69,13 +68,29 @@ public class HandlerTests
     public async Task Handle_Fails_WhenNewPasswordReusesCurrentPassword()
     {
         var (user, repository, hasher) = await SeedUserAsync();
-        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(
             new Command(user.TenantId, user.Id, CurrentPassword, CurrentPassword),
             CancellationToken.None);
 
         Assert.True(result.IsFailed);
+        Assert.Equal(0, repository.UpdateCallCount);
+    }
+
+    [Fact]
+    public async Task Handle_Fails_WhenTheNewPasswordBreaksTheTenantsStricterRules()
+    {
+        var (user, repository, hasher) = await SeedUserAsync();
+        var tenantPolicies = new FakeIdentityTenantPolicyRepository()
+            .With(user.TenantId, IdentityPolicyOverrides.None with { PasswordMinLength = 16, PasswordRequireSymbol = true });
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(),
+            TestPolicies.Resolver(new IdentityPolicyOptions(), tenantPolicies));
+
+        var result = await handler.Handle(new Command(user.TenantId, user.Id, CurrentPassword, "N3wP@ssword"), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserErrors.PasswordTooShort(16).Message, result.Errors[0].Message);
         Assert.Equal(0, repository.UpdateCallCount);
     }
 }

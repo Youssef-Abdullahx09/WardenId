@@ -37,9 +37,11 @@ public sealed class Endpoint : IEndpoint
             .WithName(EndpointNames.Users.Register)
             .WithTags("Identity - Users")
             .WithSummary("Register a user")
-            .WithDescription("Self-registers a new user for the given tenant. An email-verification code is sent to the given address.")
+            .WithDescription("Self-registers a new user for the given tenant. An email-verification code is sent to the given address. " +
+                "403 when the tenant's identity policy disables self-registration (selfRegistration.enabled), checked before anything else.")
             .Produces<Response>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict);
     }
 }

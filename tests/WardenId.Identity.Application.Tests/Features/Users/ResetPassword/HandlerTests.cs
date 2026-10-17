@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Features.Users.ResetPassword;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.ResetPassword;
@@ -23,7 +22,7 @@ public class HandlerTests
         // Seeded with a different actor so the post-Handle actor assertion proves the handler set it.
         await repository.CreateAsync(user, Guid.NewGuid(), CancellationToken.None);
 
-        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", rawToken, "N3wP@ssword"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -42,7 +41,7 @@ public class HandlerTests
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
 
-        var handler = new Handler(repository, new FakePasswordHasher(), new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, new FakePasswordHasher(), new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
         var result = await handler.Handle(new Command(tenantId, "someone@example.com", "wrong-token", "N3wP@ssword"), CancellationToken.None);
 
         Assert.True(result.IsFailed);
@@ -52,7 +51,7 @@ public class HandlerTests
     [Fact]
     public async Task Handle_Fails_WhenEmailDoesNotMatchAnyUser()
     {
-        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(new FakeUserRepository(), new FakePasswordHasher(), new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var result = await handler.Handle(new Command(Guid.NewGuid(), "nobody@example.com", "any-token", "N3wP@ssword"), CancellationToken.None);
 
@@ -73,7 +72,7 @@ public class HandlerTests
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
 
-        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         // Garbage token + a password that happens to be the user's CURRENT password.
         var result = await handler.Handle(
@@ -100,7 +99,7 @@ public class HandlerTests
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
 
-        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), Options.Create(new IdentityPolicyOptions()));
+        var handler = new Handler(repository, hasher, new FakeBreachedPasswordChecker(), TestPolicies.Resolver(new IdentityPolicyOptions()));
 
         var reusedResult = await handler.Handle(
             new Command(tenantId, "someone@example.com", rawToken, CurrentPassword),

@@ -11,4 +11,7 @@ public static class UserErrorCodes
     // Matches WardenId.SharedKernel.Presentation.ErrorCodes.AccountLocked verbatim so
     // HandleApiFailure already maps it to 423 with no Presentation-layer changes.
     public const string AccountLocked = "AccountLocked";
+
+    // Matches WardenId.SharedKernel.Presentation.ErrorCodes.Forbidden, so HandleApiFailure maps it to 403.
+    public const string Forbidden = "Forbidden";
 }

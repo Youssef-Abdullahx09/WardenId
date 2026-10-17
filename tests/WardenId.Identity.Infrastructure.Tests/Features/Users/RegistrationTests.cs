@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application;
 using WardenId.Identity.Application.Abstractions;
 using CreateCommand = WardenId.Identity.Application.Features.Users.Create.Command;
@@ -19,8 +18,8 @@ public sealed class RegistrationTests(PostgresFixture database)
 {
     private const string Password = "Correct-Horse-1";
 
-    private static readonly IOptions<IdentityPolicyOptions> Options =
-        Microsoft.Extensions.Options.Options.Create(new IdentityPolicyOptions { PasswordBreachCheckEnabled = false });
+    private static readonly IdentityPolicyResolver Policies =
+        GlobalPolicies.Resolver(new IdentityPolicyOptions { PasswordBreachCheckEnabled = false });
 
     private readonly Guid _tenantId = Guid.NewGuid();
 
@@ -111,10 +110,10 @@ public sealed class RegistrationTests(PostgresFixture database)
     private static string NewUsername() => $"user{Guid.NewGuid().ToString("N")[..12]}";
 
     private static RegisterHandler NewRegisterHandler(UserRepository repository) =>
-        new(repository, new PlainPasswordHasher(), new NeverBreached(), new NoEmail(), Options);
+        new(repository, new PlainPasswordHasher(), new NeverBreached(), new NoEmail(), Policies);
 
     private static CreateHandler NewCreateHandler(UserRepository repository) =>
-        new(repository, new PlainPasswordHasher(), new NeverBreached(), new NoEmail(), Options);
+        new(repository, new PlainPasswordHasher(), new NeverBreached(), new NoEmail(), Policies);
 
     private async Task<T> InRequestAsync<T>(Func<UserRepository, Task<T>> step)
     {

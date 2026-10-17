@@ -14,6 +14,7 @@ public sealed class IdentityDbContext(
     public const string Schema = "Identity";
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<IdentityTenantPolicy> TenantPolicies => Set<IdentityTenantPolicy>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -15,9 +15,19 @@ public sealed record LockoutSettings(int MaxFailedAttempts, string LockoutDurati
 
 public sealed record MfaSettings(MfaPolicyMode Mode);
 
-/// <param name="Scope">Where the values come from: "global" (process configuration) until per-tenant policies exist.</param>
+/// <param name="Enabled">Whether POST tenants/{tenantId}/auth/register accepts sign-ups. Admin user creation is unaffected.</param>
+public sealed record SelfRegistrationSettings(bool Enabled);
+
+/// <summary>The effective identity policy for a tenant: the tenant's overrides over the global values.</summary>
+/// <param name="Scope">"tenant" when at least one value is the tenant's own, else "global" (all from process configuration).</param>
+/// <param name="Overrides">
+/// The fields the tenant overrides, as JSON paths into this object (e.g. "password.minLength", "mfa.mode");
+/// every other value is the global one. Empty when <paramref name="Scope"/> is "global".
+/// </param>
 public sealed record IdentityPolicy(
     PasswordSettings Password,
     LockoutSettings Lockout,
     MfaSettings Mfa,
-    string Scope);
+    SelfRegistrationSettings SelfRegistration,
+    string Scope,
+    IReadOnlyList<string> Overrides);

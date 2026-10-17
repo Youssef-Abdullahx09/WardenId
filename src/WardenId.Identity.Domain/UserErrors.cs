@@ -16,6 +16,10 @@ public static class UserErrors
         => new Error($"Account is locked until {lockedUntilUtc:O}.")
             .WithMetadata(UserErrorCodes.MetadataKey, UserErrorCodes.AccountLocked);
 
+    public static Error SelfRegistrationDisabled()
+        => new Error("Self-registration is disabled for this tenant.")
+            .WithMetadata(UserErrorCodes.MetadataKey, UserErrorCodes.Forbidden);
+
     public static Error EmailRequired() => Validation("Email is required.");
     public static Error EmailInvalidFormat() => Validation("Email is not a valid email address.");
     public static Error EmailTooLong() => Validation($"Email cannot exceed {Email.MaxLength} characters.");

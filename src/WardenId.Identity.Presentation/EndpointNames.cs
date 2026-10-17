@@ -38,5 +38,6 @@ public static class EndpointNames
     public static class Policies
     {
         public const string GetIdentity = "GetIdentityPolicy";
+        public const string UpdateIdentity = "UpdateIdentityPolicy";
     }
 }

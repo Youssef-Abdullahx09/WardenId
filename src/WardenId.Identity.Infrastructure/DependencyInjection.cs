@@ -27,6 +27,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IIdentityTenantPolicyRepository, IdentityTenantPolicyRepository>();
         services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
         services.AddHttpClient<IBreachedPasswordChecker, HaveIBeenPwnedBreachedPasswordChecker>(client =>
         {

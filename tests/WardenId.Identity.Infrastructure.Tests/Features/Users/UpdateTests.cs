@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application;
 using WardenId.Identity.Application.Abstractions;
 using RegisterCommand = WardenId.Identity.Application.Features.Users.Register.Command;
@@ -21,8 +20,8 @@ public sealed class UpdateTests(PostgresFixture database)
 {
     private const string Password = "Correct-Horse-1";
 
-    private static readonly IOptions<IdentityPolicyOptions> Options =
-        Microsoft.Extensions.Options.Options.Create(new IdentityPolicyOptions { PasswordBreachCheckEnabled = false });
+    private static readonly IdentityPolicyResolver Policies =
+        GlobalPolicies.Resolver(new IdentityPolicyOptions { PasswordBreachCheckEnabled = false });
 
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly RecordingEmailSender _emailSender = new();
@@ -161,7 +160,7 @@ public sealed class UpdateTests(PostgresFixture database)
     private static string NewUsername() => $"user{Guid.NewGuid().ToString("N")[..12]}";
 
     private RegisterHandler NewRegisterHandler(UserRepository repository) =>
-        new(repository, new PlainPasswordHasher(), new NeverBreached(), _emailSender, Options);
+        new(repository, new PlainPasswordHasher(), new NeverBreached(), _emailSender, Policies);
 
     private UpdateHandler NewUpdateHandler(UserRepository repository) => new(repository, _emailSender);
 

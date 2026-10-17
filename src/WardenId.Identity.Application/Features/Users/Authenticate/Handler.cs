@@ -1,6 +1,5 @@
 using FluentResults;
 using MediatR;
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Domain;
 using AuthenticatedUser = WardenId.Identity.Integration.Command.Features.Users.Authenticate.AuthenticatedUser;
@@ -13,7 +12,7 @@ namespace WardenId.Identity.Application.Features.Users.Authenticate;
 public sealed class Handler(
     IUserRepository repository,
     IPasswordHasher passwordHasher,
-    IOptions<IdentityPolicyOptions> options) : IRequestHandler<Command, Result<AuthenticatedUser>>
+    IdentityPolicyResolver policies) : IRequestHandler<Command, Result<AuthenticatedUser>>
 {
     // Not a real credential — verified against on the not-found/deactivated paths so those
     // branches cost the same hashing time as a real password check (timing side-channel).
@@ -21,6 +20,11 @@ public sealed class Handler(
 
     public async Task<Result<AuthenticatedUser>> Handle(Command request, CancellationToken cancellationToken)
     {
+        // Resolved up front on every path, so a known account costs no extra lookup over an unknown one.
+        var policyResult = await policies.ResolveAsync(request.TenantId, cancellationToken);
+        if (policyResult.IsFailed) return Result.Fail(policyResult.Errors);
+        var policy = policyResult.Value;
+
         var emailResult = Email.Create(request.EmailOrUsername);
 
         var userResult = emailResult.IsSuccess
@@ -52,7 +56,7 @@ public sealed class Handler(
 
         if (user.Credential is null || !passwordHasher.Verify(request.Password, user.Credential.Hash))
         {
-            var failResult = user.RecordFailedLogin(options.Value.MaxFailedLoginAttempts, options.Value.LockoutDuration);
+            var failResult = user.RecordFailedLogin(policy.MaxFailedLoginAttempts, policy.LockoutDuration);
             if (failResult.IsFailed) return Result.Fail(failResult.Errors);
 
             await repository.UpdateAsync(user, user.Id, cancellationToken);
@@ -72,8 +76,8 @@ public sealed class Handler(
             user.RecordSuccessfulLogin();
         }
 
-        if (user.Credential.NeedsRehash(options.Value.CurrentPasswordAlgorithmVersion))
-            user.RehashCredential(passwordHasher.Hash(request.Password), options.Value.CurrentPasswordAlgorithmVersion);
+        if (user.Credential.NeedsRehash(policy.CurrentPasswordAlgorithmVersion))
+            user.RehashCredential(passwordHasher.Hash(request.Password), policy.CurrentPasswordAlgorithmVersion);
 
         await repository.UpdateAsync(user, user.Id, cancellationToken);
 

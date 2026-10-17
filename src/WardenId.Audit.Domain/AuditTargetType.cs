@@ -41,6 +41,9 @@ public sealed class AuditTargetType : Enumeration<AuditTargetType>
     /// <summary>A key that signs audit checkpoints; the id is its kid.</summary>
     public static readonly AuditTargetType CheckpointSigningKey = new(6, nameof(CheckpointSigningKey), "checkpoint_signing_key");
 
+    /// <summary>A tenant's identity policy overrides (Identity module); the id is the tenant id, one policy per tenant.</summary>
+    public static readonly AuditTargetType IdentityPolicy = new(7, nameof(IdentityPolicy), "identity_policy");
+
     public static readonly IReadOnlyList<AuditTargetType> All =
     [
         Tenant,
@@ -48,7 +51,8 @@ public sealed class AuditTargetType : Enumeration<AuditTargetType>
         Session,
         OAuthClient,
         TokenFamily,
-        CheckpointSigningKey
+        CheckpointSigningKey,
+        IdentityPolicy
     ];
 
     /// <summary>Resolves a catalog entry from its persisted taxonomy string — canonical deserialization only.</summary>

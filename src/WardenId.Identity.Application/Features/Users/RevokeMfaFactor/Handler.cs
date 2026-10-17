@@ -1,6 +1,5 @@
 using FluentResults;
 using MediatR;
-using Microsoft.Extensions.Options;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Domain;
 
@@ -8,7 +7,7 @@ namespace WardenId.Identity.Application.Features.Users.RevokeMfaFactor;
 
 public sealed class Handler(
     IUserRepository repository,
-    IOptions<IdentityPolicyOptions> options) : IRequestHandler<Command, Result>
+    IdentityPolicyResolver policies) : IRequestHandler<Command, Result>
 {
     public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
     {
@@ -20,7 +19,9 @@ public sealed class Handler(
         if (user.Status is UserStatus.Disabled or UserStatus.SoftDeleted)
             return Result.Fail(UserErrors.InvalidStatusTransition());
 
-        var policy = MfaPolicy.Create(options.Value.MfaPolicyMode);
+        var policyResult = await policies.ResolveAsync(request.TenantId, cancellationToken);
+        if (policyResult.IsFailed) return Result.Fail(policyResult.Errors);
+        var policy = policyResult.Value.Mfa;
 
         var revokeResult = user.RevokeMfaFactor(request.FactorId, policy);
         if (revokeResult.IsFailed) return revokeResult;
