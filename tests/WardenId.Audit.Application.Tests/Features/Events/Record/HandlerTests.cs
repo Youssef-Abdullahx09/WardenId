@@ -126,6 +126,7 @@ public class HandlerTests
     [InlineData(OutcomeReason.UserDeleted, "user_deleted")]
     [InlineData(OutcomeReason.AdminEnded, "admin_ended")]
     [InlineData(OutcomeReason.AccountLocked, "account_locked")]
+    [InlineData(OutcomeReason.MfaChanged, "mfa_changed")]
     public async Task SessionEnded_IsAnInteractiveSuccess_CarryingTheEndReason_ByAPlatformSystemActor(OutcomeReason reason, string key)
     {
         var (recorded, tenantId) = await RecordSingleAsync(new Command(
@@ -139,6 +140,66 @@ public class HandlerTests
         Assert.Equal(key, recorded.Outcome.Reason!.Key);
         Assert.Equal(ActorType.System, recorded.Actor.Type);
         Assert.True(recorded.Actor.Scope.IsPlatform);
+    }
+
+    [Theory]
+    [InlineData(SecurityEvent.TermsAccepted, "user.terms.accept", AuditSeverity.Info)]
+    [InlineData(SecurityEvent.TotpEnrolled, "user.mfa.totp.enroll", AuditSeverity.Info)]
+    [InlineData(SecurityEvent.AuthenticatorReplaced, "user.mfa.totp.replace", AuditSeverity.Info)]
+    [InlineData(SecurityEvent.MfaRemoved, "user.mfa.remove", AuditSeverity.Warning)]
+    [InlineData(SecurityEvent.RecoveryCodesRegenerated, "user.mfa.recoverycodes.regenerate", AuditSeverity.Info)]
+    [InlineData(SecurityEvent.PasswordChanged, "user.password.change", AuditSeverity.Info)]
+    public async Task AccountChange_IsAnInteractiveSuccess_ByTheUser_OnTheUser(
+        SecurityEvent securityEvent, string key, AuditSeverity severity)
+    {
+        var (recorded, tenantId) = await RecordSingleAsync(new Command(
+            securityEvent, TenantId, Now, ContractActor.User(UserId), [Target.User(UserId)],
+            Session: new SessionContext(Sid)));
+
+        Assert.Equal(TenantId, tenantId);
+        Assert.Equal(key, recorded.EventType.Key);
+        Assert.Equal(AuditChannel.AuthnInteractive, recorded.Channel);
+        Assert.Equal(severity, recorded.Severity);
+        Assert.Equal(AuditResult.Success, recorded.Outcome.Status);
+        Assert.Null(recorded.Outcome.Reason);
+        Assert.Equal(ActorType.EndUser, recorded.Actor.Type);
+        Assert.Equal(UserId.ToString(), recorded.Actor.Id);
+        Assert.Equal(TenantId, recorded.Actor.Scope.TenantId);
+        Assert.Equal([$"user:{UserId}"], TargetsOf(recorded));
+        Assert.Equal(Sid.ToString(), recorded.AuthenticationContext.Sid);
+        Assert.Empty(recorded.Changes);
+    }
+
+    [Theory]
+    [InlineData(OutcomeReason.InvalidPassword, "invalid_password")]
+    [InlineData(OutcomeReason.InvalidSecondFactor, "invalid_second_factor")]
+    [InlineData(OutcomeReason.AccountLockedOut, "account_locked_out")]
+    [InlineData(OutcomeReason.AccountLocked, "account_locked")]
+    public async Task StepUpFailed_IsAnInteractiveWarningFailure_WithTheReason(OutcomeReason reason, string key)
+    {
+        var (recorded, _) = await RecordSingleAsync(new Command(
+            SecurityEvent.StepUpFailed, TenantId, Now, ContractActor.User(UserId), [Target.User(UserId)], reason,
+            new SessionContext(Sid)));
+
+        Assert.Same(AuditEventType.UserStepUpFailed, recorded.EventType);
+        Assert.Equal(AuditChannel.AuthnInteractive, recorded.Channel);
+        Assert.Equal(AuditSeverity.Warning, recorded.Severity);
+        Assert.Equal(AuditResult.Failure, recorded.Outcome.Status);
+        Assert.Equal(key, recorded.Outcome.Reason!.Key);
+        Assert.Equal(ActorType.EndUser, recorded.Actor.Type);
+    }
+
+    [Fact]
+    public async Task StepUpFailed_WithoutReason_IsRejected_AndNothingIsRecorded()
+    {
+        var (handler, recorder, _) = Create();
+
+        var result = await handler.Handle(
+            new Command(SecurityEvent.StepUpFailed, TenantId, Now, ContractActor.User(UserId), [Target.User(UserId)]),
+            CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Empty(recorder.Recorded);
     }
 
     [Theory]

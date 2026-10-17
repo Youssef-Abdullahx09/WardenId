@@ -69,8 +69,11 @@ public sealed class AuditOutcomeReason : Enumeration<AuditOutcomeReason>
 
     public static readonly AuditOutcomeReason AdminEnded = new(19, nameof(AdminEnded), "admin_ended");
 
-    /// <summary>A wrong TOTP or recovery code at sign-in.</summary>
+    /// <summary>A wrong TOTP or recovery code at sign-in, or at an account page's step-up.</summary>
     public static readonly AuditOutcomeReason InvalidSecondFactor = new(20, nameof(InvalidSecondFactor), "invalid_second_factor");
+
+    /// <summary>Session end reason: the user replaced or removed their authenticator, which ends their other sessions.</summary>
+    public static readonly AuditOutcomeReason MfaChanged = new(21, nameof(MfaChanged), "mfa_changed");
 
     public static readonly IReadOnlyList<AuditOutcomeReason> All =
     [
@@ -93,7 +96,8 @@ public sealed class AuditOutcomeReason : Enumeration<AuditOutcomeReason>
         UserDisabled,
         UserDeleted,
         AdminEnded,
-        InvalidSecondFactor
+        InvalidSecondFactor,
+        MfaChanged
     ];
 
     /// <summary>Resolves a catalog entry from its persisted taxonomy string — canonical deserialization only.</summary>

@@ -39,7 +39,7 @@ public sealed class PasswordModel(ISender sender) : AccountPageModel(sender)
             return Page();
         }
 
-        var result = await Sender.Send(new ChangePasswordCommand(TenantId, UserId, current, next), cancellationToken);
+        var result = await Sender.Send(new ChangePasswordCommand(TenantId, UserId, Sid, current, next), cancellationToken);
         if (result.IsFailed)
         {
             ErrorMessage = result.Errors[0].Message;

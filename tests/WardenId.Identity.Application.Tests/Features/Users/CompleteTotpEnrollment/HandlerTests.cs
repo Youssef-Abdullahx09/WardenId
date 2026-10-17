@@ -40,6 +40,7 @@ public class HandlerTests
         Assert.All(result.Value.RecoveryCodes, code =>
             Assert.Contains(user.RecoveryCodes, c => c.Matches(RecoveryCodes.Hash(RecoveryCodes.Normalize(code)!))));
         Assert.Equal(1, _repository.UpdateCallCount);
+        Assert.False(result.Value.ReplacedFactor);
     }
 
     [Fact]
@@ -76,6 +77,7 @@ public class HandlerTests
         Assert.True(result.IsSuccess);
         Assert.Same(pending, Assert.Single(user.MfaFactors));
         Assert.DoesNotContain(user.MfaFactors, f => f.Id == old.Id);
+        Assert.True(result.Value.ReplacedFactor);
     }
 
     [Fact]

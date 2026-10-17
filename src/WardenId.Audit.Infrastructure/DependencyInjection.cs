@@ -10,6 +10,7 @@ using WardenId.Audit.Infrastructure.Persistence;
 using WardenId.Audit.Infrastructure.Retention;
 using WardenId.Audit.Infrastructure.Sealing;
 using WardenId.Audit.Infrastructure.Witnessing;
+using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Persistence;
 
 namespace WardenId.Audit.Infrastructure;
@@ -32,6 +33,7 @@ public static class DependencyInjection
                 postgresSql => postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", AuditDbContext.Schema)));
 
         services.AddSingleton<IAuditContextAccessor, AsyncLocalAuditContextAccessor>();
+        services.AddSingleton<IAuditActorScope, AuditActorScope>();
         services.AddSingleton<IAuditRecorder, AuditRecorder>();
         services.AddSingleton<IAuditProofRepository, AuditProofRepository>();
         services.AddSingleton<IAuditEventSearch, AuditEventSearch>();

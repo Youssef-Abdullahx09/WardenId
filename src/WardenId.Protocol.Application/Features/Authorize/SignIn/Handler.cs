@@ -82,16 +82,7 @@ public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider 
     private Task RecordFailureAsync(Guid tenantId, Guid? userId, OutcomeReason reason) =>
         audit.RecordAsync(SignInAudit.Failed(tenantId, userId, reason, timeProvider.GetUtcNow()));
 
-    private static OutcomeReason ToOutcomeReason(FailureReason reason) => reason switch
-    {
-        FailureReason.UnknownUser => OutcomeReason.UnknownUser,
-        FailureReason.InvalidPassword => OutcomeReason.InvalidPassword,
-        FailureReason.LockedOut => OutcomeReason.AccountLockedOut,
-        FailureReason.Locked => OutcomeReason.AccountLocked,
-        FailureReason.Disabled => OutcomeReason.AccountDisabled,
-        FailureReason.Deleted => OutcomeReason.AccountDeleted,
-        _ => OutcomeReason.InvalidCredentials
-    };
+    private static OutcomeReason ToOutcomeReason(FailureReason reason) => SignInAudit.ReasonOf(reason);
 
     private static OutcomeReason ToOutcomeReason(SignInBlockReason reason) => reason switch
     {

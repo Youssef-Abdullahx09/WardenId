@@ -10,5 +10,8 @@ public enum EndReason
     AdminEnded = 5,
 
     /// <summary>Identity locked the account after too many failed sign-ins.</summary>
-    AccountLocked = 6
+    AccountLocked = 6,
+
+    /// <summary>The user replaced or removed their authenticator: their other sessions end, the one they used stays.</summary>
+    MfaChanged = 7
 }

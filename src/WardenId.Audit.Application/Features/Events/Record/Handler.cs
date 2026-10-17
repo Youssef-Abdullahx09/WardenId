@@ -16,8 +16,8 @@ namespace WardenId.Audit.Application.Features.Events.Record;
 /// nothing here throws — an envelope that can't be built or written is logged and reported as a failed Result.
 /// </summary>
 /// <remarks>
-/// Channels: anything the user does in the browser (sign-in, sign-out) and the session lifecycle go to
-/// authn.interactive; token issuance and revocation for a user's grant go to authn.silent; client_credentials
+/// Channels: anything the user does in the browser (sign-in, sign-out, their own account changes and the
+/// step-ups in front of them) and the session lifecycle go to authn.interactive; token issuance and revocation for a user's grant go to authn.silent; client_credentials
 /// and revocation of a client-only token go to authn.machine. token.ops gets nothing yet: whether it is
 /// platform-only or per-tenant is still open (docs/audit/OPEN-DECISIONS.md #3), and it is default-off.
 /// </remarks>
@@ -125,6 +125,20 @@ public sealed class Handler(IAuditRecorder recorder, IAuditContextAccessor ambie
         SecurityEvent.RefreshTokenReplayed =>
             new(AuditEventType.TokenRefreshReplay, AuditChannel.AuthnSilent, AuditSeverity.Critical, true, OAuth2,
                 OutcomeReason.InvalidGrant),
+        SecurityEvent.TermsAccepted =>
+            new(AuditEventType.UserTermsAccept, AuditChannel.AuthnInteractive, AuditSeverity.Info, false, Oidc),
+        SecurityEvent.TotpEnrolled =>
+            new(AuditEventType.UserMfaTotpEnroll, AuditChannel.AuthnInteractive, AuditSeverity.Info, false, Oidc),
+        SecurityEvent.AuthenticatorReplaced =>
+            new(AuditEventType.UserMfaTotpReplace, AuditChannel.AuthnInteractive, AuditSeverity.Info, false, Oidc),
+        SecurityEvent.MfaRemoved =>
+            new(AuditEventType.UserMfaRemove, AuditChannel.AuthnInteractive, AuditSeverity.Warning, false, Oidc),
+        SecurityEvent.RecoveryCodesRegenerated =>
+            new(AuditEventType.UserMfaRecoveryCodesRegenerate, AuditChannel.AuthnInteractive, AuditSeverity.Info, false, Oidc),
+        SecurityEvent.PasswordChanged =>
+            new(AuditEventType.UserPasswordChange, AuditChannel.AuthnInteractive, AuditSeverity.Info, false, Oidc),
+        SecurityEvent.StepUpFailed =>
+            new(AuditEventType.UserStepUpFailed, AuditChannel.AuthnInteractive, AuditSeverity.Warning, true, Oidc),
         _ => throw new ArgumentOutOfRangeException(nameof(request), request.Event, "Unknown security event.")
     };
 
@@ -175,6 +189,7 @@ public sealed class Handler(IAuditRecorder recorder, IAuditContextAccessor ambie
         OutcomeReason.AdminEnded => AuditOutcomeReason.AdminEnded,
         OutcomeReason.InvalidGrant => AuditOutcomeReason.InvalidGrant,
         OutcomeReason.InvalidSecondFactor => AuditOutcomeReason.InvalidSecondFactor,
+        OutcomeReason.MfaChanged => AuditOutcomeReason.MfaChanged,
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown outcome reason.")
     };
 }

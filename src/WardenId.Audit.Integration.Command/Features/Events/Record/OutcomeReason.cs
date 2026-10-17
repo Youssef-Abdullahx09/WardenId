@@ -33,5 +33,8 @@ public enum OutcomeReason
     InvalidGrant = 18,
 
     /// <summary>A wrong TOTP or recovery code at sign-in (also a wrong first code while enrolling).</summary>
-    InvalidSecondFactor = 19
+    InvalidSecondFactor = 19,
+
+    /// <summary>Session end reason: the user replaced or removed their authenticator, so their other sessions ended.</summary>
+    MfaChanged = 20
 }

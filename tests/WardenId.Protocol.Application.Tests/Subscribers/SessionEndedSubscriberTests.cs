@@ -121,6 +121,7 @@ public class SessionEndedSubscriberTests
     [InlineData(EndReason.UserDeleted, OutcomeReason.UserDeleted)]
     [InlineData(EndReason.AdminEnded, OutcomeReason.AdminEnded)]
     [InlineData(EndReason.AccountLocked, OutcomeReason.AccountLocked)]
+    [InlineData(EndReason.MfaChanged, OutcomeReason.MfaChanged)]
     public async Task OnReceive_RecordsTheSessionEnd_WithItsReason(EndReason reason, OutcomeReason expected)
     {
         var audit = new FakeAuthAuditTrail();
@@ -136,6 +137,21 @@ public class SessionEndedSubscriberTests
         Assert.Equal([Target.User(SubjectId), Target.Session(Sid)], recorded.Targets);
         Assert.Equal(expected, recorded.Reason);
         Assert.Equal(Sid, recorded.Session!.Sid);
+    }
+
+    public static IEnumerable<object[]> AllEndReasons() => Enum.GetValues<EndReason>().Select(r => new object[] { r });
+
+    // A new end reason must reach the audit row with a reason, not as a reason-less session end.
+    [Theory]
+    [MemberData(nameof(AllEndReasons))]
+    public async Task OnReceive_EveryEndReason_HasAnAuditReason(EndReason reason)
+    {
+        var audit = new FakeAuthAuditTrail();
+        var (subscriber, _, _) = Create(audit);
+
+        await subscriber.OnReceive(new SessionEnded.Message(Sid, TenantId, SubjectId, reason, [], EndedAt));
+
+        Assert.NotNull(Assert.Single(audit.Recorded).Reason);
     }
 
     [Fact]

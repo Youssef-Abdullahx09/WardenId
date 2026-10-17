@@ -73,6 +73,37 @@ public sealed class AuditEventType : Enumeration<AuditEventType>
     public static readonly AuditEventType AuditCheckpointKeyRotate =
         new(14, nameof(AuditCheckpointKeyRotate), "admin.audit.checkpointkey.rotate");
 
+    /// <summary>The user accepted the tenant's terms of service (sign-in terms step).</summary>
+    public static readonly AuditEventType UserTermsAccept =
+        new(15, nameof(UserTermsAccept), "user.terms.accept");
+
+    /// <summary>The user set up a first authenticator app (sign-in enrollment step or account page).</summary>
+    public static readonly AuditEventType UserMfaTotpEnroll =
+        new(16, nameof(UserMfaTotpEnroll), "user.mfa.totp.enroll");
+
+    /// <summary>The user replaced their authenticator app with a new one (account page).</summary>
+    public static readonly AuditEventType UserMfaTotpReplace =
+        new(17, nameof(UserMfaTotpReplace), "user.mfa.totp.replace");
+
+    /// <summary>The user turned two-step verification off: every factor and recovery code removed (account page).</summary>
+    public static readonly AuditEventType UserMfaRemove =
+        new(18, nameof(UserMfaRemove), "user.mfa.remove");
+
+    /// <summary>The user replaced their recovery codes with a new set (account page). The codes are never recorded.</summary>
+    public static readonly AuditEventType UserMfaRecoveryCodesRegenerate =
+        new(19, nameof(UserMfaRecoveryCodesRegenerate), "user.mfa.recoverycodes.regenerate");
+
+    /// <summary>The user changed their own password (account page). Admin changes are admin.entity.update.</summary>
+    public static readonly AuditEventType UserPasswordChange =
+        new(20, nameof(UserPasswordChange), "user.password.change");
+
+    /// <summary>
+    /// The password or code check in front of a self-service account change failed; the outcome reason says why
+    /// (invalid_password, invalid_second_factor, account_locked_out, ...).
+    /// </summary>
+    public static readonly AuditEventType UserStepUpFailed =
+        new(21, nameof(UserStepUpFailed), "user.stepup.failed");
+
     public static readonly IReadOnlyList<AuditEventType> All =
     [
         UserSessionStart,
@@ -88,7 +119,14 @@ public sealed class AuditEventType : Enumeration<AuditEventType>
         TokenIssueClientCredentials,
         TokenRevoke,
         TokenRefreshReplay,
-        AuditCheckpointKeyRotate
+        AuditCheckpointKeyRotate,
+        UserTermsAccept,
+        UserMfaTotpEnroll,
+        UserMfaTotpReplace,
+        UserMfaRemove,
+        UserMfaRecoveryCodesRegenerate,
+        UserPasswordChange,
+        UserStepUpFailed
     ];
 
     /// <summary>Resolves a catalog entry from its persisted taxonomy string — canonical deserialization only.</summary>

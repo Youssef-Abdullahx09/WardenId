@@ -1,6 +1,8 @@
 using FluentResults;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Domain;
+using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
+using UserStatus = WardenId.Identity.Domain.UserStatus;
 
 namespace WardenId.Identity.Application.Features.Users;
 
@@ -9,6 +11,9 @@ namespace WardenId.Identity.Application.Features.Users;
 /// account page. A wrong current password is a failed login under the tenant's lockout policy, and a locked account
 /// can't change its password until the lockout ends, so this is no way around the sign-in's guess limit. A right
 /// one leaves the failed-attempt counter alone: for a user with a second factor, only a code resets it.
+/// A refusal of the current password (wrong, or the account locked, disabled or deleted) is tagged with
+/// <see cref="AuthenticationFailure"/>, like a sign-in's, for the caller's audit trail; policy refusals of the new
+/// password are not tagged.
 /// </summary>
 internal sealed class PasswordChange(
     IUserRepository repository,
@@ -50,20 +55,20 @@ internal sealed class PasswordChange(
         var user = userResult.Value;
 
         if (user.Status == UserStatus.Locked && user.Lockout.LockedUntilUtc is { } lockedUntil && lockedUntil > DateTimeOffset.UtcNow)
-            return (Result.Fail(UserErrors.AccountLocked(lockedUntil)), false);
+            return (Fail(UserErrors.AccountLocked(lockedUntil), FailureReason.Locked, user), false);
 
         if (user.Credential is null || !passwordHasher.Verify(currentPassword, user.Credential.Hash))
         {
             // A disabled or deleted user can't record a failure (or change a password): just refused.
             if (user.RecordFailedLogin(policy.MaxFailedLoginAttempts, policy.LockoutDuration).IsFailed)
-                return (Result.Fail(UserErrors.InvalidCredentials()), false);
+                return (Fail(UserErrors.InvalidCredentials(), InactiveReason(user), user), false);
 
             var failSave = await repository.UpdateAsync(user, user.Id, cancellationToken);
-            if (failSave.IsFailed) return (Result.Fail(UserErrors.InvalidCredentials()), true);
+            if (failSave.IsFailed) return (Fail(UserErrors.InvalidCredentials(), FailureReason.InvalidPassword, user), true);
 
             return (user.Status == UserStatus.Locked && user.Lockout.LockedUntilUtc is { } newLockedUntil
-                ? Result.Fail(UserErrors.AccountLocked(newLockedUntil))
-                : Result.Fail(UserErrors.InvalidCredentials()), false);
+                ? Fail(UserErrors.AccountLocked(newLockedUntil), FailureReason.LockedOut, user)
+                : Fail(UserErrors.InvalidCredentials(), FailureReason.InvalidPassword, user), false);
         }
 
         var passwordPolicy = policy.Password;
@@ -80,4 +85,10 @@ internal sealed class PasswordChange(
         var saveResult = await repository.UpdateAsync(user, user.Id, cancellationToken);
         return (saveResult.IsFailed ? Result.Fail(saveResult.Errors) : Result.Ok(), false);
     }
+
+    private static FailureReason InactiveReason(User user) =>
+        user.Status == UserStatus.SoftDeleted ? FailureReason.Deleted : FailureReason.Disabled;
+
+    private static Result Fail(Error error, FailureReason reason, User user) =>
+        Result.Fail(AuthenticationFailure.Tag(error, reason, user.Id));
 }

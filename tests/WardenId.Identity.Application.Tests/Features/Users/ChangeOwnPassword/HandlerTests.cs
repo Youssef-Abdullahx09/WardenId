@@ -1,5 +1,6 @@
 using WardenId.Identity.Application.Features.Users.ChangeOwnPassword;
 using WardenId.Identity.Domain.Events;
+using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
 using Command = WardenId.Identity.Integration.Command.Features.Users.ChangeOwnPassword.Command;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.ChangeOwnPassword;
@@ -49,6 +50,21 @@ public class HandlerTests
         Assert.Equal(1, user.Lockout.FailedAttemptCount);
         Assert.Contains(user.DomainEvents, e => e is LoginFailedDomainEvent);
         Assert.True(_hasher.Verify(CurrentPassword, user.Credential!.Hash));
+        Assert.Equal((FailureReason.InvalidPassword, (Guid?)user.Id), AuthenticationFailure.Read(result.Errors));
+    }
+
+    [Fact]
+    public async Task Handle_AWrongCurrentPasswordThatLocksTheAccount_IsTaggedLockedOut_ThenLocked()
+    {
+        var user = await SeedUserAsync();
+        var handler = CreateHandler(new IdentityPolicyOptions { MaxFailedLoginAttempts = 1 });
+
+        var lockedOut = await handler.Handle(new Command(user.TenantId, user.Id, "wrong", "N3wP@ssword"), CancellationToken.None);
+        var locked = await handler.Handle(new Command(user.TenantId, user.Id, CurrentPassword, "N3wP@ssword"), CancellationToken.None);
+
+        Assert.Equal(FailureReason.LockedOut, AuthenticationFailure.Read(lockedOut.Errors)?.Reason);
+        Assert.Equal(FailureReason.Locked, AuthenticationFailure.Read(locked.Errors)?.Reason);
+        Assert.True(_hasher.Verify(CurrentPassword, user.Credential!.Hash));
     }
 
     [Fact]
@@ -61,6 +77,7 @@ public class HandlerTests
 
         Assert.Equal(UserErrors.PasswordTooShort(20).Message, result.Errors[0].Message);
         Assert.Equal(0, user.Lockout.FailedAttemptCount);
+        Assert.Null(AuthenticationFailure.Read(result.Errors));
     }
 
     [Fact]

@@ -5,7 +5,8 @@
 @if (Model.Removed)
 {
     <h1>Two-step verification is off</h1>
-    <p role="status">Your authenticator app and recovery codes have been removed. You now sign in with your password only.</p>
+    <p role="status">Your authenticator app and recovery codes have been removed. You now sign in with your password only.
+        You have been signed out everywhere else.</p>
     <a class="button" href="@Model.AccountUrl">Back to your account</a>
 }
 else

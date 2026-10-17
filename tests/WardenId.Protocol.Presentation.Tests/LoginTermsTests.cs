@@ -125,9 +125,17 @@ public class LoginTermsTests : IAsyncLifetime
         Assert.NotNull(tess.TermsAcceptedAt);
         Assert.True(HasCookie(browser, TenantSession.Scheme));
         Assert.False(HasCookie(browser, PendingSignIn.CookieName));
-        var started = Assert.Single(_host.AuditLog.Events);
-        Assert.Equal(SecurityEvent.SessionStarted, started.Event);
-        Assert.Equal(["pwd"], started.Session!.Amr);
+        Assert.Equal([SecurityEvent.TermsAccepted, SecurityEvent.SessionStarted], _host.AuditLog.Events.Select(e => e.Event));
+        var accepted = _host.AuditLog.Events[0];
+        Assert.Equal(Actor.User(tess.UserId), accepted.Actor);
+        Assert.Equal([Target.User(tess.UserId)], accepted.Targets);
+        Assert.Equal(tess.TenantId, accepted.TenantId);
+        Assert.Null(accepted.Reason);
+        Assert.Equal(["pwd"], _host.AuditLog.Events[1].Session!.Amr);
+
+        // Identity's write ran as tess (its admin.entity capture names her, not an anonymous platform actor).
+        var (_, actingAs) = Assert.Single(_host.ActorScope.Observed, o => o.Request == "AcceptTerms");
+        Assert.Equal((tess.TenantId, tess.UserId), actingAs);
     }
 
     [Fact]
@@ -165,7 +173,10 @@ public class LoginTermsTests : IAsyncLifetime
         var done = await PostFormAsync(browser, EnrollPath, new() { ["Code"] = FakeDirectory.TotpCode });
         Assert.Contains("code01-hank", await done.Content.ReadAsStringAsync());
         Assert.True(HasCookie(browser, TenantSession.Scheme));
-        Assert.Equal(["pwd", "otp", "mfa"], Assert.Single(_host.AuditLog.Events).Session!.Amr);
+        Assert.Equal(
+            [SecurityEvent.TermsAccepted, SecurityEvent.AuthenticatorReplaced, SecurityEvent.SessionStarted],
+            _host.AuditLog.Events.Select(e => e.Event));
+        Assert.Equal(["pwd", "otp", "mfa"], _host.AuditLog.Events[2].Session!.Amr);
     }
 
     [Fact]

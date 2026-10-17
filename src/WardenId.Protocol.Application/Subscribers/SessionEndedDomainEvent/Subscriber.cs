@@ -68,6 +68,7 @@ public sealed class Subscriber(
         EndReason.UserDeleted => OutcomeReason.UserDeleted,
         EndReason.AdminEnded => OutcomeReason.AdminEnded,
         EndReason.AccountLocked => OutcomeReason.AccountLocked,
+        EndReason.MfaChanged => OutcomeReason.MfaChanged,
         _ => null
     };
 }

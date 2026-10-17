@@ -50,7 +50,9 @@ public sealed class Handler(
         if (completeResult.IsFailed) return Result.Fail(completeResult.Errors);
 
         // The new authenticator replaces any other: an earlier one (BeginTotpReplacement) or one left from before
-        // an admin asked for a new enrollment.
+        // an admin asked for a new enrollment. Only an enabled one counts as a replacement for the caller.
+        var replacedFactor = user.MfaFactors.Any(f =>
+            f.Id != factor.Id && f.FactorType == MfaFactorType.Totp && f.Enabled);
         var removeResult = user.RemoveOtherMfaFactors(factor.Id);
         if (removeResult.IsFailed) return Result.Fail(removeResult.Errors);
 
@@ -59,6 +61,6 @@ public sealed class Handler(
         var saveResult = await repository.UpdateAsync(user, user.Id, cancellationToken);
         if (saveResult.IsFailed) return Result.Fail(UserErrors.MfaCodeInvalid());
 
-        return Result.Ok(new CompletedTotpEnrollment(rawCodes));
+        return Result.Ok(new CompletedTotpEnrollment(rawCodes, replacedFactor));
     }
 }

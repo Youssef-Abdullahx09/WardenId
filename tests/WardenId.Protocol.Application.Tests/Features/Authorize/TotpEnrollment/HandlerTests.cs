@@ -32,11 +32,13 @@ public class HandlerTests
         Assert.Equal("acme", Assert.IsType<IdentityBeginCommand>(Assert.Single(sender.Sent)).Issuer);
     }
 
-    [Fact]
-    public async Task Complete_ReturnsTheRecoveryCodes_AndRecordsNothing()
+    [Theory]
+    [InlineData(false, SecurityEvent.TotpEnrolled)]
+    [InlineData(true, SecurityEvent.AuthenticatorReplaced)]
+    public async Task Complete_ReturnsTheRecoveryCodes_AndAuditsTheEnrollment(bool replaced, SecurityEvent expected)
     {
         var sender = new StubSender().Returns<IdentityCompleteCommand, Result<IdentityCompleted>>(
-            Result.Ok(new IdentityCompleted(["abcde-fghij", "klmno-pqrst"])));
+            Result.Ok(new IdentityCompleted(["abcde-fghij", "klmno-pqrst"], replaced)));
         var audit = new FakeAuthAuditTrail();
 
         var result = await new CompleteHandler(sender, audit, new FakeTimeProvider(Now))
@@ -44,7 +46,14 @@ public class HandlerTests
 
         Assert.Equal(["abcde-fghij", "klmno-pqrst"], result.Value.RecoveryCodes);
         Assert.Equal(FactorId, Assert.IsType<IdentityCompleteCommand>(Assert.Single(sender.Sent)).FactorId);
-        Assert.Empty(audit.Recorded);
+        var recorded = Assert.Single(audit.Recorded);
+        Assert.Equal(expected, recorded.Event);
+        Assert.Equal(TenantId, recorded.TenantId);
+        Assert.Equal(Now, recorded.OccurredAt);
+        Assert.Equal(Actor.User(UserId), recorded.Actor);
+        Assert.Equal([Target.User(UserId)], recorded.Targets);
+        Assert.Null(recorded.Reason);
+        Assert.Null(recorded.Session);
     }
 
     [Fact]

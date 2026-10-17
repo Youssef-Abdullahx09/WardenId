@@ -13,7 +13,12 @@ public static class DependencyInjection
 {
     public static void AddProtocolApplication(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly()));
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly());
+            // Needs IAuditActorScope, which the Audit module registers.
+            cfg.AddOpenBehavior(typeof(ActAsUserBehavior<,>));
+        });
         services.Configure<ProtocolTokenOptions>(configuration.GetSection(ConfigurationKeys.ProtocolToken.Section));
         services.Configure<ProtocolSessionOptions>(configuration.GetSection(ConfigurationKeys.ProtocolSession.Section));
         // TryAdd: tests register a FakeTimeProvider first; OpenIddict resolves the same TimeProvider.

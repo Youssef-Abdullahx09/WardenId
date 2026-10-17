@@ -25,7 +25,7 @@ public sealed class RecoveryCodesModel(ISender sender) : AccountPageModel(sender
 
         var code = Code.Trim();
         Code = string.Empty;
-        var result = await Sender.Send(new RegenerateRecoveryCodesCommand(TenantId, UserId, code), cancellationToken);
+        var result = await Sender.Send(new RegenerateRecoveryCodesCommand(TenantId, UserId, Sid, code), cancellationToken);
         if (result.IsFailed)
         {
             ErrorMessage = WrongCode;

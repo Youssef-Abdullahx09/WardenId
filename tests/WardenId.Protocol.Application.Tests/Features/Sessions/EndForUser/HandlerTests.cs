@@ -89,4 +89,25 @@ public class HandlerTests
         Assert.True(result.IsSuccess);
         Assert.Equal(EndReason.UserLogout, (await LoadAsync(databaseName, alreadyEnded.Id)).EndReason);
     }
+
+    // An authenticator replaced or removed from one browser ends the user's other sessions in the tenant, not that one.
+    [Fact]
+    public async Task EndForUser_ExceptSid_KeepsThatSession()
+    {
+        var current = SessionBuilder.Live(TenantId, UserId);
+        var other = SessionBuilder.Live(TenantId, UserId);
+        var inOtherTenant = SessionBuilder.Live(OtherTenantId, UserId);
+        var databaseName = await SessionBuilder.SeedAsync(current, other, inOtherTenant);
+
+        await using (var db = TestProtocolDbContext.CreateNew(databaseName))
+        {
+            var result = await new Handler(db, new FakeTimeProvider(SessionBuilder.Now)).Handle(
+                new Command(UserId, EndReason.MfaChanged, TenantId, ExceptSid: current.Id), CancellationToken.None);
+            Assert.True(result.IsSuccess);
+        }
+
+        Assert.Null((await LoadAsync(databaseName, current.Id)).EndedAt);
+        Assert.Equal(EndReason.MfaChanged, (await LoadAsync(databaseName, other.Id)).EndReason);
+        Assert.Null((await LoadAsync(databaseName, inOtherTenant.Id)).EndedAt);
+    }
 }

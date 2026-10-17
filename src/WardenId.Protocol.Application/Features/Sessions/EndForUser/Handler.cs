@@ -17,6 +17,8 @@ public sealed class Handler(
             .Where(s => s.SubjectId == request.UserId && s.EndedAt == null);
         if (request.TenantId is { } tenantId)
             query = query.Where(s => s.TenantId == tenantId);
+        if (request.ExceptSid is { } exceptSid)
+            query = query.Where(s => s.Id != exceptSid);
 
         var sessions = await query.ToListAsync(cancellationToken);
 

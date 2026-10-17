@@ -6,7 +6,8 @@ namespace WardenId.Protocol.Presentation.Pages.Tenants.Account;
 
 /// <summary>
 /// Turns two-step verification off: a current code (app or recovery code) and an explicit confirmation. Only
-/// offered when the tenant's policy doesn't require MFA; Identity refuses it otherwise anyway.
+/// offered when the tenant's policy doesn't require MFA; Identity refuses it otherwise anyway. The user's other
+/// sessions end; this one stays.
 /// </summary>
 public sealed class RemoveMfaModel(ISender sender) : AccountPageModel(sender)
 {
@@ -36,7 +37,7 @@ public sealed class RemoveMfaModel(ISender sender) : AccountPageModel(sender)
             return Page();
         }
 
-        var result = await Sender.Send(new RemoveMfaCommand(TenantId, UserId, code), cancellationToken);
+        var result = await Sender.Send(new RemoveMfaCommand(TenantId, UserId, Sid, code), cancellationToken);
         if (result.IsFailed)
         {
             ErrorMessage = result.Errors[0].Message;

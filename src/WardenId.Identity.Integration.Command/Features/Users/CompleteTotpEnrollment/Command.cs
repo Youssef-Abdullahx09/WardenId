@@ -10,4 +10,7 @@ namespace WardenId.Identity.Integration.Command.Features.Users.CompleteTotpEnrol
 public sealed record Command(Guid TenantId, Guid UserId, Guid FactorId, string Code)
     : IRequest<Result<CompletedTotpEnrollment>>;
 
-public sealed record CompletedTotpEnrollment(IReadOnlyList<string> RecoveryCodes);
+/// <param name="ReplacedFactor">
+/// An enabled authenticator was removed in favour of the new one (a replacement), as opposed to a first enrollment.
+/// </param>
+public sealed record CompletedTotpEnrollment(IReadOnlyList<string> RecoveryCodes, bool ReplacedFactor);

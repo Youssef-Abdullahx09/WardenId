@@ -39,6 +39,7 @@ public class TokenPolicyEndpointTests
         });
         builder.Services.AddApiVersioning(options => options.ApiVersionReader = new UrlSegmentApiVersionReader());
         builder.Services.AddProtocolApplication(builder.Configuration);
+        builder.Services.AddSingleton<WardenId.SharedKernel.Application.Abstractions.IAuditActorScope, FakeAuditActorScope>();
         builder.Services.AddSharedKernelPresentation();
         var databaseName = "protocol-" + Guid.NewGuid();
         builder.Services.AddDbContext<ProtocolDbContext>(options => options.UseInMemoryDatabase(databaseName));

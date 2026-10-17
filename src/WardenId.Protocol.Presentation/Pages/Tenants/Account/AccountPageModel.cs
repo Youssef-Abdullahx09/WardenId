@@ -24,6 +24,9 @@ public abstract class AccountPageModel(ISender sender) : PageModel
     protected Guid TenantId { get; private set; }
     protected Guid UserId { get; private set; }
 
+    /// <summary>The live login session the page runs under: audited with each change, and kept when others end.</summary>
+    protected Guid Sid { get; private set; }
+
     public string Slug { get; private set; } = string.Empty;
     public string? ErrorMessage { get; protected set; }
 
@@ -49,6 +52,7 @@ public abstract class AccountPageModel(ISender sender) : PageModel
         var session = await TenantSession.ReadAsync(HttpContext, TenantId, Sender, cancellationToken);
         if (session is null) return ToLogin();
         UserId = session.UserId;
+        Sid = session.Sid;
 
         var account = await Sender.Send(new GetAccountQuery(TenantId, UserId), cancellationToken);
         if (account.IsFailed)

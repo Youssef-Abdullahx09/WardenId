@@ -8,8 +8,10 @@ using IdentityCompleteTotpEnrollmentCommand = WardenId.Identity.Integration.Comm
 namespace WardenId.Protocol.Application.Features.Authorize.CompleteTotpEnrollment;
 
 /// <summary>
-/// Enables the factor. A refused first code is audited as a failed sign-in (the user is mid sign-in) and answered
-/// with the same message as a wrong code at the code step.
+/// Enables the factor and audits the enrollment (a replacement when Identity removed an enabled authenticator for
+/// it, as when an admin asked a user with a factor to set up a new one). A refused first code is audited as a
+/// failed sign-in (the user is mid sign-in) and answered with the same message as a wrong code at the code step.
+/// No session exists yet, so none is ended here.
 /// </summary>
 public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider timeProvider)
     : IRequestHandler<Command, Result<CompletedTotpEnrollment>>
@@ -19,7 +21,13 @@ public sealed class Handler(ISender sender, IAuthAuditTrail audit, TimeProvider 
         var result = await sender.Send(
             new IdentityCompleteTotpEnrollmentCommand(request.TenantId, request.UserId, request.FactorId, request.Code),
             cancellationToken);
-        if (result.IsSuccess) return Result.Ok(new CompletedTotpEnrollment(result.Value.RecoveryCodes));
+        if (result.IsSuccess)
+        {
+            await audit.RecordAsync(UserChangeAudit.Changed(
+                result.Value.ReplacedFactor ? SecurityEvent.AuthenticatorReplaced : SecurityEvent.TotpEnrolled,
+                request.TenantId, request.UserId, timeProvider.GetUtcNow()));
+            return Result.Ok(new CompletedTotpEnrollment(result.Value.RecoveryCodes));
+        }
 
         await audit.RecordAsync(SignInAudit.Failed(
             request.TenantId, request.UserId, OutcomeReason.InvalidSecondFactor, timeProvider.GetUtcNow()));

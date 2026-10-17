@@ -164,11 +164,12 @@ public sealed class RecordAuditEventHandler(FakeAuditLog log) : IRequestHandler<
     }
 }
 
-public sealed class BeginTotpEnrollmentHandler(FakeDirectory directory)
+public sealed class BeginTotpEnrollmentHandler(FakeDirectory directory, FakeAuditActorScope actorScope)
     : IRequestHandler<BeginTotpEnrollmentCommand, Result<TotpEnrollment>>
 {
     public Task<Result<TotpEnrollment>> Handle(BeginTotpEnrollmentCommand request, CancellationToken cancellationToken)
     {
+        actorScope.Observe("BeginTotpEnrollment");
         var user = directory.Users.Single(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
         user.BeginEnrollmentCalls++;
         user.UnverifiedFactorId = Guid.NewGuid();
@@ -177,30 +178,33 @@ public sealed class BeginTotpEnrollmentHandler(FakeDirectory directory)
     }
 }
 
-public sealed class CompleteTotpEnrollmentHandler(FakeDirectory directory)
+public sealed class CompleteTotpEnrollmentHandler(FakeDirectory directory, FakeAuditActorScope actorScope)
     : IRequestHandler<CompleteTotpEnrollmentCommand, Result<CompletedTotpEnrollment>>
 {
     public Task<Result<CompletedTotpEnrollment>> Handle(CompleteTotpEnrollmentCommand request, CancellationToken cancellationToken)
     {
+        actorScope.Observe("CompleteTotpEnrollment");
         var user = directory.Users.Single(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
         user.CompleteEnrollmentCalls++;
         if (user.UnverifiedFactorId != request.FactorId || request.Code != FakeDirectory.TotpCode)
             return Task.FromResult(Result.Fail<CompletedTotpEnrollment>("Invalid code."));
 
+        var replaced = user.HasFactor;
         user.HasFactor = true;
         user.UnverifiedFactorId = null;
         user.PendingActions.Remove(RequiredAction.EnrollMfa);
         user.RecoveryCodes.Clear();
         user.RecoveryCodes.AddRange(Enumerable.Range(1, 10).Select(i => $"code{i:00}-{user.Username}"));
-        return Task.FromResult(Result.Ok(new CompletedTotpEnrollment(user.RecoveryCodes.ToArray())));
+        return Task.FromResult(Result.Ok(new CompletedTotpEnrollment(user.RecoveryCodes.ToArray(), replaced)));
     }
 }
 
-public sealed class VerifySecondFactorHandler(FakeDirectory directory)
+public sealed class VerifySecondFactorHandler(FakeDirectory directory, FakeAuditActorScope actorScope)
     : IRequestHandler<VerifySecondFactorCommand, Result<SecondFactorVerified>>
 {
     public Task<Result<SecondFactorVerified>> Handle(VerifySecondFactorCommand request, CancellationToken cancellationToken)
     {
+        actorScope.Observe("VerifySecondFactor");
         var user = directory.Users.Single(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
         if (user.Status != UserStatus.Active) return Fail(SecondFactorFailureReason.AccountInactive);
         if (!user.HasFactor) return Fail(SecondFactorFailureReason.NotEnrolled);
@@ -230,10 +234,12 @@ internal static class FakeStepUp
         directory.Users.Single(u => u.TenantId == tenantId && u.UserId == userId);
 }
 
-public sealed class AcceptTermsHandler(FakeDirectory directory, TimeProvider timeProvider) : IRequestHandler<AcceptTermsCommand, Result>
+public sealed class AcceptTermsHandler(FakeDirectory directory, TimeProvider timeProvider, FakeAuditActorScope actorScope)
+    : IRequestHandler<AcceptTermsCommand, Result>
 {
     public Task<Result> Handle(AcceptTermsCommand request, CancellationToken cancellationToken)
     {
+        actorScope.Observe("AcceptTerms");
         var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
         user.AcceptTermsCalls++;
         user.PendingActions.Remove(RequiredAction.AcceptTos);
@@ -258,15 +264,19 @@ public sealed class GetAccountHandler(FakeDirectory directory) : IRequestHandler
     }
 }
 
-public sealed class ChangeOwnPasswordHandler(FakeDirectory directory) : IRequestHandler<ChangeOwnPasswordCommand, Result>
+public sealed class ChangeOwnPasswordHandler(FakeDirectory directory, FakeAuditActorScope actorScope)
+    : IRequestHandler<ChangeOwnPasswordCommand, Result>
 {
     public const string WrongPassword = "Your current password is incorrect.";
     public const string TooShort = "The new password must be at least 12 characters long.";
 
     public Task<Result> Handle(ChangeOwnPasswordCommand request, CancellationToken cancellationToken)
     {
+        actorScope.Observe("ChangeOwnPassword");
         var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
-        if (request.CurrentPassword != FakeDirectory.UserPassword) return Task.FromResult(Result.Fail(WrongPassword));
+        if (request.CurrentPassword != FakeDirectory.UserPassword)
+            return Task.FromResult(Result.Fail(
+                AuthenticationFailure.Tag(new Error(WrongPassword), FailureReason.InvalidPassword, user.UserId)));
         if (request.NewPassword.Length < 12) return Task.FromResult(Result.Fail(TooShort));
 
         user.PasswordChanged = true;
@@ -274,11 +284,12 @@ public sealed class ChangeOwnPasswordHandler(FakeDirectory directory) : IRequest
     }
 }
 
-public sealed class RegenerateRecoveryCodesHandler(FakeDirectory directory)
+public sealed class RegenerateRecoveryCodesHandler(FakeDirectory directory, FakeAuditActorScope actorScope)
     : IRequestHandler<RegenerateRecoveryCodesCommand, Result<IReadOnlyList<string>>>
 {
     public Task<Result<IReadOnlyList<string>>> Handle(RegenerateRecoveryCodesCommand request, CancellationToken cancellationToken)
     {
+        actorScope.Observe("RegenerateRecoveryCodes");
         var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
         if (FakeStepUp.Check(user, request.Code, allowRecoveryCode: false) is { } error)
             return Task.FromResult(Result.Fail<IReadOnlyList<string>>(error));
@@ -289,11 +300,12 @@ public sealed class RegenerateRecoveryCodesHandler(FakeDirectory directory)
     }
 }
 
-public sealed class BeginTotpReplacementHandler(FakeDirectory directory)
+public sealed class BeginTotpReplacementHandler(FakeDirectory directory, FakeAuditActorScope actorScope)
     : IRequestHandler<BeginTotpReplacementCommand, Result<TotpEnrollment>>
 {
     public Task<Result<TotpEnrollment>> Handle(BeginTotpReplacementCommand request, CancellationToken cancellationToken)
     {
+        actorScope.Observe("BeginTotpReplacement");
         var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
         if (FakeStepUp.Check(user, request.Code, allowRecoveryCode: true) is { } error)
             return Task.FromResult(Result.Fail<TotpEnrollment>(error));
@@ -305,10 +317,11 @@ public sealed class BeginTotpReplacementHandler(FakeDirectory directory)
     }
 }
 
-public sealed class RemoveMfaHandler(FakeDirectory directory) : IRequestHandler<RemoveMfaCommand, Result>
+public sealed class RemoveMfaHandler(FakeDirectory directory, FakeAuditActorScope actorScope) : IRequestHandler<RemoveMfaCommand, Result>
 {
     public Task<Result> Handle(RemoveMfaCommand request, CancellationToken cancellationToken)
     {
+        actorScope.Observe("RemoveMfa");
         var user = FakeStepUp.User(directory, request.TenantId, request.UserId);
         if (directory.MfaRequired) return Task.FromResult(Result.Fail("The tenant requires MFA."));
         if (FakeStepUp.Check(user, request.Code, allowRecoveryCode: true) is { } error) return Task.FromResult(Result.Fail(error));

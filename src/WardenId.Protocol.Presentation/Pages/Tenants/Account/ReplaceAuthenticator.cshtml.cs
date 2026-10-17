@@ -6,7 +6,8 @@ namespace WardenId.Protocol.Presentation.Pages.Tenants.Account;
 
 /// <summary>
 /// Replaces the authenticator app: a current code first (app or recovery code), then the same setup as a first
-/// app. The old app keeps working until the new one is confirmed.
+/// app. The old app keeps working until the new one is confirmed; then the user's other sessions end and this one
+/// stays.
 /// </summary>
 public sealed class ReplaceAuthenticatorModel(ISender sender) : TotpEnrollmentPageModel(sender)
 {
@@ -27,7 +28,7 @@ public sealed class ReplaceAuthenticatorModel(ISender sender) : TotpEnrollmentPa
 
         var code = CurrentCode.Trim();
         CurrentCode = string.Empty;
-        var started = await Sender.Send(new BeginTotpReplacementCommand(TenantId, UserId, code, slug), cancellationToken);
+        var started = await Sender.Send(new BeginTotpReplacementCommand(TenantId, UserId, Sid, code, slug), cancellationToken);
         if (started.IsFailed)
         {
             ErrorMessage = WrongCode;

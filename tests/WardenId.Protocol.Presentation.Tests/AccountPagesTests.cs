@@ -1,7 +1,10 @@
 using System.Net;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Time.Testing;
 using WardenId.Audit.Integration.Command.Features.Events.Record;
+using WardenId.Protocol.Domain.Sessions;
+using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Events.Record.Command;
 
 namespace WardenId.Protocol.Presentation.Tests;
 
@@ -279,6 +282,35 @@ public partial class AccountPagesTests : IAsyncLifetime
         Assert.Contains(WebUtility.HtmlEncode(message), html);
         Assert.DoesNotContain(current, FormFieldValues(html));
         Assert.True(HasSession(browser));
+        Assert.Empty(Events(SecurityEvent.PasswordChanged));
+    }
+
+    [Fact]
+    public async Task ChangePassword_WrongCurrentPassword_IsAuditedAsAFailedStepUp()
+    {
+        var browser = await SignedInAsync("alice");
+
+        await PostAsync(browser, PasswordPath, new()
+        {
+            ["CurrentPassword"] = "wrong", ["NewPassword"] = "a brand new password", ["ConfirmPassword"] = "a brand new password"
+        });
+
+        var alice = _host.Directory.User("alice");
+        var sid = Assert.Single(await _host.SessionsOfAsync(alice.UserId)).Id;
+        AssertStepUpFailed(Assert.Single(Events(SecurityEvent.StepUpFailed)), alice, sid, OutcomeReason.InvalidPassword);
+    }
+
+    [Fact]
+    public async Task ChangePassword_PolicyRefusal_IsNotAStepUpFailure()
+    {
+        var browser = await SignedInAsync("alice");
+
+        await PostAsync(browser, PasswordPath, new()
+        {
+            ["CurrentPassword"] = FakeDirectory.UserPassword, ["NewPassword"] = "short", ["ConfirmPassword"] = "short"
+        });
+
+        Assert.Empty(Events(SecurityEvent.StepUpFailed));
     }
 
     [Fact]
@@ -298,6 +330,11 @@ public partial class AccountPagesTests : IAsyncLifetime
         Assert.Contains($"href=\"{WebUtility.HtmlEncode(LoginFor(AccountPath))}\"", html);
         Assert.True(_host.Directory.User("alice").PasswordChanged);
         Assert.False(HasSession(browser));
+        var alice = _host.Directory.User("alice");
+        var sid = Assert.Single(await _host.SessionsOfAsync(alice.UserId)).Id;
+        AssertUserChange(Assert.Single(Events(SecurityEvent.PasswordChanged)), alice, sid);
+        var (_, actingAs) = Assert.Single(_host.ActorScope.Observed, o => o.Request == "ChangeOwnPassword");
+        Assert.Equal((alice.TenantId, alice.UserId), actingAs);
     }
 
     // --- Set up an authenticator app ---
@@ -338,8 +375,14 @@ public partial class AccountPagesTests : IAsyncLifetime
         Assert.True(_host.Directory.User("alice").HasFactor);
         Assert.Equal(1, _host.Directory.User("alice").BeginEnrollmentCalls);
 
-        // A wrong code here is not a failed sign-in: no SignInFailed is recorded.
+        // A wrong code here is not a failed sign-in but a failed step-up; a first setup ends no session.
         Assert.DoesNotContain(_host.AuditLog.Events, e => e.Event == SecurityEvent.SignInFailed);
+        var alice = _host.Directory.User("alice");
+        var sid = Assert.Single(await _host.SessionsOfAsync(alice.UserId)).Id;
+        AssertStepUpFailed(Assert.Single(Events(SecurityEvent.StepUpFailed)), alice, sid, OutcomeReason.InvalidSecondFactor);
+        AssertUserChange(Assert.Single(Events(SecurityEvent.TotpEnrolled)), alice, sid);
+        Assert.Empty(Events(SecurityEvent.AuthenticatorReplaced));
+        Assert.Null((await _host.FindSessionAsync(sid))!.EndedAt);
     }
 
     [Fact]
@@ -426,6 +469,9 @@ public partial class AccountPagesTests : IAsyncLifetime
         Assert.DoesNotContain("<svg", html);
         Assert.Equal(0, _host.Directory.User("erin").BeginEnrollmentCalls);
         Assert.DoesNotContain(_host.AuditLog.Events, e => e.Event == SecurityEvent.SignInFailed);
+        var erin = _host.Directory.User("erin");
+        var sid = Assert.Single(await _host.SessionsOfAsync(erin.UserId)).Id;
+        AssertStepUpFailed(Assert.Single(Events(SecurityEvent.StepUpFailed)), erin, sid, OutcomeReason.InvalidSecondFactor);
     }
 
     [Fact]
@@ -463,6 +509,8 @@ public partial class AccountPagesTests : IAsyncLifetime
 
         Assert.Contains(WrongCode, html);
         Assert.Equal(["erin1-recov"], _host.Directory.User("erin").RecoveryCodes);
+        Assert.Equal(OutcomeReason.InvalidSecondFactor, Assert.Single(Events(SecurityEvent.StepUpFailed)).Reason);
+        Assert.Empty(Events(SecurityEvent.RecoveryCodesRegenerated));
     }
 
     [Fact]
@@ -475,6 +523,10 @@ public partial class AccountPagesTests : IAsyncLifetime
         Assert.Contains("new01-erin", html);
         Assert.Contains("new10-erin", html);
         Assert.DoesNotContain("new01-erin", await HtmlAsync(await browser.GetAsync(RecoveryCodesPath)));
+        var erin = _host.Directory.User("erin");
+        var sid = Assert.Single(await _host.SessionsOfAsync(erin.UserId)).Id;
+        AssertUserChange(Assert.Single(Events(SecurityEvent.RecoveryCodesRegenerated)), erin, sid);
+        Assert.Null((await _host.FindSessionAsync(sid))!.EndedAt);
     }
 
     // --- Turn off two-step verification ---
@@ -499,6 +551,8 @@ public partial class AccountPagesTests : IAsyncLifetime
 
         Assert.Contains(WrongCode, html);
         Assert.True(_host.Directory.User("erin").HasFactor);
+        Assert.Equal(OutcomeReason.InvalidSecondFactor, Assert.Single(Events(SecurityEvent.StepUpFailed)).Reason);
+        Assert.Empty(Events(SecurityEvent.MfaRemoved));
     }
 
     [Fact]
@@ -510,6 +564,9 @@ public partial class AccountPagesTests : IAsyncLifetime
 
         Assert.Contains("Two-step verification is off", html);
         Assert.False(_host.Directory.User("erin").HasFactor);
+        var erin = _host.Directory.User("erin");
+        var sid = Assert.Single(await _host.SessionsOfAsync(erin.UserId)).Id;
+        AssertUserChange(Assert.Single(Events(SecurityEvent.MfaRemoved)), erin, sid);
     }
 
     [Fact]
@@ -523,6 +580,99 @@ public partial class AccountPagesTests : IAsyncLifetime
 
         Assert.Equal(AccountPath, response.Headers.Location!.OriginalString);
         Assert.True(_host.Directory.User("erin").HasFactor);
+    }
+
+    // --- Authenticator replaced or removed: the user's other sessions end, this one stays ---
+
+    /// <summary>erin signed in on two browsers: the one she acts from, and another (say, a stolen session).</summary>
+    private async Task<(BrowserClient Current, Guid CurrentSid, BrowserClient Other, Guid OtherSid)> TwoSessionsAsync()
+    {
+        var erin = _host.Directory.User("erin").UserId;
+        var other = await SignedInAsync("erin");
+        var otherSid = Assert.Single(await _host.SessionsOfAsync(erin)).Id;
+        var current = await SignedInAsync("erin");
+        var currentSid = Assert.Single(await _host.SessionsOfAsync(erin), s => s.Id != otherSid).Id;
+        return (current, currentSid, other, otherSid);
+    }
+
+    private async Task AssertOnlyCurrentSessionLivesAsync(BrowserClient current, Guid currentSid, BrowserClient other, Guid otherSid)
+    {
+        Assert.Null((await _host.FindSessionAsync(currentSid))!.EndedAt);
+        var ended = (await _host.FindSessionAsync(otherSid))!;
+        Assert.NotNull(ended.EndedAt);
+        Assert.Equal(EndReason.MfaChanged, ended.EndReason);
+
+        Assert.Equal(HttpStatusCode.OK, (await current.GetAsync(AccountPath)).StatusCode);
+        Assert.Equal(LoginFor(AccountPath), (await other.GetAsync(AccountPath)).Headers.Location!.OriginalString);
+    }
+
+    [Fact]
+    public async Task Replace_Completed_EndsTheUsersOtherSessions_AndKeepsThisOne()
+    {
+        var (current, currentSid, other, otherSid) = await TwoSessionsAsync();
+
+        var started = await HtmlAsync(await PostAsync(current, ReplacePath,
+            new() { ["CurrentCode"] = FakeDirectory.TotpCode }, handler: "Start"));
+        // Starting a replacement changes nothing yet.
+        Assert.Null((await _host.FindSessionAsync(otherSid))!.EndedAt);
+
+        var done = await HtmlAsync(await PostFromAsync(current, started, ReplacePath,
+            new() { ["State"] = State(started), ["Code"] = FakeDirectory.TotpCode }, handler: "Verify"));
+
+        Assert.Contains("signed out everywhere else", done);
+        await AssertOnlyCurrentSessionLivesAsync(current, currentSid, other, otherSid);
+        var erin = _host.Directory.User("erin");
+        AssertUserChange(Assert.Single(Events(SecurityEvent.AuthenticatorReplaced)), erin, currentSid);
+        Assert.Empty(Events(SecurityEvent.TotpEnrolled));
+        Assert.All(
+            _host.ActorScope.Observed.Where(o => o.Request is "BeginTotpReplacement" or "CompleteTotpEnrollment"),
+            o => Assert.Equal((erin.TenantId, erin.UserId), o.ActingAs));
+    }
+
+    [Fact]
+    public async Task Remove_EndsTheUsersOtherSessions_AndKeepsThisOne()
+    {
+        var (current, currentSid, other, otherSid) = await TwoSessionsAsync();
+
+        var html = await HtmlAsync(await PostAsync(current, RemovePath,
+            new() { ["Code"] = FakeDirectory.TotpCode, ["Confirm"] = "true" }));
+
+        Assert.Contains("signed out everywhere else", html);
+        await AssertOnlyCurrentSessionLivesAsync(current, currentSid, other, otherSid);
+        var erin = _host.Directory.User("erin");
+        AssertUserChange(Assert.Single(Events(SecurityEvent.MfaRemoved)), erin, currentSid);
+        var (_, actingAs) = Assert.Single(_host.ActorScope.Observed, o => o.Request == "RemoveMfa");
+        Assert.Equal((erin.TenantId, erin.UserId), actingAs);
+    }
+
+    [Fact]
+    public async Task Remove_WrongCode_EndsNoSession()
+    {
+        var (current, currentSid, _, otherSid) = await TwoSessionsAsync();
+
+        await PostAsync(current, RemovePath, new() { ["Code"] = "000000", ["Confirm"] = "true" });
+
+        Assert.Null((await _host.FindSessionAsync(currentSid))!.EndedAt);
+        Assert.Null((await _host.FindSessionAsync(otherSid))!.EndedAt);
+    }
+
+    [Fact]
+    public async Task AuditEvents_NeverCarryWhatTheUserTyped_OrTheCodesIssued()
+    {
+        var browser = await SignedInAsync("erin");
+        await PostAsync(browser, RecoveryCodesPath, new() { ["Code"] = "erin1-recov" });
+        await PostAsync(browser, RecoveryCodesPath, new() { ["Code"] = FakeDirectory.TotpCode });
+        await PostAsync(browser, PasswordPath, new()
+        {
+            ["CurrentPassword"] = "a wrong guess", ["NewPassword"] = "a brand new password", ["ConfirmPassword"] = "a brand new password"
+        });
+
+        var serialized = JsonSerializer.Serialize(_host.AuditLog.Events);
+        Assert.Equal(
+            [SecurityEvent.StepUpFailed, SecurityEvent.RecoveryCodesRegenerated, SecurityEvent.StepUpFailed],
+            _host.AuditLog.Events.Where(e => e.Event != SecurityEvent.SessionStarted).Select(e => e.Event));
+        foreach (var secret in new[] { "erin1-recov", "new01-erin", "a wrong guess", "a brand new password", FakeDirectory.UserPassword })
+            Assert.DoesNotContain(secret, serialized);
     }
 
     // --- Cross-cutting ---
@@ -551,4 +701,27 @@ public partial class AccountPagesTests : IAsyncLifetime
 
     [GeneratedRegex("name=\"State\" value=\"([^\"]+)\"")]
     private static partial Regex StatePattern();
+
+    private IReadOnlyList<RecordAuditEventCommand> Events(SecurityEvent securityEvent) =>
+        _host.AuditLog.Events.Where(e => e.Event == securityEvent).ToList();
+
+    private static void AssertUserChange(RecordAuditEventCommand recorded, FakeDirectory.UserEntry user, Guid sid)
+    {
+        Assert.Equal(user.TenantId, recorded.TenantId);
+        Assert.Equal(Actor.User(user.UserId), recorded.Actor);
+        Assert.Equal([Target.User(user.UserId)], recorded.Targets);
+        Assert.Null(recorded.Reason);
+        Assert.Equal(sid, recorded.Session?.Sid);
+    }
+
+    private static void AssertStepUpFailed(
+        RecordAuditEventCommand recorded, FakeDirectory.UserEntry user, Guid sid, OutcomeReason reason)
+    {
+        Assert.Equal(SecurityEvent.StepUpFailed, recorded.Event);
+        Assert.Equal(reason, recorded.Reason);
+        Assert.Equal(user.TenantId, recorded.TenantId);
+        Assert.Equal(Actor.User(user.UserId), recorded.Actor);
+        Assert.Equal([Target.User(user.UserId)], recorded.Targets);
+        Assert.Equal(sid, recorded.Session?.Sid);
+    }
 }

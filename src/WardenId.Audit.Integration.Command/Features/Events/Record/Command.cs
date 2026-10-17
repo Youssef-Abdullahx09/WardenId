@@ -11,7 +11,10 @@ namespace WardenId.Audit.Integration.Command.Features.Events.Record;
 /// for diagnostics only — callers must not fail the sign-in or token request on it.
 /// </summary>
 /// <param name="TenantId">Tenant the event belongs to (the row's partition scope).</param>
-/// <param name="Reason">Required for <see cref="SecurityEvent.SignInFailed"/>; the end reason for <see cref="SecurityEvent.SessionEnded"/>.</param>
+/// <param name="Reason">
+/// Required for <see cref="SecurityEvent.SignInFailed"/> and <see cref="SecurityEvent.StepUpFailed"/>; the end reason
+/// for <see cref="SecurityEvent.SessionEnded"/>.
+/// </param>
 public sealed record Command(
     SecurityEvent Event,
     Guid TenantId,

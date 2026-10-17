@@ -19,6 +19,7 @@ using WardenId.Protocol.Infrastructure;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.Protocol.Infrastructure.Persistence;
 using WardenId.Protocol.Infrastructure.Sessions;
+using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Presentation;
 using ConfigurationKeys = WardenId.Protocol.Infrastructure.ConfigurationKeys;
 
@@ -29,11 +30,12 @@ public sealed class ProtocolTestHost : IAsyncDisposable
     public const string IssuerBase = "https://wardenid.test";
     public const string AccessTokenProbePath = "/test/access-token";
 
-    private ProtocolTestHost(WebApplication app, FakeDirectory directory, FakeAuditLog auditLog)
+    private ProtocolTestHost(WebApplication app, FakeDirectory directory, FakeAuditLog auditLog, FakeAuditActorScope actorScope)
     {
         App = app;
         Directory = directory;
         AuditLog = auditLog;
+        ActorScope = actorScope;
         Client = app.GetTestClient();
     }
 
@@ -42,6 +44,9 @@ public sealed class ProtocolTestHost : IAsyncDisposable
 
     /// <summary>What Protocol sent to the Audit module (a fake handler for its Record command).</summary>
     public FakeAuditLog AuditLog { get; }
+
+    /// <summary>Whom the Identity requests ran as, for the audit capture of their writes.</summary>
+    public FakeAuditActorScope ActorScope { get; }
     public HttpClient Client { get; }
 
     /// <summary>A cookie-carrying "browser" over https (the session cookie is Secure).</summary>
@@ -70,6 +75,9 @@ public sealed class ProtocolTestHost : IAsyncDisposable
         builder.Services.AddSingleton(directory);
         var auditLog = new FakeAuditLog();
         builder.Services.AddSingleton(auditLog);
+        var actorScope = new FakeAuditActorScope();
+        builder.Services.AddSingleton(actorScope);
+        builder.Services.AddSingleton<IAuditActorScope>(actorScope);
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
 
         var databaseName = "openiddict-" + Guid.NewGuid();
@@ -119,7 +127,7 @@ public sealed class ProtocolTestHost : IAsyncDisposable
                 .RequireAuthenticatedUser());
 
         await app.StartAsync();
-        return new ProtocolTestHost(app, directory, auditLog);
+        return new ProtocolTestHost(app, directory, auditLog, actorScope);
     }
 
     /// <summary>Sends through the app's mediator in a fresh scope (real Protocol handlers, fake directory).</summary>

@@ -258,6 +258,14 @@ public partial class MfaSignInTests : IAsyncLifetime
         Assert.False(HasCookie(browser, PendingSignIn.CookieName));
         Assert.DoesNotContain(RequiredAction.EnrollMfa, _host.Directory.User("frank").PendingActions);
         Assert.Equal(["pwd", "otp", "mfa"], Assert.Single(Events(SecurityEvent.SessionStarted)).Session!.Amr);
+        var frank = _host.Directory.User("frank");
+        var enrolled = Assert.Single(Events(SecurityEvent.TotpEnrolled));
+        Assert.Equal(Actor.User(frank.UserId), enrolled.Actor);
+        Assert.Equal([Target.User(frank.UserId)], enrolled.Targets);
+        Assert.Empty(Events(SecurityEvent.AuthenticatorReplaced));
+        Assert.All(
+            _host.ActorScope.Observed.Where(o => o.Request is "BeginTotpEnrollment" or "CompleteTotpEnrollment"),
+            o => Assert.Equal((frank.TenantId, frank.UserId), o.ActingAs));
 
         // Shown once: the ticket is gone, so the page sends the user back to login.
         Assert.Equal("/tenants/acme/login", (await browser.GetAsync(EnrollPath)).Headers.Location!.OriginalString);
@@ -292,6 +300,13 @@ public partial class MfaSignInTests : IAsyncLifetime
         var done = await PostCodeAsync(browser, EnrollPath, FakeDirectory.TotpCode);
         Assert.Contains("code01-gina", await done.Content.ReadAsStringAsync());
         Assert.True(HasCookie(browser, TenantSession.Scheme));
+
+        // The admin-required new authenticator replaced gina's old one.
+        Assert.Single(Events(SecurityEvent.AuthenticatorReplaced));
+        Assert.Empty(Events(SecurityEvent.TotpEnrolled));
+        var gina = _host.Directory.User("gina");
+        var (_, actingAs) = Assert.Single(_host.ActorScope.Observed, o => o.Request == "VerifySecondFactor");
+        Assert.Equal((gina.TenantId, gina.UserId), actingAs);
     }
 
     [Fact]

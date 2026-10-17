@@ -49,7 +49,7 @@ public abstract class TotpEnrollmentPageModel(ISender sender) : AccountPageModel
         }
 
         var result = await Sender.Send(
-            new CompleteTotpSetupCommand(TenantId, UserId, state.FactorId, code), cancellationToken);
+            new CompleteTotpSetupCommand(TenantId, UserId, Sid, state.FactorId, code), cancellationToken);
         if (result.IsFailed)
         {
             ErrorMessage = WrongCode;

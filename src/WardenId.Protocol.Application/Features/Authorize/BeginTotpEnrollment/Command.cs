@@ -1,12 +1,13 @@
 using FluentResults;
 using MediatR;
+using WardenId.Protocol.Application.Auditing;
 
 namespace WardenId.Protocol.Application.Features.Authorize.BeginTotpEnrollment;
 
 /// <summary>
 /// Starts setting up an authenticator app during sign-in. <paramref name="Issuer"/> is the name the app shows.
 /// </summary>
-public sealed record Command(Guid TenantId, Guid UserId, string Issuer) : IRequest<Result<StartedTotpEnrollment>>;
+public sealed record Command(Guid TenantId, Guid UserId, string Issuer) : IRequest<Result<StartedTotpEnrollment>>, IActsAsUser;
 
 /// <param name="Secret">Base32, no padding: shown for manual entry, never logged.</param>
 /// <param name="OtpAuthUri">otpauth://totp/... for the QR code.</param>
