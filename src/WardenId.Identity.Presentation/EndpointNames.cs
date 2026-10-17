@@ -30,6 +30,7 @@ public static class EndpointNames
         public const string Delete = "DeleteUser";
         public const string Restore = "RestoreUser";
         public const string Unlock = "UnlockUser";
+        public const string Update = "UpdateUser";
         public const string VerifyEmail = "VerifyUserEmail";
         public const string VerifyMfaFactor = "VerifyUserMfaFactor";
     }

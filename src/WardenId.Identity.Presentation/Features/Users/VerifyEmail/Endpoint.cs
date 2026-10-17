@@ -35,7 +35,7 @@ public sealed class Endpoint : IEndpoint
             .WithName(EndpointNames.Users.VerifyEmail)
             .WithTags("Identity - Users")
             .WithSummary("Verify an email address")
-            .WithDescription("Consumes an email-verification token, activating the account.")
+            .WithDescription("Consumes an email-verification token: activates a new account, or clears the VerifyEmail required action (e.g. after an email change) without changing the status. 400 if the user is disabled or has nothing to verify.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);

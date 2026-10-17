@@ -70,9 +70,16 @@ public sealed class User : AggregateRoot, IAuditableAggregate
 
     public void AddEmailVerificationToken(EmailVerificationToken token) => _emailVerificationTokens.Add(token);
 
+    /// <summary>
+    /// Verifies the current email. A new user (PendingVerification) becomes Active; a user who
+    /// already got past that (Active or Locked) but has the VerifyEmail action — their email was
+    /// changed, or an admin asked for it — keeps their status and loses the action.
+    /// </summary>
     public Result VerifyEmail(string tokenHash)
     {
-        if (Status != UserStatus.PendingVerification) return Result.Fail(UserErrors.EmailAlreadyVerified());
+        if (Status is UserStatus.Disabled or UserStatus.SoftDeleted) return Result.Fail(UserErrors.InvalidStatusTransition());
+        if (Status != UserStatus.PendingVerification && !_pendingActions.Contains(RequiredAction.VerifyEmail))
+            return Result.Fail(UserErrors.EmailAlreadyVerified());
 
         var token = _emailVerificationTokens.FirstOrDefault(t => t.Matches(tokenHash));
         if (token is null) return Result.Fail(UserErrors.TokenInvalid());
@@ -80,9 +87,47 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         var consumeResult = token.Consume(DateTimeOffset.UtcNow);
         if (consumeResult.IsFailed) return consumeResult;
 
-        Status = UserStatus.Active;
+        if (Status == UserStatus.PendingVerification) Status = UserStatus.Active;
         _pendingActions.Remove(RequiredAction.VerifyEmail);
         RaiseDomainEvent(new UserEmailVerifiedDomainEvent());
+        return Result.Ok();
+    }
+
+    /// <summary>
+    /// Sets a new email, which has to be verified with <paramref name="verificationToken"/>
+    /// (sent to the new address). The status is kept — an Active user stays Active — and the
+    /// VerifyEmail required action blocks sign-in and token issuance until then. Every email
+    /// verification and password reset token issued so far went to the old address, so they
+    /// are all dropped: none can be used any more, and since a consumed verification token is
+    /// what marks the email verified, the new one counts as unverified (see <see cref="Enable"/>).
+    /// The same email (after normalization) changes nothing.
+    /// </summary>
+    public Result ChangeEmail(Email newEmail, EmailVerificationToken verificationToken)
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+        if (newEmail == Email) return Result.Ok();
+
+        var previousEmail = Email;
+        Email = newEmail;
+        _emailVerificationTokens.Clear();
+        _passwordResetTokens.Clear();
+        _emailVerificationTokens.Add(verificationToken);
+        AddRequiredAction(RequiredAction.VerifyEmail);
+        RaiseDomainEvent(new UserEmailChangedDomainEvent(previousEmail, newEmail));
+        return Result.Ok();
+    }
+
+    /// <summary>Sets a new username. Nothing to verify; the same username changes nothing.</summary>
+    public Result ChangeUsername(Username newUsername)
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+        if (newUsername == Username) return Result.Ok();
+
+        var previousUsername = Username;
+        Username = newUsername;
+        RaiseDomainEvent(new UserUsernameChangedDomainEvent(previousUsername, newUsername));
         return Result.Ok();
     }
 
