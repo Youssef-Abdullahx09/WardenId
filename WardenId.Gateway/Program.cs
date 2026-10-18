@@ -28,6 +28,7 @@ app.UseCors();
 // on REST endpoints. OpenIddict's server and the per-tenant session cookie (WardenId.TenantSession)
 // are named explicitly by the protocol endpoints and login pages.
 app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 // Before endpoints so every handler runs with ambient audit context set — see
@@ -72,4 +73,4 @@ await MasterTenantSeeder.SeedAsync(app);
 await MasterAdminSeeder.SeedAsync(app);
 await MasterClientSeeder.SeedAsync(app);
 
-await app.WaitForShutdownAsync(CancellationToken.None);
+await app.WaitForShutdownAsync(CancellationToken.None);
