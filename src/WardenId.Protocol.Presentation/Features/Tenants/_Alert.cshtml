@@ -1,0 +1,11 @@
+@model string?
+@if (Model is not null)
+{
+    <div class="alert" role="alert">
+        <svg class="alert-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7.5v5.5M12 16.5v.01" />
+        </svg>
+        <span>@Model</span>
+    </div>
+}

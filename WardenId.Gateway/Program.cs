@@ -41,7 +41,9 @@ app.MapEndpoints();
 // /health/live and /health/ready: anonymous, outside /api and Swagger (WardenId.Gateway/Health).
 app.MapGatewayHealthChecks();
 
-// Protocol login pages (Razor class library in WardenId.Protocol.Presentation).
+// Protocol login pages (Razor class library in WardenId.Protocol.Presentation). Their stylesheet and
+// script are the RCL's wwwroot, served anonymously at /_content/WardenId.Protocol.Presentation/...
+app.MapStaticAssets();
 app.MapRazorPages();
 
 // Configure the HTTP request pipeline.

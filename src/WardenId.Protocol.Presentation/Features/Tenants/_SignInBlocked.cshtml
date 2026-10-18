@@ -1,0 +1,7 @@
+@model SignInBlockedView
+<h1 class="auth-title">You can't sign in yet</h1>
+<partial name="_Alert" model="Model.Message" />
+@if (Model.Back is { } back)
+{
+    <partial name="_ReturnToApplication" model='back with { Label = "Back to application" }' />
+}

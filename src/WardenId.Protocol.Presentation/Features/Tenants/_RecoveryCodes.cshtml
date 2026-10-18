@@ -1,0 +1,7 @@
+@model IReadOnlyList<string>
+<ul class="recovery-codes">
+    @foreach (var recoveryCode in Model)
+    {
+        <li>@recoveryCode</li>
+    }
+</ul>

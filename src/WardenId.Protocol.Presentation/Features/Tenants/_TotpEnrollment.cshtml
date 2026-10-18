@@ -1,0 +1,29 @@
+@model TotpEnrollmentView
+<ol class="steps">
+    <li class="step">
+        <h2 class="step-title">Add your account to an authenticator app</h2>
+        <p class="step-text">Scan this QR code with the app.</p>
+        <div class="qr">@Html.Raw(Model.QrCodeSvgMarkup)</div>
+        <details class="setup-link">
+            <summary>Can't scan it? Enter a setup key instead</summary>
+            <code>@Model.GroupedSecret</code>
+        </details>
+    </li>
+
+    <li class="step">
+        <h2 class="step-title">Confirm with a code</h2>
+        @if (Model.State is { } state)
+        {
+            <form method="post" asp-page-handler="Verify">
+                <input type="hidden" name="State" value="@state" />
+                <partial name="_TotpCodeField" />
+            </form>
+        }
+        else
+        {
+            <form method="post">
+                <partial name="_TotpCodeField" />
+            </form>
+        }
+    </li>
+</ol>

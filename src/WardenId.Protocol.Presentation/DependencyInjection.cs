@@ -22,9 +22,14 @@ public static class DependencyInjection
         services.AddMemoryCache();
         services.AddScoped<IProtocolCorsPolicyResolver, ProtocolCorsPolicyResolver>();
 
+        // The pages live beside the endpoints under Features/, so that's the Razor Pages root (and
+        // Features/Shared the layout/partial fallback) instead of the default Pages/.
         services.AddRazorPages(options =>
+            {
+                options.RootDirectory = "/Features";
                 options.Conventions.AddFolderApplicationModelConvention(
-                    "/Tenants", model => model.Filters.Add(new AuthPageHeadersFilter())))
+                    "/Tenants", model => model.Filters.Add(new AuthPageHeadersFilter()));
+            })
             .AddApplicationPart(typeof(DependencyInjection).Assembly);
 
         // No default scheme on purpose: only the sign-in pages and /authorize read this cookie. The pending MFA

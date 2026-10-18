@@ -1,0 +1,47 @@
+@*
+    Shared shell for the sign-in and account pages. Everything visual lives in wwwroot/css/auth.css
+    (served same-origin, system fonts only): no inline <style> and no style="" attributes.
+*@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>@ViewData["Title"] · WardenId</title>
+    <link rel="stylesheet" href="~/_content/WardenId.Protocol.Presentation/css/auth.css" asp-append-version="true" />
+</head>
+<body>
+<div class="auth">
+    <aside class="auth-brand">
+        <svg class="auth-wards" viewBox="0 0 600 600" aria-hidden="true" focusable="false">
+            <circle class="ward ward-1" cx="300" cy="300" r="70" />
+            <circle class="ward ward-2" cx="300" cy="300" r="120" />
+            <circle class="ward ward-3" cx="300" cy="300" r="170" />
+            <circle class="ward ward-4" cx="300" cy="300" r="220" />
+            <circle class="ward ward-5" cx="300" cy="300" r="270" />
+        </svg>
+
+        <div class="auth-mark">
+            <svg class="auth-mark-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                <path class="auth-mark-shield" d="M16 2 28 6.5V15c0 7.5-5.2 12.8-12 15C9.2 27.8 4 22.5 4 15V6.5Z" />
+                <circle class="auth-mark-keyhole" cx="16" cy="13" r="3.2" />
+                <path class="auth-mark-keyhole" d="M14.5 15h3l1 6.5h-5Z" />
+            </svg>
+            <span class="auth-mark-name">WardenId</span>
+        </div>
+
+        <p class="auth-tagline"><span>Open-source identity.</span> <span>Your infrastructure, your rules.</span></p>
+    </aside>
+
+    <main class="auth-main">
+        <div class="auth-panel">
+            @RenderBody()
+        </div>
+        <footer class="auth-footer">Protected by WardenId</footer>
+    </main>
+</div>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

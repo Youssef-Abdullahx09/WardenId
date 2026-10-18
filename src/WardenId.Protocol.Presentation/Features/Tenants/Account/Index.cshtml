@@ -1,0 +1,68 @@
+@page "/tenants/{slug}/account"
+@model IndexModel
+@{ ViewData["Title"] = "Your account"; }
+
+<h1 class="auth-title">Your account</h1>
+<dl class="account-details">
+    <dt>Email</dt>
+    <dd>@Model.Account.Email</dd>
+    <dt>Username</dt>
+    <dd>@Model.Account.Username</dd>
+</dl>
+
+<section class="section">
+    <h2 class="section-title">Password</h2>
+    <ul class="auth-links">
+        <li><a href="@Model.AccountUrl/password">Change your password</a></li>
+    </ul>
+</section>
+
+<section class="section">
+    @if (Model.Account.HasMfa)
+    {
+        <h2 class="section-title">Two-step verification <span class="badge badge-on">On</span></h2>
+        <ul class="factors">
+            @foreach (var factor in Model.Account.Factors)
+            {
+                <li>
+                    @IndexModel.Name(factor)
+                    <span class="factor-meta">Set up @IndexModel.Format(factor.EnrolledAtUtc) · last used @IndexModel.Format(factor.LastUsedAtUtc)</span>
+                </li>
+            }
+        </ul>
+        @if (Model.FewRecoveryCodesLeft)
+        {
+            <p class="notice" role="status">Only @Model.Account.RemainingRecoveryCodes recovery codes left. Get new ones so you can still sign in if you lose your authenticator app.</p>
+        }
+        else
+        {
+            <p class="section-text">@Model.Account.RemainingRecoveryCodes recovery codes left.</p>
+        }
+        <ul class="auth-links">
+            <li><a href="@Model.AccountUrl/authenticator/replace">Replace your authenticator app</a></li>
+            <li><a href="@Model.AccountUrl/recovery-codes">Get new recovery codes</a></li>
+            @if (!Model.Account.MfaRequired)
+            {
+                <li><a href="@Model.AccountUrl/two-step/remove">Turn off two-step verification</a></li>
+            }
+        </ul>
+    }
+    else if (Model.Account.MfaAvailable)
+    {
+        <h2 class="section-title">Two-step verification <span class="badge">Off</span></h2>
+        <p class="section-text">Add a code from an authenticator app to your sign-in.</p>
+        <ul class="auth-links">
+            <li><a href="@Model.AccountUrl/authenticator">Set up an authenticator app</a></li>
+        </ul>
+    }
+    else
+    {
+        <h2 class="section-title">Two-step verification <span class="badge">Not available</span></h2>
+    }
+</section>
+
+<section class="section">
+    <form method="post" action="/tenants/@Model.Slug/endsession" asp-antiforgery="true">
+        <button class="button button-secondary" type="submit" name="confirm" value="true">Sign out</button>
+    </form>
+</section>

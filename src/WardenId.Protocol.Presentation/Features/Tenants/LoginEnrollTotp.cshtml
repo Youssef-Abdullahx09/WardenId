@@ -1,0 +1,42 @@
+@page "/tenants/{slug}/login/enroll-totp"
+@model LoginEnrollTotpModel
+@{ ViewData["Title"] = "Set up two-step verification"; }
+
+@if (Model.RecoveryCodes is { } codes)
+{
+    <h1 class="auth-title">Save your recovery codes</h1>
+    <p class="auth-lede">Your authenticator app is set up. If you lose it, you can sign in with one of these codes instead.
+        Each code works once. Keep them somewhere safe: they won't be shown again.</p>
+    <partial name="_RecoveryCodes" model="codes" />
+    @if (Model.ErrorMessage is { } error)
+    {
+        <partial name="_Alert" model="error" />
+        <a class="button" href="@Model.StartOverUrl">Sign in again</a>
+    }
+    else if (Model.ContinueUrl is { } next)
+    {
+        <a class="button" href="@next">Continue</a>
+    }
+    else
+    {
+        <p class="auth-links auth-links-note">You are signed in. You can close this window and return to the application.</p>
+        <a class="button" href="@Model.AccountUrl">Manage your account</a>
+    }
+}
+else
+{
+    <h1 class="auth-title">Set up two-step verification</h1>
+    <p class="auth-lede">Your organization requires a code from an authenticator app each time you sign in.</p>
+    <partial name="_Alert" model="Model.ErrorMessage" />
+    @if (Model.EnrollmentView is { } enrollment)
+    {
+        <partial name="_TotpEnrollment" model="enrollment" />
+    }
+    <ul class="auth-links">
+        <li><a href="@Model.StartOverUrl">Start over</a></li>
+    </ul>
+    @if (Model.ReturnToApplication is { } back)
+    {
+        <partial name="_ReturnToApplication" model="back" />
+    }
+}

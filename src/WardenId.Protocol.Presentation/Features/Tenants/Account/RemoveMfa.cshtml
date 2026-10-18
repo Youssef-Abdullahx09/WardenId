@@ -1,0 +1,33 @@
+@page "/tenants/{slug}/account/two-step/remove"
+@model RemoveMfaModel
+@{ ViewData["Title"] = "Turn off two-step verification"; }
+
+@if (Model.Removed)
+{
+    <h1 class="auth-title">Two-step verification is off</h1>
+    <p class="auth-lede" role="status">Your authenticator app and recovery codes have been removed. You now sign in with your password only.
+        You have been signed out everywhere else.</p>
+    <a class="button" href="@Model.AccountUrl">Back to your account</a>
+}
+else
+{
+    <h1 class="auth-title">Turn off two-step verification</h1>
+    <p class="auth-lede">Your account will be protected by your password only. Enter a code from your authenticator app, or one of
+        your recovery codes, to confirm it's you.</p>
+    <partial name="_Alert" model="Model.ErrorMessage" />
+    <form method="post">
+        <div class="field">
+            <label class="field-label" for="Code">Verification code</label>
+            @* No inputmode="numeric": recovery codes are accepted here too and aren't digits-only. *@
+            <input class="input input-code" id="Code" name="Code" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" required autofocus />
+        </div>
+        <p class="check">
+            <input id="Confirm" name="Confirm" type="checkbox" value="true" required />
+            <label for="Confirm">Remove my authenticator app and recovery codes</label>
+        </p>
+        <button class="button" type="submit">Turn off</button>
+    </form>
+    <ul class="auth-links">
+        <li><a href="@Model.AccountUrl">Back to your account</a></li>
+    </ul>
+}

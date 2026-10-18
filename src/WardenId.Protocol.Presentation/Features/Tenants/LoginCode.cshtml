@@ -1,0 +1,54 @@
+@page "/tenants/{slug}/login/code"
+@model LoginCodeModel
+@{ ViewData["Title"] = "Enter your code"; }
+
+@if (Model.SignedIn)
+{
+    <h1 class="auth-title">You are signed in</h1>
+    <p class="auth-lede">You can close this window and return to the application.</p>
+    <a class="button" href="@Model.AccountUrl">Manage your account</a>
+}
+else
+{
+    <h1 class="auth-title">Two-step verification</h1>
+    @if (Model.UseRecoveryCode)
+    {
+        <p class="auth-lede">Enter one of the recovery codes you saved when you set up your authenticator app. Each code works once.</p>
+    }
+    else
+    {
+        <p class="auth-lede">Enter the 6-digit code from your authenticator app.</p>
+    }
+    <partial name="_Alert" model="Model.ErrorMessage" />
+    <form method="post">
+        <input type="hidden" name="UseRecoveryCode" value="@(Model.UseRecoveryCode ? "true" : "false")" />
+        <div class="field">
+            @if (Model.UseRecoveryCode)
+            {
+                <label class="field-label" for="Code">Recovery code</label>
+                <input class="input input-code" id="Code" name="Code" autocomplete="off" autocapitalize="none" spellcheck="false" required autofocus />
+            }
+            else
+            {
+                <label class="field-label" for="Code">Verification code</label>
+                <input class="input input-code" id="Code" name="Code" inputmode="numeric" pattern="[0-9 ]*" autocomplete="one-time-code" maxlength="8" placeholder="000000" required autofocus />
+            }
+        </div>
+        <button class="button" type="submit">Verify</button>
+    </form>
+    <ul class="auth-links">
+        @if (Model.UseRecoveryCode)
+        {
+            <li><a href="/tenants/@Model.Slug/login/code">Use a code from your authenticator app</a></li>
+        }
+        else
+        {
+            <li><a href="/tenants/@Model.Slug/login/code?UseRecoveryCode=true">Lost access to your app? Use a recovery code</a></li>
+        }
+        <li><a href="@Model.StartOverUrl">Start over</a></li>
+    </ul>
+    @if (Model.ReturnToApplication is { } back)
+    {
+        <partial name="_ReturnToApplication" model="back" />
+    }
+}

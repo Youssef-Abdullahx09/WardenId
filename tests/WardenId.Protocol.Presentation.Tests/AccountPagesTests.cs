@@ -226,8 +226,8 @@ public partial class AccountPagesTests : IAsyncLifetime
 
         var html = await HtmlAsync(await browser.GetAsync(AccountPath));
 
-        Assert.Contains("Authenticator app: set up 2026-09-01 10:00 UTC, last used never", html);
-        Assert.Contains("class=\"warning\"", html);
+        Assert.Contains("Set up 2026-09-01 10:00 UTC · last used never", html);
+        Assert.Contains("class=\"notice\"", html);
         Assert.Contains("Only 1 recovery codes left", html);
         Assert.Contains($"href=\"{ReplacePath}\"", html);
         Assert.Contains($"href=\"{RecoveryCodesPath}\"", html);
@@ -366,7 +366,7 @@ public partial class AccountPagesTests : IAsyncLifetime
         var browser = await SignedInAsync("alice");
 
         var started = await HtmlAsync(await PostAsync(browser, SetupPath, [], handler: "Start"));
-        Assert.Contains("<svg", started);
+        Assert.Contains("<div class=\"qr\"><svg", started);
         Assert.Contains("JBSW Y3DP EHPK 3PXP", started);
         Assert.DoesNotContain(FakeDirectory.TotpSecret, FormFieldValues(started));
         Assert.DoesNotContain("otpauth://", started);
@@ -476,7 +476,7 @@ public partial class AccountPagesTests : IAsyncLifetime
 
         var html = await HtmlAsync(response);
         Assert.Contains(WrongCode, html);
-        Assert.DoesNotContain("<svg", html);
+        Assert.DoesNotContain("<div class=\"qr\"><svg", html);
         Assert.Equal(0, _host.Directory.User("erin").BeginEnrollmentCalls);
         Assert.DoesNotContain(_host.AuditLog.Events, e => e.Event == SecurityEvent.SignInFailed);
         var erin = _host.Directory.User("erin");

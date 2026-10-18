@@ -1,0 +1,739 @@
+/* WardenId sign-in and account pages (Features/Tenants). Served same-origin and uses system fonts
+   only, so the pages stay within a "default-src 'self'" CSP should one be added. */
+
+:root {
+    --ink: #15173d;
+    --ink-deep: #0b0c26;
+    --brass: #d6a449;
+    --brass-strong: #c18e33;
+    --brass-soft: #e7c483;
+
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --text: #191b35;
+    --muted: #5d6180;
+    --line: #d9dce7;
+    --line-strong: #b7bbcd;
+    --focus: #4b50d6;
+    --danger: #b42318;
+    --danger-bg: #fdeceb;
+    --danger-line: #f4c2bd;
+    --warn-bg: #fbf3e2;
+    --warn-line: #ecd5a6;
+    --step-bg: var(--ink);
+    --link: #3f44c4;
+
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --radius: 8px;
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0e1028;
+        --surface: #171a38;
+        --text: #e8e9f3;
+        --muted: #9ea2c0;
+        --line: #2b2f55;
+        --line-strong: #444a7a;
+        --focus: #e7c483;
+        --danger: #ff9b91;
+        --danger-bg: #3a1720;
+        --danger-line: #6b2a33;
+        --warn-bg: #2b2516;
+        --warn-line: #5a4a26;
+        --step-bg: #2b2f55;
+        --link: #e7c483;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Shell ---------- */
+
+.auth {
+    display: grid;
+    grid-template-columns: minmax(320px, 5fr) 7fr;
+    min-height: 100vh;
+}
+
+.auth-brand {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2.5rem 3rem 3rem;
+    background:
+        radial-gradient(120% 80% at 100% 100%, rgba(214, 164, 73, 0.10), transparent 60%),
+        linear-gradient(160deg, var(--ink) 0%, var(--ink-deep) 100%);
+    color: #f1f1f8;
+}
+
+.auth-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5rem;
+    padding: 3rem 1.5rem 2rem;
+}
+
+.auth-panel {
+    width: 100%;
+    max-width: 380px;
+}
+
+.auth-footer {
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+/* ---------- Brand panel ---------- */
+
+.auth-mark {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.auth-mark-icon {
+    width: 32px;
+    height: 32px;
+    flex: none;
+}
+
+.auth-mark-shield {
+    fill: var(--brass);
+}
+
+.auth-mark-keyhole {
+    fill: var(--ink);
+}
+
+.auth-mark-name {
+    font-size: 1.25rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.auth-tagline {
+    position: relative;
+    margin: 0;
+    font-size: clamp(1.875rem, 2.9vw, 2.625rem);
+    font-weight: 600;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+}
+
+/* One sentence per line on the wide layout; reflows inline on small screens. */
+.auth-tagline span {
+    display: block;
+}
+
+/* The ward rings: concentric dashed circles read as the cuts of a lock's wards. */
+.auth-wards {
+    position: absolute;
+    right: -190px;
+    top: 50%;
+    width: 600px;
+    height: 600px;
+    transform: translateY(-58%);
+    pointer-events: none;
+}
+
+.ward {
+    fill: none;
+    stroke: var(--brass);
+    stroke-linecap: butt;
+    transform-origin: 300px 300px;
+}
+
+.ward-1 { stroke-width: 14; stroke-dasharray: 40 18 12 18; opacity: 0.55; }
+.ward-2 { stroke-width: 10; stroke-dasharray: 90 22 30 22; opacity: 0.38; }
+.ward-3 { stroke-width: 8;  stroke-dasharray: 150 26 50 26 20 26; opacity: 0.26; }
+.ward-4 { stroke-width: 6;  stroke-dasharray: 220 30 70 30; opacity: 0.18; }
+.ward-5 { stroke-width: 4;  stroke-dasharray: 300 34 90 34 30 34; opacity: 0.12; }
+
+/* Each ring turns into place on load, then keeps spinning slowly: alternate rings counter-rotate
+   and outer rings move slower, like the wards of a lock. The spin starts where the entrance ends
+   (0deg), so the hand-off is seamless. Static for anyone who prefers reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+    .ward {
+        animation:
+            ward-turn 1.6s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) both,
+            ward-spin var(--period) linear calc(1.6s + var(--delay, 0ms)) infinite var(--direction, normal);
+    }
+
+    .ward-1 { --from: -60deg; --period: 40s; }
+    .ward-2 { --from: 45deg; --delay: 60ms; --period: 55s; --direction: reverse; }
+    .ward-3 { --from: -35deg; --delay: 120ms; --period: 75s; }
+    .ward-4 { --from: 25deg; --delay: 180ms; --period: 100s; --direction: reverse; }
+    .ward-5 { --from: -15deg; --delay: 240ms; --period: 130s; }
+}
+
+@keyframes ward-turn {
+    from { transform: rotate(var(--from, 0deg)); }
+    to { transform: rotate(0deg); }
+}
+
+@keyframes ward-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ---------- Headings & copy ---------- */
+
+.auth-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.75rem;
+    font-weight: 650;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.auth-lede {
+    margin: 0 0 2rem;
+    color: var(--muted);
+}
+
+.auth-title + form,
+.auth-title + .alert {
+    margin-top: 1.75rem;
+}
+
+/* ---------- Alert ---------- */
+
+.alert {
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-start;
+    margin: 0 0 1.5rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--danger-line);
+    border-radius: var(--radius);
+    background: var(--danger-bg);
+    color: var(--danger);
+    font-size: 0.9375rem;
+}
+
+.alert-icon {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    margin-top: 2px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+/* ---------- Form ---------- */
+
+.field {
+    margin-bottom: 1.25rem;
+}
+
+.field-label {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 550;
+}
+
+.field-hint {
+    margin: 0.375rem 0 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.input {
+    display: block;
+    width: 100%;
+    height: 2.875rem;
+    padding: 0 0.875rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.input:hover {
+    border-color: var(--muted);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 28%, transparent);
+}
+
+/* Password field with the show/hide control (password-toggle.js) inset on the right. */
+.password-field {
+    position: relative;
+}
+
+.password-field .input {
+    padding-right: 3rem;
+}
+
+/* Chromium Edge draws its own reveal button; ours replaces it so there aren't two eyes. */
+.password-field .input::-ms-reveal {
+    display: none;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.25rem;
+    display: grid;
+    place-items: center;
+    width: 2.375rem;
+    height: 2.375rem;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transform: translateY(-50%);
+}
+
+.password-toggle[hidden] {
+    display: none;
+}
+
+.password-toggle:hover {
+    color: var(--text);
+}
+
+.password-toggle:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 0;
+}
+
+.password-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.password-toggle[aria-pressed="true"] .password-toggle-show,
+.password-toggle:not([aria-pressed="true"]) .password-toggle-hide {
+    display: none;
+}
+
+.input-code {
+    height: 3.5rem;
+    font-family: var(--font-mono);
+    font-size: 1.375rem;
+    letter-spacing: 0.3em;
+    text-align: center;
+}
+
+.input-code::placeholder {
+    color: var(--line-strong);
+    letter-spacing: 0.3em;
+}
+
+.button {
+    display: block;
+    width: 100%;
+    height: 2.875rem;
+    margin-top: 1.75rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--brass);
+    color: var(--ink-deep);
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background-color 120ms ease, transform 80ms ease;
+}
+
+/* The "Continue" link on the signing-in page shares the button styling. */
+a.button {
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+}
+
+.button:hover {
+    background: var(--brass-strong);
+}
+
+.button:active {
+    transform: translateY(1px);
+}
+
+.button:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+/* ---------- MFA enrollment steps ---------- */
+
+.steps {
+    margin: 2rem 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+}
+
+.step {
+    position: relative;
+    padding: 0 0 2rem 2.75rem;
+    counter-increment: step;
+}
+
+/* Connector line between step markers. */
+.step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 0.875rem;
+    top: 2.25rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: var(--line);
+}
+
+.step::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: var(--step-bg);
+    color: var(--brass-soft);
+    font-size: 0.875rem;
+    font-weight: 650;
+}
+
+.step-title {
+    margin: 0.125rem 0 0.375rem;
+    font-size: 1.0625rem;
+    font-weight: 650;
+}
+
+.step-text {
+    margin: 0 0 0.875rem;
+    color: var(--muted);
+    font-size: 0.9375rem;
+}
+
+.step .button {
+    margin-top: 1rem;
+}
+
+.step .field {
+    margin-bottom: 0;
+}
+
+.setup-key {
+    display: block;
+    padding: 0.875rem 1rem;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 1.0625rem;
+    letter-spacing: 0.08em;
+    word-spacing: 0.35em;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.setup-link {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.setup-link summary {
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.setup-link summary:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.setup-link code {
+    display: block;
+    margin-top: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.recovery-codes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.375rem 1rem;
+    margin: 0;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--warn-line);
+    border-radius: var(--radius);
+    background: var(--warn-bg);
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: 0.9375rem;
+    user-select: all;
+}
+
+/* ---------- Links & secondary actions ---------- */
+
+a {
+    color: var(--link);
+    text-underline-offset: 2px;
+}
+
+a:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.auth-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9375rem;
+}
+
+.auth-links-note {
+    color: var(--muted);
+}
+
+/* "Back to application", "Cancel": same footprint as .button, quieter. */
+.button-secondary {
+    margin-top: 0.75rem;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--text);
+}
+
+.button-secondary:hover {
+    border-color: var(--muted);
+    background: color-mix(in srgb, var(--line) 45%, transparent);
+}
+
+/* ---------- Checkbox ---------- */
+
+.check {
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-start;
+    margin: 0;
+    font-size: 0.9375rem;
+}
+
+.check input {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0.1875rem 0 0;
+    accent-color: var(--brass-strong);
+}
+
+/* ---------- Notices ---------- */
+
+.notice {
+    margin: 0 0 1.5rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--warn-line);
+    border-radius: var(--radius);
+    background: var(--warn-bg);
+    font-size: 0.9375rem;
+}
+
+/* ---------- TOTP enrollment ---------- */
+
+/* The QR code is black-on-white SVG (QrCodeSvg); keep a white plate under it in dark mode too. */
+.qr {
+    display: inline-block;
+    margin: 0 0 0.25rem;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    background: #ffffff;
+    line-height: 0;
+}
+
+.qr svg {
+    width: 176px;
+    height: 176px;
+}
+
+/* ---------- Account overview ---------- */
+
+.account-details {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1.25rem;
+    margin: 1.75rem 0 0;
+    padding: 1rem 1.125rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: 0.9375rem;
+}
+
+.account-details dt {
+    color: var(--muted);
+}
+
+.account-details dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin: 0 0 0.75rem;
+    font-size: 1.0625rem;
+    font-weight: 650;
+}
+
+.section-text {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    font-size: 0.9375rem;
+}
+
+.section .auth-links {
+    margin-top: 0.75rem;
+}
+
+.section .button {
+    margin-top: 0;
+}
+
+.badge {
+    padding: 0.0625rem 0.5rem;
+    border-radius: 999px;
+    background: var(--line);
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.badge-on {
+    background: var(--step-bg);
+    color: var(--brass-soft);
+}
+
+.factors {
+    margin: 0 0 0.75rem;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9375rem;
+}
+
+.factors li + li {
+    margin-top: 0.375rem;
+}
+
+.factor-meta {
+    display: block;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.recovery-codes + .alert {
+    margin-top: 1.5rem;
+}
+
+/* ---------- Small screens: brand panel collapses into a header band ---------- */
+
+@media (max-width: 860px) {
+    .auth {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    .auth-brand {
+        padding: 1.25rem 1rem;
+        gap: 0.75rem;
+    }
+
+    .auth-tagline {
+        max-width: none;
+        font-size: 1.125rem;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        color: #c9cbe0;
+    }
+
+    .auth-tagline span {
+        display: inline;
+    }
+
+    .auth-wards {
+        right: -140px;
+        width: 340px;
+        height: 340px;
+        transform: translateY(-50%);
+    }
+
+    .auth-main {
+        justify-content: flex-start;
+        padding: 2rem 1rem 1.5rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .recovery-codes {
+        grid-template-columns: 1fr;
+    }
+}

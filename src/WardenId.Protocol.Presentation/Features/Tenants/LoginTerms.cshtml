@@ -1,0 +1,38 @@
+@page "/tenants/{slug}/login/terms"
+@model LoginTermsModel
+@{ ViewData["Title"] = "Terms of service"; }
+
+@if (Model.SignedIn)
+{
+    <h1 class="auth-title">You are signed in</h1>
+    <p class="auth-lede">You can close this window and return to the application.</p>
+    <a class="button" href="@Model.AccountUrl">Manage your account</a>
+}
+else
+{
+    <h1 class="auth-title">Terms of service</h1>
+    @if (Model.TermsUrl is { } termsUrl)
+    {
+        <p class="auth-lede">Before you continue, please read and accept the
+            <a href="@termsUrl" target="_blank" rel="noopener noreferrer">terms of service</a>.</p>
+    }
+    else
+    {
+        <p class="auth-lede">Before you continue, please accept the terms of service.</p>
+    }
+    <partial name="_Alert" model="Model.ErrorMessage" />
+    <form method="post">
+        <p class="check">
+            <input id="Accept" name="Accept" type="checkbox" value="true" required />
+            <label for="Accept">I accept the terms of service</label>
+        </p>
+        <button class="button" type="submit">Continue</button>
+    </form>
+    <ul class="auth-links">
+        <li><a href="@Model.StartOverUrl">Start over</a></li>
+    </ul>
+    @if (Model.ReturnToApplication is { } back)
+    {
+        <partial name="_ReturnToApplication" model="back" />
+    }
+}

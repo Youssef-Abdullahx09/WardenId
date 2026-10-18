@@ -203,7 +203,7 @@ public partial class MfaSignInTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("<svg", html);
+        Assert.Contains("<div class=\"qr\"><svg", html);
         Assert.Contains("JBSW Y3DP EHPK 3PXP", html);
         Assert.DoesNotContain(FakeDirectory.TotpSecret, FormFieldValues(html));
         Assert.DoesNotContain("otpauth://", html);
@@ -244,7 +244,7 @@ public partial class MfaSignInTests : IAsyncLifetime
 
         var html = await response.Content.ReadAsStringAsync();
         Assert.Contains("That code didn&#x27;t work. Please try again.", html);
-        Assert.Contains("<svg", html);
+        Assert.Contains("<div class=\"qr\"><svg", html);
         Assert.Contains("JBSW Y3DP EHPK 3PXP", html);
         Assert.Equal(1, _host.Directory.User("frank").BeginEnrollmentCalls);
         Assert.Equal(OutcomeReason.InvalidSecondFactor, Assert.Single(Events(SecurityEvent.SignInFailed)).Reason);

@@ -1,0 +1,28 @@
+@page "/tenants/{slug}/account/recovery-codes"
+@model RecoveryCodesModel
+@{ ViewData["Title"] = "New recovery codes"; }
+
+@if (Model.RecoveryCodes is { } codes)
+{
+    <h1 class="auth-title">Save your new recovery codes</h1>
+    <p class="auth-lede">Your old recovery codes no longer work. Each of these works once. Keep them somewhere safe: they won't be
+        shown again.</p>
+    <partial name="_RecoveryCodes" model="codes" />
+    <a class="button" href="@Model.AccountUrl">Back to your account</a>
+}
+else
+{
+    <h1 class="auth-title">New recovery codes</h1>
+    <p class="auth-lede">Enter the 6-digit code from your authenticator app. Your current recovery codes will stop working.</p>
+    <partial name="_Alert" model="Model.ErrorMessage" />
+    <form method="post">
+        <div class="field">
+            <label class="field-label" for="Code">Verification code</label>
+            <input class="input input-code" id="Code" name="Code" inputmode="numeric" pattern="[0-9 ]*" autocomplete="one-time-code" maxlength="8" placeholder="000000" required autofocus />
+        </div>
+        <button class="button" type="submit">Get new recovery codes</button>
+    </form>
+    <ul class="auth-links">
+        <li><a href="@Model.AccountUrl">Back to your account</a></li>
+    </ul>
+}
