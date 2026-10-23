@@ -113,12 +113,14 @@ docker run -d --name wardenid -p 8080:8080 \
   -e Smtp__Host=host.docker.internal \
   -e ProtocolToken__IssuerBaseUri=http://localhost:8080 \
   -e ProtocolOpenIddict__DisableTransportSecurityRequirement=true \
-  -e MasterTenant__Slug=master -e MasterTenant__AdminEmail=admin@wardenid.local \
-  -e MasterTenant__AdminUsername=admin -e MasterTenant__AdminPassword='<strong-password>' \
+  -e OpenTelemetry__OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4318 \
+  -e MasterTenant__Slug=master -e MasterTenant__DisplayName='Master Tenant' \
+  -e MasterTenant__AdminEmail=admin@wardenid.local -e MasterTenant__AdminUsername=admin \
+  -e MasterTenant__AdminPassword='<strong-password>' \
   youssefx09/wardenid:latest
 ```
 
-`DisableTransportSecurityRequirement` is only for plain-HTTP local use. Behind TLS, drop it and set `IssuerBaseUri` to the public HTTPS origin.
+`DisableTransportSecurityRequirement` is only for plain-HTTP local use. Behind TLS, drop it and set `IssuerBaseUri` to the public HTTPS origin. OpenTelemetry is on by default and then needs `OpenTelemetry__OTEL_EXPORTER_OTLP_ENDPOINT`, or startup fails. Without a collector, set `OpenTelemetry__Enabled=false` instead. On Linux, add `--add-host host.docker.internal:host-gateway` so the container can reach services on the host.
 
 To build the image yourself, run this from the repository root:
 

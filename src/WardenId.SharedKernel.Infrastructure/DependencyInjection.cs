@@ -142,12 +142,13 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Checked before validation: with OpenTelemetry off, the OTLP settings are unused and may be empty.
+        if (!ReadOpenTelemetryEnabled(configuration)) return;
+
         services.AddOptions<OpenTelemetryOptions>()
             .Bind(configuration.GetSection(OpenTelemetryOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
-
-        if (!ReadOpenTelemetryEnabled(configuration)) return;
 
         ApplyOpenTelemetryEnvironmentVariables(configuration);
 
