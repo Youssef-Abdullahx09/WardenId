@@ -1,4 +1,5 @@
 using WardenId.Identity.Application.Features.Users.Get;
+using GetQuery = WardenId.Identity.Application.Features.Users.Get.Query;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.Get;
 
@@ -7,36 +8,27 @@ public class HandlerTests
     [Fact]
     public async Task Handle_ReturnsUserDetail_WhenUserExists()
     {
-        var databaseName = Guid.NewGuid().ToString();
         var tenantId = Guid.NewGuid();
         var user = TestUsers.CreatePendingVerification(tenantId, "someone@example.com", "someone");
         var acceptedAt = new DateTimeOffset(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
         user.AcceptTerms(acceptedAt);
+        var handler = new Handler(new FakeUsersQuery().With(user));
 
-        using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
-        {
-            seedContext.Users.Add(user);
-            await seedContext.SaveChangesAsync(CancellationToken.None);
-        }
-
-        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
-        var handler = new Handler(queryContext);
-
-        var result = await handler.Handle(new Query(tenantId, user.Id), CancellationToken.None);
+        var result = await handler.Handle(new GetQuery(tenantId, user.Id), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
+        Assert.Equal(user.Id, result.Value.Id);
         Assert.Equal("someone@example.com", result.Value.Email);
         Assert.Equal("someone", result.Value.Username);
         Assert.Equal(UserStatus.PendingVerification, result.Value.Status);
         Assert.Contains(RequiredAction.VerifyEmail, result.Value.PendingActions);
         Assert.Equal(acceptedAt, result.Value.TermsAcceptedAtUtc);
+        Assert.Equal(TimeSpan.Zero, result.Value.TermsAcceptedAtUtc!.Value.Offset);
     }
 
-    // Regression: the query had no .Include(...), so these two navigations always came back empty.
     [Fact]
     public async Task Handle_ReturnsAttributesAndMfaFactors()
     {
-        var databaseName = Guid.NewGuid().ToString();
         var tenantId = Guid.NewGuid();
         var user = TestUsers.CreatePendingVerification(tenantId, "someone@example.com", "someone");
         user.SetAttribute("department", "engineering", UserAttributeValueType.String);
@@ -44,17 +36,9 @@ public class HandlerTests
         user.ConsumeRecoveryCode("hash-1", TestMfa.Now);
         var pending = MfaFactor.Create(MfaFactorType.Totp, "protected:", TestMfa.Now);
         user.BeginMfaEnrollment(pending);
+        var handler = new Handler(new FakeUsersQuery().With(user));
 
-        using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
-        {
-            seedContext.Users.Add(user);
-            await seedContext.SaveChangesAsync(CancellationToken.None);
-        }
-
-        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
-        var handler = new Handler(queryContext);
-
-        var result = await handler.Handle(new Query(tenantId, user.Id), CancellationToken.None);
+        var result = await handler.Handle(new GetQuery(tenantId, user.Id), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         var attribute = Assert.Single(result.Value.Attributes);
@@ -75,32 +59,23 @@ public class HandlerTests
     }
 
     [Fact]
-    public async Task Handle_Fails_WhenUserDoesNotExist()
+    public async Task Handle_ReturnsNotFound_WhenTheQueryFindsNoUser()
     {
-        var databaseName = Guid.NewGuid().ToString();
-        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
-        var handler = new Handler(queryContext);
+        var handler = new Handler(new FakeUsersQuery());
 
-        var result = await handler.Handle(new Query(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+        var result = await handler.Handle(new GetQuery(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsFailed);
+        Assert.Equal(UserErrorCodes.NotFound, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
     }
 
     [Fact]
     public async Task Handle_Fails_WhenUserBelongsToADifferentTenant()
     {
-        var databaseName = Guid.NewGuid().ToString();
         var user = TestUsers.CreatePendingVerification(Guid.NewGuid());
-        using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
-        {
-            seedContext.Users.Add(user);
-            await seedContext.SaveChangesAsync(CancellationToken.None);
-        }
+        var handler = new Handler(new FakeUsersQuery().With(user));
 
-        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
-        var handler = new Handler(queryContext);
-
-        var result = await handler.Handle(new Query(Guid.NewGuid(), user.Id), CancellationToken.None);
+        var result = await handler.Handle(new GetQuery(Guid.NewGuid(), user.Id), CancellationToken.None);
 
         Assert.True(result.IsFailed);
     }
@@ -108,22 +83,24 @@ public class HandlerTests
     [Fact]
     public async Task Handle_Fails_WhenUserIsDeleted()
     {
-        var databaseName = Guid.NewGuid().ToString();
         var tenantId = Guid.NewGuid();
         var user = TestUsers.CreatePendingVerification(tenantId);
         user.SoftDelete();
+        var handler = new Handler(new FakeUsersQuery().With(user));
 
-        using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
-        {
-            seedContext.Users.Add(user);
-            await seedContext.SaveChangesAsync(CancellationToken.None);
-        }
-
-        using var queryContext = TestIdentityDbContext.CreateNew(databaseName);
-        var handler = new Handler(queryContext);
-
-        var result = await handler.Handle(new Query(tenantId, user.Id), CancellationToken.None);
+        var result = await handler.Handle(new GetQuery(tenantId, user.Id), CancellationToken.None);
 
         Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public async Task Handle_PassesTheQueryLayersFailureThrough()
+    {
+        var handler = new Handler(new FakeUsersQuery { Failure = new Error("sql file missing") });
+
+        var result = await handler.Handle(new GetQuery(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal("sql file missing", result.Errors[0].Message);
     }
 }

@@ -1,27 +1,33 @@
 using FluentResults;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using WardenId.Tenancy.Application.Abstractions;
-using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning;
 using WardenId.Tenancy.Domain;
+using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning;
+using WardenId.Tenancy.Query.Contracts;
+using SigningKeysGetActiveQuery = WardenId.Tenancy.Query.Contracts.Features.SigningKeys.GetActiveForSigning.Query;
 
 namespace WardenId.Tenancy.Application.Features.SigningKeys.GetActiveForSigning;
 
-public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query, Result<ActiveSigningKey>>
+// Inside this namespace, a bare \"Query\" would otherwise bind to the WardenId.Tenancy.Query namespace.
+using Query = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.Query;
+
+/// <summary>
+/// Read side via the Dapper query layer (Tenancy.Query). The private key is passed on still encrypted
+/// (a plain bytea column, no EF converter); only Protocol decrypts it, at signing time.
+/// </summary>
+public sealed class Handler(ISigningKeysQuery signingKeysQuery) : IRequestHandler<Query, Result<ActiveSigningKey>>
 {
     public async Task<Result<ActiveSigningKey>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var tenant = await dbContext.Tenants
-            .Include(t => t.SigningKeys)
-            .Where(t => t.Id == request.TenantId)
-            .FirstOrDefaultAsync(cancellationToken);
+        var result = await signingKeysQuery.GetActiveForSigning(
+            new SigningKeysGetActiveQuery(request.TenantId, nameof(SigningKeyStatus.Active)),
+            cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
-        if (tenant is null) return Result.Fail(TenantErrors.NotFound);
+        if (result.Value is not { } row) return Result.Fail(TenantErrors.NotFound);
 
-        var activeKey = tenant.SigningKeys.FirstOrDefault(k => k.IsActive);
-        if (activeKey is null) return Result.Fail(TenantErrors.NoActiveSigningKeyForSigning());
+        if (row is not { SigningKeyId: { } keyId, Algorithm: { } algorithm, EncryptedPrivateKey: { } encryptedPrivateKey })
+            return Result.Fail(TenantErrors.NoActiveSigningKeyForSigning());
 
-        return Result.Ok(new ActiveSigningKey(
-            activeKey.SigningKeyId, activeKey.Algorithm, activeKey.EncryptedPrivateKey, tenant.Slug.Value));
+        return Result.Ok(new ActiveSigningKey(keyId, algorithm, encryptedPrivateKey, row.Slug));
     }
 }

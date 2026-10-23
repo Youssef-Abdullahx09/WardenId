@@ -40,8 +40,7 @@ public sealed class TenantPolicyTests(PostgresFixture database)
             _adminId));
         Assert.True(put.IsSuccess);
 
-        await using var context = database.CreateContext();
-        var policy = (await new GetHandler(new IdentityTenantPolicyRepository(context), Global)
+        var policy = (await new GetHandler(database.CreatePoliciesQuery(), Global)
             .Handle(new GetQuery(_tenantId), CancellationToken.None)).Value;
 
         Assert.Equal("tenant", policy.Scope);
@@ -56,6 +55,19 @@ public sealed class TenantPolicyTests(PostgresFixture database)
         Assert.Equal(11, policy.Overrides.Count);
         Assert.Equal(1, await database.CountAsync(
             "SELECT count(*) FROM \"Identity\".\"TenantPolicies\" WHERE \"TenantId\" = $1 AND \"MfaMode\" = 'Required'", _tenantId));
+    }
+
+    [SkippableFact]
+    public async Task Get_ReturnsTheGlobalScope_ForATenantWithoutARow()
+    {
+        Skip.If(database.SkipReason is not null, database.SkipReason);
+
+        var policy = (await new GetHandler(database.CreatePoliciesQuery(), Global)
+            .Handle(new GetQuery(Guid.NewGuid()), CancellationToken.None)).Value;
+
+        Assert.Equal("global", policy.Scope);
+        Assert.Empty(policy.Overrides);
+        Assert.False(policy.Password.BreachCheckEnabled);
     }
 
     [SkippableFact]

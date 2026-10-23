@@ -1,44 +1,50 @@
 using FluentResults;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using WardenId.ClientManagement.Application.Abstractions;
 using WardenId.ClientManagement.Domain;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
+using WardenId.ClientManagement.Query.Contracts;
+using ClientsQuery = WardenId.ClientManagement.Query.Contracts.Features.Clients.GetForAuthentication.Query;
 
 namespace WardenId.ClientManagement.Application.Features.Clients.GetForAuthentication;
 
-public sealed class Handler(IClientManagementDbContext dbContext)
+// The sibling namespace WardenId.ClientManagement.Query would otherwise shadow the imported type.
+using Query = WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication.Query;
+
+/// <summary>Read side: the client comes from the Dapper query layer (ClientManagement.Query), not the aggregate.</summary>
+public sealed class Handler(IClientsQuery clientsQuery)
     : IRequestHandler<Query, Result<ClientForAuthentication>>
 {
     public async Task<Result<ClientForAuthentication>> Handle(Query request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.ClientId)) return Result.Fail(ClientErrors.NotFound);
 
-        var clientId = ClientId.FromTrustedSource(request.ClientId);
+        var result = await clientsQuery.GetForAuthentication(
+            new ClientsQuery(request.TenantId, request.ClientId),
+            cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
-        var client = await dbContext.Clients
-            .AsNoTracking()
-            .Where(c => c.TenantId == request.TenantId && c.ClientId == clientId && !c.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
-
+        var client = result.Value;
         if (client is null) return Result.Fail(ClientErrors.NotFound);
 
         return Result.Ok(new ClientForAuthentication(
             client.Id,
-            client.ClientId.Value,
-            client.ClientType == ClientType.Confidential ? ClientKind.Confidential : ClientKind.Public,
+            client.ClientId,
+            ClientRows.ParseEnum<ClientType>(client.ClientType) == ClientType.Confidential
+                ? ClientKind.Confidential
+                : ClientKind.Public,
             client.Enabled,
-            MapGrants(client.GrantType),
-            client.ClientAuthenticationMethod == ClientAuthenticationMethod.PrivateKeyJwt
+            MapGrants(ClientRows.ParseEnum<GrantType>(client.GrantType)),
+            ClientRows.ParseEnum<ClientAuthenticationMethod>(client.ClientAuthenticationMethod)
+                == ClientAuthenticationMethod.PrivateKeyJwt
                 ? ClientAuthMethod.PrivateKeyJwt
                 : ClientAuthMethod.SharedSecret,
-            client.TokenLifetimeOverrides?.AccessTokenSeconds,
-            client.TokenLifetimeOverrides?.RefreshTokenSeconds,
-            client.RedirectUris.Select(r => r.Value).ToArray(),
+            client.AccessTokenSeconds,
+            client.RefreshTokenSeconds,
+            client.RedirectUris,
             client.RequirePkce,
-            client.PostLogoutRedirectUris.Select(r => r.Value).ToArray(),
-            client.BackchannelLogoutUri?.Value,
-            client.TokenLifetimeOverrides?.IdTokenSeconds));
+            client.PostLogoutRedirectUris,
+            client.BackchannelLogoutUri,
+            client.IdTokenSeconds));
     }
 
     private static List<AllowedGrant> MapGrants(GrantType grants)

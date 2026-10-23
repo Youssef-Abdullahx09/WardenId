@@ -1,33 +1,39 @@
 using FluentResults;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using WardenId.Tenancy.Application.Abstractions;
+using WardenId.Tenancy.Application.Utilities;
 using WardenId.Tenancy.Domain;
 using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
+using WardenId.Tenancy.Query.Contracts;
+using TenantsResolveQuery = WardenId.Tenancy.Query.Contracts.Features.Tenants.ResolveForIssuance.Query;
 
 namespace WardenId.Tenancy.Application.Features.Tenants.ResolveForIssuance;
 
+// Inside this namespace, a bare \"Query\" would otherwise bind to the WardenId.Tenancy.Query namespace.
+using Query = WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance.Query;
+
 /// <summary>
-/// Same eligibility as GetPublicKeys (Active or Suspended, not deleted; everything else is an
-/// indistinguishable NotFound), without loading keys. The caller decides what Suspended means.
+/// Same eligibility as GetPublicKeys (Active or Suspended; everything else is an indistinguishable
+/// NotFound), without loading keys. The caller decides what Suspended means.
 /// </summary>
-public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query, Result<TenantForIssuance>>
+public sealed class Handler(ITenantsQuery tenantsQuery) : IRequestHandler<Query, Result<TenantForIssuance>>
 {
     public async Task<Result<TenantForIssuance>> Handle(Query request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Slug)) return Result.Fail(TenantErrors.NotFound);
 
-        var slug = Slug.FromTrustedSource(request.Slug);
+        var result = await tenantsQuery.ResolveForIssuance(new TenantsResolveQuery(request.Slug), cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
-        var tenant = await dbContext.Tenants
-            .AsNoTracking()
-            .Where(t => t.Slug == slug)
-            .Where(t => t.Status == Status.Active || t.Status == Status.Suspended)
-            .FirstOrDefaultAsync(cancellationToken);
+        var status = result.Value is { } item ? QueryRows.TryParseStatus(item.Status) : null;
+        TenantIssuanceStatus? issuanceStatus = status switch
+        {
+            Status.Active => TenantIssuanceStatus.Active,
+            Status.Suspended => TenantIssuanceStatus.Suspended,
+            _ => null
+        };
+        if (issuanceStatus is null) return Result.Fail(TenantErrors.NotFound);
 
-        if (tenant is null) return Result.Fail(TenantErrors.NotFound);
-
-        var status = tenant.Status == Status.Suspended ? TenantIssuanceStatus.Suspended : TenantIssuanceStatus.Active;
-        return Result.Ok(new TenantForIssuance(tenant.Id, tenant.Slug.Value, status, tenant.DisplayName));
+        var tenant = result.Value!;
+        return Result.Ok(new TenantForIssuance(tenant.Id, tenant.Slug, issuanceStatus.Value, tenant.DisplayName));
     }
 }

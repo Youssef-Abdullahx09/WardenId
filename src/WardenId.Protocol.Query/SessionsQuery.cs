@@ -14,6 +14,7 @@ public sealed class SessionsQuery(
 {
     private const string ListForUserSql = "/Features/Sessions/ListForUser/Query.sql";
     private const string ListSql = "/Features/Sessions/List/Query.sql";
+    private const string GetLiveSql = "/Features/Sessions/GetLive/Query.sql";
     private const string OffsetParameter = "Offset";
 
     public async Task<Result<List<Contracts.Features.Sessions.ListForUser.Item>>> ListForUser(
@@ -66,5 +67,26 @@ public sealed class SessionsQuery(
         var sessions = (await grid.ReadAsync<Contracts.Features.Sessions.List.Item>()).ToList();
 
         return new PaginationListResponse<Contracts.Features.Sessions.List.Item>(total, sessions);
+    }
+
+    public async Task<Result<Contracts.Features.Sessions.GetLive.Item?>> GetLive(
+        Contracts.Features.Sessions.GetLive.Query query,
+        CancellationToken cancellationToken)
+    {
+        var readingFileResult = await readFileService.ReadFileContentAsync(
+            GetLiveSql,
+            cancellationToken);
+        if (readingFileResult.IsFailed) return Result.Fail(readingFileResult.Errors);
+
+        var queryParameters = new DynamicParameters();
+        queryParameters.Add(nameof(query.TenantId), query.TenantId);
+        queryParameters.Add(nameof(query.Sid), query.Sid);
+
+        var session = await connectionWrapper.QueryFirstOrDefaultAsync<Contracts.Features.Sessions.GetLive.Item>(
+            readingFileResult.Value,
+            param: queryParameters,
+            cancellationToken: cancellationToken);
+
+        return Result.Ok(session);
     }
 }

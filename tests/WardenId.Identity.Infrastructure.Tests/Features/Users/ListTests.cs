@@ -1,10 +1,11 @@
 using WardenId.Identity.Application.Features.Users.List;
+using ListQuery = WardenId.Identity.Application.Features.Users.List.Query;
 
 namespace WardenId.Identity.Infrastructure.Tests.Features.Users;
 
 /// <summary>
-/// The List handler's search and sort, translated to SQL by Npgsql: EF InMemory evaluates
-/// StartsWith/ToLower in .NET, so only Postgres shows the LIKE escaping and case handling.
+/// The List handler over Identity.Query's Features/Users/List/Query.sql on Postgres: the search's LIKE escaping and
+/// case handling, the sort, the status filter and paging.
 /// </summary>
 [Collection(PostgresCollection.Name)]
 public sealed class ListTests(PostgresFixture database)
@@ -57,9 +58,8 @@ public sealed class ListTests(PostgresFixture database)
         Skip.If(database.SkipReason is not null, database.SkipReason);
         await SeedAsync();
 
-        await using var context = database.CreateContext();
-        var result = await new Handler(context).Handle(
-            new Query(_tenantId, PageNumber: 2, PageSize: 1, UserStatus.PendingVerification, Search: "a", Sort: "-email"),
+        var result = await new Handler(database.CreateUsersQuery()).Handle(
+            new ListQuery(_tenantId, PageNumber: 2, PageSize: 1, UserStatus.PendingVerification, Search: "a", Sort: "-email"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -69,8 +69,7 @@ public sealed class ListTests(PostgresFixture database)
 
     private async Task<FluentResults.Result<SharedKernel.Query.Contracts.PaginationListResponse<UserListItem>>> ListAsync(string? search, string? sort)
     {
-        await using var context = database.CreateContext();
-        return await new Handler(context).Handle(new Query(_tenantId, 1, 10, null, search, sort), CancellationToken.None);
+        return await new Handler(database.CreateUsersQuery()).Handle(new ListQuery(_tenantId, 1, 10, null, search, sort), CancellationToken.None);
     }
 
     /// <summary>Alice, then Bob, then Carol, in separate saves so their CreatedAt values differ.</summary>

@@ -13,6 +13,9 @@ using WardenId.SharedKernel.Presentation.Utilities;
 
 namespace WardenId.Audit.Presentation.Features.Verification.Verify;
 
+// Aliased inside the namespace: WardenId.Audit.Query (the Dapper read side) would otherwise shadow the request type.
+using Query = WardenId.Audit.Application.Features.Verification.Verify.Query;
+
 public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)

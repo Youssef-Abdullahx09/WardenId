@@ -1,65 +1,60 @@
 using FluentResults;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using WardenId.Identity.Application.Abstractions;
+using WardenId.Identity.Application.Utilities;
 using WardenId.Identity.Domain;
+using WardenId.Identity.Query.Contracts;
 using WardenId.SharedKernel.Query.Contracts;
+using ListSortField = WardenId.Identity.Query.Contracts.Features.Users.List.SortField;
+using UsersListQuery = WardenId.Identity.Query.Contracts.Features.Users.List.Query;
 
 namespace WardenId.Identity.Application.Features.Users.List;
 
-public sealed class Handler(IIdentityDbContext dbContext) : IRequestHandler<Query, Result<PaginationListResponse<UserListItem>>>
+/// <summary>Read side: a tenant's users come from the Dapper query layer (Identity.Query), not the aggregate.</summary>
+public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<Query, Result<PaginationListResponse<UserListItem>>>
 {
     public async Task<Result<PaginationListResponse<UserListItem>>> Handle(Query request, CancellationToken cancellationToken)
     {
         var sortResult = UserListSort.Parse(request.Sort);
         if (sortResult.IsFailed) return Result.Fail(sortResult.Errors);
+        var sort = sortResult.Value;
 
         var search = request.Search?.Trim();
         if (search?.Length > Email.MaxLength)
             return Result.Fail(UserErrors.Validation($"Search cannot exceed {Email.MaxLength} characters."));
 
-        // Soft-deleted users are hidden unless asked for by status, so they can be found to restore.
-        var includeDeleted = request.Status == UserStatus.SoftDeleted;
-        var query = dbContext.Users.Where(u => u.TenantId == request.TenantId && (includeDeleted || !u.IsDeleted));
+        // Emails are stored lowercased (Email.Create) and the username is lowered in SQL, so the prefix is lowered here.
+        // The match is a literal prefix (LIKE 'prefix%' with % and _ escaped); see Features/Users/List/Query.sql.
+        var result = await usersQuery.List(
+            new UsersListQuery(
+                request.TenantId,
+                // Soft-deleted users are hidden unless asked for by status, so they can be found to restore.
+                IncludeDeleted: request.Status == UserStatus.SoftDeleted,
+                request.Status?.ToString(),
+                string.IsNullOrEmpty(search) ? null : search.ToLowerInvariant(),
+                MapSortField(sort.Field),
+                sort.Descending ? SortDirection.Desc : SortDirection.Asc,
+                request.PageNumber,
+                request.PageSize),
+            cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
-        if (request.Status is not null)
-            query = query.Where(u => u.Status == request.Status);
+        var users = result.Value.Data
+            .Select(item => new UserListItem(
+                item.Id,
+                item.Email,
+                item.Username,
+                QueryColumns.ParseEnum<UserStatus>(item.Status),
+                QueryColumns.AsUtc(item.CreatedAt)))
+            .ToList();
 
-        if (!string.IsNullOrEmpty(search))
-            query = WhereEmailOrUsernameStartsWith(query, search.ToLowerInvariant());
-
-        var totalCount = await query.LongCountAsync(cancellationToken);
-
-        var items = await OrderBy(query, sortResult.Value)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .Select(u => new UserListItem(u.Id, u.Email.Value, u.Username.Value, u.Status, u.CreatedAt))
-            .ToListAsync(cancellationToken);
-
-        return Result.Ok(new PaginationListResponse<UserListItem>(totalCount, items));
+        return Result.Ok(new PaginationListResponse<UserListItem>(result.Value.RecordsTotal, users));
     }
 
-    // Email and Username are value objects stored as strings; the (string)(object) casts let EF
-    // compare the stored column. Emails are stored lowercased (Email.Create), usernames keep their
-    // case, so only the username is lowered. StartsWith becomes LIKE 'prefix%' with the prefix's
-    // own % and _ escaped. No index serves the match today (the default-collation unique indexes
-    // can't do LIKE ranges): the TenantId index bounds the scan to one tenant. A prefix rather than
-    // a contains match keeps a plain btree index possible later (text_pattern_ops on Email,
-    // lower("Username")); contains would need pg_trgm.
-    private static IQueryable<User> WhereEmailOrUsernameStartsWith(IQueryable<User> query, string prefix) =>
-        query.Where(u =>
-            ((string)(object)u.Email).StartsWith(prefix) ||
-            ((string)(object)u.Username).ToLower().StartsWith(prefix));
-
-    // Id breaks ties (CreatedAt can repeat), so pages don't overlap or skip rows.
-    private static IOrderedQueryable<User> OrderBy(IQueryable<User> query, UserListSort sort) =>
-        (sort.Field, sort.Descending) switch
-        {
-            (UserSortField.Email, false) => query.OrderBy(u => (string)(object)u.Email).ThenBy(u => u.Id),
-            (UserSortField.Email, true) => query.OrderByDescending(u => (string)(object)u.Email).ThenByDescending(u => u.Id),
-            (UserSortField.Username, false) => query.OrderBy(u => (string)(object)u.Username).ThenBy(u => u.Id),
-            (UserSortField.Username, true) => query.OrderByDescending(u => (string)(object)u.Username).ThenByDescending(u => u.Id),
-            (_, false) => query.OrderBy(u => u.CreatedAt).ThenBy(u => u.Id),
-            (_, true) => query.OrderByDescending(u => u.CreatedAt).ThenByDescending(u => u.Id)
-        };
+    private static ListSortField MapSortField(UserSortField field) => field switch
+    {
+        UserSortField.CreatedAt => ListSortField.CreatedAt,
+        UserSortField.Email => ListSortField.Email,
+        UserSortField.Username => ListSortField.Username,
+        _ => throw new ArgumentOutOfRangeException(nameof(field), field, "Unmapped UserSortField.")
+    };
 }

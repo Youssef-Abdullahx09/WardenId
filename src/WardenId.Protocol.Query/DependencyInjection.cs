@@ -9,5 +9,6 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<ISessionsQuery, SessionsQuery>();
+        services.AddScoped<IPoliciesQuery, PoliciesQuery>();
     }
 }

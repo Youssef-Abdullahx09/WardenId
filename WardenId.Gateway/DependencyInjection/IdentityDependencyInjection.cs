@@ -1,5 +1,6 @@
 using WardenId.Identity.Infrastructure;
 using WardenId.Identity.Presentation;
+using WardenId.Identity.Query;
 
 namespace WardenId.Gateway.DependencyInjection;
 
@@ -11,5 +12,6 @@ public static class IdentityDependencyInjection
     {
         services.AddIdentityPresentation(configuration);
         services.AddIdentityInfrastructure(configuration);
+        services.AddIdentityQuery();
     }
 }

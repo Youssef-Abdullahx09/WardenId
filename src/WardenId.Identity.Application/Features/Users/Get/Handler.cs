@@ -1,40 +1,47 @@
 using FluentResults;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using WardenId.Identity.Application.Abstractions;
+using WardenId.Identity.Application.Utilities;
 using WardenId.Identity.Domain;
+using WardenId.Identity.Query.Contracts;
+using UserQuery = WardenId.Identity.Query.Contracts.Features.Users.Get.Query;
 
 namespace WardenId.Identity.Application.Features.Users.Get;
 
-public sealed class Handler(IIdentityDbContext dbContext) : IRequestHandler<Query, Result<UserDetail>>
+/// <summary>Read side: the user comes from the Dapper query layer (Identity.Query), not the aggregate.</summary>
+public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<Query, Result<UserDetail>>
 {
     public async Task<Result<UserDetail>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var user = await dbContext.Users
-            .Include(u => u.Attributes)
-            .Include(u => u.MfaFactors)
-            .Include(u => u.RecoveryCodes)
-            .Where(u => u.Id == request.UserId && u.TenantId == request.TenantId && !u.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
+        var result = await usersQuery.Get(new UserQuery(request.TenantId, request.UserId), cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
+        var user = result.Value;
         if (user is null) return Result.Fail(UserErrors.NotFound);
 
         var detail = new UserDetail(
             user.Id,
-            user.Email.Value,
-            user.Username.Value,
-            user.Status,
-            user.Lockout.FailedAttemptCount,
-            user.Lockout.LockedUntilUtc,
-            user.PendingActions.ToArray(),
-            user.Attributes.Select(a => new UserAttributeSummary(a.Key, a.Value, a.ValueType)).ToArray(),
+            user.Email,
+            user.Username,
+            QueryColumns.ParseEnum<UserStatus>(user.Status),
+            user.FailedAttemptCount,
+            QueryColumns.AsUtc(user.LockedUntilUtc),
+            user.PendingActions.Select(QueryColumns.ParseEnum<RequiredAction>).ToArray(),
+            user.Attributes
+                .Select(a => new UserAttributeSummary(a.Key, a.Value, QueryColumns.ParseEnum<UserAttributeValueType>(a.ValueType)))
+                .ToArray(),
             user.MfaFactors
                 .OrderBy(f => f.EnrolledAtUtc)
-                .Select(f => new MfaFactorSummary(f.Id, f.FactorType, f.Enabled, f.EnrolledAtUtc, f.VerifiedAtUtc, f.LastUsedAtUtc))
+                .Select(f => new MfaFactorSummary(
+                    f.Id,
+                    QueryColumns.ParseEnum<MfaFactorType>(f.FactorType),
+                    f.Enabled,
+                    QueryColumns.AsUtc(f.EnrolledAtUtc),
+                    QueryColumns.AsUtc(f.VerifiedAtUtc),
+                    QueryColumns.AsUtc(f.LastUsedAtUtc)))
                 .ToArray(),
             user.RemainingRecoveryCodeCount,
-            user.TermsAcceptedAtUtc,
-            user.CreatedAt);
+            QueryColumns.AsUtc(user.TermsAcceptedAtUtc),
+            QueryColumns.AsUtc(user.CreatedAt));
 
         return Result.Ok(detail);
     }

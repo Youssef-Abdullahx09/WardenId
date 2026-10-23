@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="FluentResults" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WardenId.SharedKernel.Query.Contracts\WardenId.SharedKernel.Query.Contracts.csproj" />
+  </ItemGroup>
+</Project>

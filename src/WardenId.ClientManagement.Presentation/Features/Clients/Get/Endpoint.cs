@@ -12,6 +12,9 @@ using WardenId.SharedKernel.Presentation.Utilities;
 
 namespace WardenId.ClientManagement.Presentation.Features.Clients.Get;
 
+// The sibling namespace WardenId.ClientManagement.Query would otherwise shadow the imported type.
+using Query = WardenId.ClientManagement.Application.Features.Clients.Get.Query;
+
 public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)

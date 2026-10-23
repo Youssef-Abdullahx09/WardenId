@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WardenId.Identity.Infrastructure\WardenId.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\WardenId.Identity.Query\WardenId.Identity.Query.csproj" />
   </ItemGroup>
 
   <ItemGroup>

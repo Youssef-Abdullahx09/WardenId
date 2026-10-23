@@ -1,5 +1,6 @@
 using WardenId.Protocol.Query.Contracts;
 using WardenId.SharedKernel.Query.Contracts;
+using GetLive = WardenId.Protocol.Query.Contracts.Features.Sessions.GetLive;
 using List = WardenId.Protocol.Query.Contracts.Features.Sessions.List;
 using ListForUser = WardenId.Protocol.Query.Contracts.Features.Sessions.ListForUser;
 
@@ -26,5 +27,15 @@ public sealed class FakeSessionsQuery : ISessionsQuery
     {
         ListCalls.Add(query);
         return Task.FromResult(ListResponse);
+    }
+
+    public Result<GetLive.Item?> GetLiveResponse { get; set; } = Result.Ok<GetLive.Item?>(null);
+
+    public List<GetLive.Query> GetLiveCalls { get; } = [];
+
+    public Task<Result<GetLive.Item?>> GetLive(GetLive.Query query, CancellationToken cancellationToken)
+    {
+        GetLiveCalls.Add(query);
+        return Task.FromResult(GetLiveResponse);
     }
 }

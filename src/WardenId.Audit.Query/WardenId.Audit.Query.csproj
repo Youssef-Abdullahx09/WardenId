@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+      <ProjectReference Include="..\WardenId.SharedKernel.FileOperation\WardenId.SharedKernel.FileOperation.csproj" />
+      <ProjectReference Include="..\WardenId.Audit.Query.Contracts\WardenId.Audit.Query.Contracts.csproj" />
+      <ProjectReference Include="..\WardenId.SharedKernel.Query\WardenId.SharedKernel.Query.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Features\AuditEvents\List\Query.sql">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Features\AuditEvents\Get\Query.sql">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+</Project>

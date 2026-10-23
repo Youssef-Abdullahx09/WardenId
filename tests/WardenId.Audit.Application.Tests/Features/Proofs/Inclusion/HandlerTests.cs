@@ -2,6 +2,9 @@ using WardenId.Audit.Application.Features.Proofs.Inclusion;
 
 namespace WardenId.Audit.Application.Tests.Features.Proofs.Inclusion;
 
+// Aliased inside the namespace: WardenId.Audit.Query (the Dapper read side) would otherwise shadow the request type.
+using Query = WardenId.Audit.Application.Features.Proofs.Inclusion.Query;
+
 public class HandlerTests
 {
     private static readonly Guid? TenantId = Guid.NewGuid();

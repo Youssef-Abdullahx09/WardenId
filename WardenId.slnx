@@ -6,6 +6,8 @@
     <Project Path="src/WardenId.Audit.Infrastructure/WardenId.Audit.Infrastructure.csproj" />
     <Project Path="src/WardenId.Audit.Integration.Command/WardenId.Audit.Integration.Command.csproj" />
     <Project Path="src/WardenId.Audit.Presentation/WardenId.Audit.Presentation.csproj" />
+    <Project Path="src/WardenId.Audit.Query/WardenId.Audit.Query.csproj" />
+    <Project Path="src/WardenId.Audit.Query.Contracts/WardenId.Audit.Query.Contracts.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.ClientManagement/">
     <Project Path="src/WardenId.ClientManagement.Application/WardenId.ClientManagement.Application.csproj" />
@@ -13,6 +15,8 @@
     <Project Path="src/WardenId.ClientManagement.Infrastructure/WardenId.ClientManagement.Infrastructure.csproj" />
     <Project Path="src/WardenId.ClientManagement.Integration.Command/WardenId.ClientManagement.Integration.Command.csproj" />
     <Project Path="src/WardenId.ClientManagement.Presentation/WardenId.ClientManagement.Presentation.csproj" />
+    <Project Path="src/WardenId.ClientManagement.Query/WardenId.ClientManagement.Query.csproj" />
+    <Project Path="src/WardenId.ClientManagement.Query.Contracts/WardenId.ClientManagement.Query.Contracts.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.SharedKernel/">
     <Project Path="src/WardenId.SharedKernel.Application/WardenId.SharedKernel.Application.csproj" />
@@ -30,6 +34,8 @@
     <Project Path="src/WardenId.Tenancy.Infrastructure/WardenId.Tenancy.Infrastructure.csproj" />
     <Project Path="src/WardenId.Tenancy.Integration.Command/WardenId.Tenancy.Integration.Command.csproj" />
     <Project Path="src/WardenId.Tenancy.Presentation/WardenId.Tenancy.Presentation.csproj" />
+    <Project Path="src/WardenId.Tenancy.Query/WardenId.Tenancy.Query.csproj" />
+    <Project Path="src/WardenId.Tenancy.Query.Contracts/WardenId.Tenancy.Query.Contracts.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.Identity/">
     <Project Path="src/WardenId.Identity.Application/WardenId.Identity.Application.csproj" />
@@ -37,6 +43,8 @@
     <Project Path="src/WardenId.Identity.Infrastructure/WardenId.Identity.Infrastructure.csproj" />
     <Project Path="src/WardenId.Identity.Integration.Command/WardenId.Identity.Integration.Command.csproj" />
     <Project Path="src/WardenId.Identity.Presentation/WardenId.Identity.Presentation.csproj" />
+    <Project Path="src/WardenId.Identity.Query/WardenId.Identity.Query.csproj" />
+    <Project Path="src/WardenId.Identity.Query.Contracts/WardenId.Identity.Query.Contracts.csproj" />
   </Folder>
   <Folder Name="/src/WardenId.Protocol/">
     <Project Path="src/WardenId.Protocol.Application/WardenId.Protocol.Application.csproj" />

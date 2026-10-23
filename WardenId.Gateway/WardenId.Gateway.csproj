@@ -9,10 +9,13 @@
     <ItemGroup>
       <ProjectReference Include="..\src\WardenId.Audit.Infrastructure\WardenId.Audit.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.Audit.Presentation\WardenId.Audit.Presentation.csproj" />
+      <ProjectReference Include="..\src\WardenId.Audit.Query\WardenId.Audit.Query.csproj" />
       <ProjectReference Include="..\src\WardenId.ClientManagement.Infrastructure\WardenId.ClientManagement.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.ClientManagement.Presentation\WardenId.ClientManagement.Presentation.csproj" />
+      <ProjectReference Include="..\src\WardenId.ClientManagement.Query\WardenId.ClientManagement.Query.csproj" />
       <ProjectReference Include="..\src\WardenId.Identity.Infrastructure\WardenId.Identity.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.Identity.Presentation\WardenId.Identity.Presentation.csproj" />
+      <ProjectReference Include="..\src\WardenId.Identity.Query\WardenId.Identity.Query.csproj" />
       <ProjectReference Include="..\src\WardenId.Protocol.Infrastructure\WardenId.Protocol.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.Protocol.Presentation\WardenId.Protocol.Presentation.csproj" />
       <ProjectReference Include="..\src\WardenId.Protocol.Query\WardenId.Protocol.Query.csproj" />
@@ -22,6 +25,7 @@
       <ProjectReference Include="..\src\WardenId.SharedKernel.Query\WardenId.SharedKernel.Query.csproj" />
       <ProjectReference Include="..\src\WardenId.Tenancy.Infrastructure\WardenId.Tenancy.Infrastructure.csproj" />
       <ProjectReference Include="..\src\WardenId.Tenancy.Presentation\WardenId.Tenancy.Presentation.csproj" />
+      <ProjectReference Include="..\src\WardenId.Tenancy.Query\WardenId.Tenancy.Query.csproj" />
     </ItemGroup>
 
 </Project>

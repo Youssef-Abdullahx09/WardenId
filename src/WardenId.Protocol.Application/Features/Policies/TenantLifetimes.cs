@@ -31,7 +31,7 @@ public sealed class TenantLifetimes(
     public void Invalidate(Guid tenantId) => cache.Remove(CacheKey(tenantId));
 
     /// <summary>The tenant's stored overrides, uncached, or null when it has none.</summary>
-    public static async Task<TenantLifetimeOverrides?> LoadAsync(
+    private static async Task<TenantLifetimeOverrides?> LoadAsync(
         IProtocolDbContext dbContext, Guid tenantId, CancellationToken cancellationToken)
     {
         var policy = await dbContext.TenantTokenPolicies

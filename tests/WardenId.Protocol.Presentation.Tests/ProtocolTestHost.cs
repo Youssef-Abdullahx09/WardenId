@@ -19,6 +19,7 @@ using WardenId.Protocol.Infrastructure;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.Protocol.Infrastructure.Persistence;
 using WardenId.Protocol.Infrastructure.Sessions;
+using WardenId.Protocol.Query.Contracts;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Presentation;
 using ConfigurationKeys = WardenId.Protocol.Infrastructure.Utilities.ConfigurationKeys;
@@ -95,6 +96,9 @@ public sealed class ProtocolTestHost : IAsyncDisposable
         var sessionDatabaseName = "protocol-" + Guid.NewGuid();
         builder.Services.AddDbContext<ProtocolDbContext>(options => options.UseInMemoryDatabase(sessionDatabaseName));
         builder.Services.AddScoped<IProtocolDbContext>(sp => sp.GetRequiredService<ProtocolDbContext>());
+        // Dapper can't query InMemory: the read side reads the same InMemory rows.
+        builder.Services.AddScoped<ISessionsQuery, InMemorySessionsQuery>();
+        builder.Services.AddScoped<IPoliciesQuery, InMemoryPoliciesQuery>();
         // Production registers it with back-channel logout (CAP); the admin grant handlers need it here too.
         builder.Services.AddScoped<ISessionAuthorizationRevoker, OpenIddictSessionAuthorizationRevoker>();
 

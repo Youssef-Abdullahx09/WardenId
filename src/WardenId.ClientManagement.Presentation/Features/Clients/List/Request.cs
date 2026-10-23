@@ -3,6 +3,9 @@ using WardenId.ClientManagement.Domain;
 
 namespace WardenId.ClientManagement.Presentation.Features.Clients.List;
 
+// The sibling namespace WardenId.ClientManagement.Query would otherwise shadow the imported type.
+using Query = WardenId.ClientManagement.Application.Features.Clients.List.Query;
+
 public sealed record Request(
     int PageNumber,
     int PageSize,

@@ -1,5 +1,6 @@
 using WardenId.Audit.Infrastructure;
 using WardenId.Audit.Presentation;
+using WardenId.Audit.Query;
 
 namespace WardenId.Gateway.DependencyInjection;
 
@@ -13,5 +14,6 @@ public static class AuditDependencyInjection
     {
         services.AddAuditPresentation();
         services.AddAuditInfrastructure(configuration);
+        services.AddAuditQuery();
     }
 }

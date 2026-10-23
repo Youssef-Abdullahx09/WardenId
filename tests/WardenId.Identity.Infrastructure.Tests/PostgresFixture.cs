@@ -1,7 +1,11 @@
 using DotNet.Testcontainers.Builders;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Testcontainers.PostgreSql;
+using WardenId.Identity.Query;
+using WardenId.SharedKernel.FileOperation;
+using WardenId.SharedKernel.Query;
 
 namespace WardenId.Identity.Infrastructure.Tests;
 
@@ -71,6 +75,14 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public IdentityDbContext CreateContext() =>
         new(new DbContextOptionsBuilder<IdentityDbContext>().UseNpgsql(ConnectionString).Options);
+
+    /// <summary>The Dapper user queries over this database, reading the SQL files copied next to the test assembly.</summary>
+    public UsersQuery CreateUsersQuery() =>
+        new(new ConnectionWrapper(new NpgsqlConnection(ConnectionString)), new ReadFileService(NullLogger<ReadFileService>.Instance));
+
+    /// <summary>The Dapper policy queries over this database.</summary>
+    public PoliciesQuery CreatePoliciesQuery() =>
+        new(new ConnectionWrapper(new NpgsqlConnection(ConnectionString)), new ReadFileService(NullLogger<ReadFileService>.Instance));
 
     public async Task<long> CountAsync(string sql, params object[] parameters)
     {

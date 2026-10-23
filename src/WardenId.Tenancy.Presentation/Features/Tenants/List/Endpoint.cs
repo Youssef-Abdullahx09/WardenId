@@ -11,6 +11,7 @@ using WardenId.SharedKernel.Query.Contracts;
 using WardenId.Tenancy.Application.Features.Tenants.List;
 using WardenId.Tenancy.Domain;
 using WardenId.Tenancy.Presentation.Utilities;
+using ListQuery = WardenId.Tenancy.Application.Features.Tenants.List.Query;
 
 namespace WardenId.Tenancy.Presentation.Features.Tenants.List;
 
@@ -30,7 +31,7 @@ public sealed class Endpoint : IEndpoint
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(new Query(pageNumber, pageSize, status), cancellationToken);
+                var result = await sender.Send(new ListQuery(pageNumber, pageSize, status), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
             })

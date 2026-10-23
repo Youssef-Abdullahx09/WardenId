@@ -9,7 +9,7 @@ using WardenId.SharedKernel.Presentation;
 using WardenId.SharedKernel.Presentation.Utilities;
 using WardenId.Tenancy.Application.Features.Tenants.Get;
 using WardenId.Tenancy.Presentation.Utilities;
-using Query = WardenId.Tenancy.Application.Features.Tenants.GetBySlug.Query;
+using GetBySlugQuery = WardenId.Tenancy.Application.Features.Tenants.GetBySlug.Query;
 
 namespace WardenId.Tenancy.Presentation.Features.Tenants.GetBySlug;
 
@@ -27,7 +27,7 @@ public sealed class Endpoint : IEndpoint
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(new Query(slug), cancellationToken);
+                var result = await sender.Send(new GetBySlugQuery(slug), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
             })

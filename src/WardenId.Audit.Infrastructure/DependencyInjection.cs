@@ -39,7 +39,6 @@ public static class DependencyInjection
         services.AddSingleton<IAuditActorScope, AuditActorScope>();
         services.AddSingleton<IAuditRecorder, AuditRecorder>();
         services.AddSingleton<IAuditProofRepository, AuditProofRepository>();
-        services.AddSingleton<IAuditEventSearch, AuditEventSearch>();
 
         // Stateless — safe as a singleton. Registered as ISaveChangesInterceptor so every module's
         // DbContextOptionsBuilder.AddSharedInterceptors(...) (WardenId.SharedKernel.Persistence)

@@ -1,25 +1,27 @@
 using FluentResults;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Domain;
+using WardenId.Protocol.Query.Contracts;
+using GetLiveSessionQuery = WardenId.Protocol.Query.Contracts.Features.Sessions.GetLive.Query;
 
 namespace WardenId.Protocol.Application.Features.Sessions.GetLive;
 
+/// <summary>Read side: the session comes from the Dapper query layer (Protocol.Query), not the aggregate.</summary>
 public sealed class Handler(
-    IProtocolDbContext dbContext,
+    ISessionsQuery sessionsQuery,
     TimeProvider timeProvider) : IRequestHandler<Query, Result<LiveSession>>
 {
     public async Task<Result<LiveSession>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var session = await dbContext.Sessions
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == request.Sid && s.TenantId == request.TenantId, cancellationToken);
+        var result = await sessionsQuery.GetLive(new GetLiveSessionQuery(request.TenantId, request.Sid), cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
-        // Missing, other tenant, ended and expired are indistinguishable to the caller.
-        if (session is null || !session.IsLive(timeProvider.GetUtcNow()))
+        // Missing, other tenant, ended and expired are indistinguishable to the caller. Same rule as Session.IsLive.
+        var session = result.Value;
+        if (session is null || session.EndedAt is not null
+            || timeProvider.GetUtcNow() >= SessionTimes.AsUtc(session.ExpiresAt))
             return Result.Fail(SessionErrors.NotFound());
 
-        return Result.Ok(new LiveSession(session.Id, session.SubjectId, session.AuthTime));
+        return Result.Ok(new LiveSession(session.Sid, session.UserId, SessionTimes.AsUtc(session.AuthTime)));
     }
 }

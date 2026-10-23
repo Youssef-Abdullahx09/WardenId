@@ -1,28 +1,54 @@
 using WardenId.Tenancy.Application.Features.Tenants.GetBySlug;
+using TenantRow = WardenId.Tenancy.Query.Contracts.Features.Tenants.Get.Item;
+using TenantsGetBySlugQuery = WardenId.Tenancy.Query.Contracts.Features.Tenants.GetBySlug.Query;
 
 namespace WardenId.Tenancy.Application.Tests.Features.Tenants.GetBySlug;
 
+// A bare \"Query\" would otherwise bind to the WardenId.Tenancy.Query namespace.
+using Query = WardenId.Tenancy.Application.Features.Tenants.GetBySlug.Query;
+
 public class HandlerTests
 {
-    private static async Task<Result<WardenId.Tenancy.Application.Features.Tenants.Get.TenantDetail>> GetAsync(string slug)
+    [Fact]
+    public async Task Handle_FindsTheTenant()
     {
-        await using var db = TestTenancyDbContext.CreateNew(Guid.NewGuid().ToString());
-        db.Tenants.Add(TenantBuilder.Create("acme", Status.Active).Tenant);
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-        return await new Handler(new FakeTenantRepository(db)).Handle(new Query(slug), CancellationToken.None);
+        var tenantsQuery = new FakeTenantsQuery
+        {
+            GetBySlugResponse = Result.Ok<TenantRow?>(new TenantRow
+            {
+                Id = Guid.NewGuid(), Slug = "acme", DisplayName = "Acme", Status = nameof(Status.Active),
+                CreatedAt = DateTime.UtcNow
+            })
+        };
+
+        var result = await new Handler(tenantsQuery).Handle(new Query("acme"), CancellationToken.None);
+
+        Assert.Equal("acme", result.Value.Slug);
+        Assert.Equal(Status.Active, result.Value.Status);
+        Assert.Equal(new TenantsGetBySlugQuery("acme"), Assert.Single(tenantsQuery.GetBySlugCalls));
     }
 
     [Fact]
-    public async Task Handle_FindsTheTenant() => Assert.Equal("acme", (await GetAsync("acme")).Value.Slug);
-
-    [Theory]
-    [InlineData("globex")]
-    [InlineData("Not A Slug!")]
-    public async Task Handle_ReturnsNotFound_ForUnknownOrMalformedSlug(string slug)
+    public async Task Handle_ReturnsNotFound_ForUnknownSlug()
     {
-        var result = await GetAsync(slug);
+        var result = await new Handler(new FakeTenantsQuery()).Handle(new Query("globex"), CancellationToken.None);
 
+        AssertNotFound(result);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNotFound_ForMalformedSlug_WithoutQuerying()
+    {
+        var tenantsQuery = new FakeTenantsQuery();
+
+        var result = await new Handler(tenantsQuery).Handle(new Query("Not A Slug!"), CancellationToken.None);
+
+        AssertNotFound(result);
+        Assert.Empty(tenantsQuery.GetBySlugCalls);
+    }
+
+    private static void AssertNotFound(Result<WardenId.Tenancy.Application.Features.Tenants.Get.TenantDetail> result)
+    {
         Assert.True(result.IsFailed);
         Assert.Equal(TenantErrorCodes.NotFound, result.Errors[0].Metadata[TenantErrorCodes.MetadataKey]);
     }

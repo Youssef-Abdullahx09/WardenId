@@ -1,5 +1,6 @@
 ﻿using WardenId.Tenancy.Infrastructure;
 using WardenId.Tenancy.Presentation;
+using WardenId.Tenancy.Query;
 
 namespace WardenId.Gateway.DependencyInjection;
 
@@ -11,5 +12,6 @@ public static class TenancyDependencyInjection
     {
         services.AddTenancyPresentation();
         services.AddTenancyInfrastructure(configuration);
+        services.AddTenancyQuery();
     }
 }

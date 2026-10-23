@@ -1,93 +1,79 @@
 using WardenId.Tenancy.Application.Features.SigningKeys.GetPublicKeys;
 using WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys;
+using KeyRow = WardenId.Tenancy.Query.Contracts.Features.SigningKeys.GetPublicKeys.PublicKeyItem;
+using SigningKeysGetPublicKeysQuery = WardenId.Tenancy.Query.Contracts.Features.SigningKeys.GetPublicKeys.Query;
+using TenantRow = WardenId.Tenancy.Query.Contracts.Features.SigningKeys.GetPublicKeys.Item;
 
 namespace WardenId.Tenancy.Application.Tests.Features.SigningKeys.GetPublicKeys;
 
+// A bare \"Query\" would otherwise bind to the WardenId.Tenancy.Query namespace.
+using Query = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
+
 public class HandlerTests
 {
-    private static async Task<TestTenancyDbContext> SeedAsync(params Tenant[] tenants)
+    private static readonly Guid TenantId = Guid.NewGuid();
+
+    private static FakeSigningKeysQuery QueryReturning(string status, params (SigningKeyStatus Status, string Jwk)[] keys) => new()
     {
-        var db = TestTenancyDbContext.CreateNew(Guid.NewGuid().ToString());
-        db.Tenants.AddRange(tenants);
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-        return db;
-    }
+        GetPublicKeysResponse = Result.Ok<TenantRow?>(new TenantRow
+        {
+            Id = TenantId,
+            Slug = "acme",
+            Status = status,
+            PublicKeys = keys.Select(k => new KeyRow { Status = k.Status.ToString(), PublicKeyJwk = k.Jwk }).ToList()
+        })
+    };
+
+    private static Task<Result<TenantPublicKeys>> HandleAsync(FakeSigningKeysQuery query, string slug = "acme") =>
+        new Handler(query).Handle(new Query(slug), CancellationToken.None);
 
     [Theory]
     [InlineData(Status.Active)]
     [InlineData(Status.Suspended)]
     public async Task Handle_ReturnsKeys_WhenTenantIsServable(Status status)
     {
-        var (tenant, key) = TenantBuilder.Create("acme", status);
-        await using var db = await SeedAsync(tenant);
+        var jwk = TenantBuilder.Jwk(Guid.NewGuid());
+        var query = QueryReturning(status.ToString(), (SigningKeyStatus.Active, jwk));
 
-        var result = await new Handler(db).Handle(new Query("acme"), CancellationToken.None);
+        var result = await HandleAsync(query);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(tenant.Id, result.Value.TenantId);
+        Assert.Equal(TenantId, result.Value.TenantId);
         Assert.Equal("acme", result.Value.Slug);
-        Assert.Equal(new[] { key.PublicKeyJwk }, result.Value.PublicKeyJwks);
+        Assert.Equal(new[] { jwk }, result.Value.PublicKeyJwks);
+        Assert.Equal(new SigningKeysGetPublicKeysQuery("acme"), Assert.Single(query.GetPublicKeysCalls));
     }
 
     [Theory]
-    [InlineData(Status.Provisioning)]
-    [InlineData(Status.Archived)]
-    public async Task Handle_ReturnsNotFound_WhenTenantStatusIsNotServable(Status status)
+    [InlineData(nameof(Status.Provisioning))]
+    [InlineData(nameof(Status.Archived))]
+    [InlineData("SomeFutureStatus")]
+    public async Task Handle_ReturnsNotFound_WhenTenantStatusIsNotServable(string status)
     {
-        var (tenant, _) = TenantBuilder.Create("acme", status);
-        await using var db = await SeedAsync(tenant);
+        var query = QueryReturning(status, (SigningKeyStatus.Active, TenantBuilder.Jwk(Guid.NewGuid())));
 
-        var result = await new Handler(db).Handle(new Query("acme"), CancellationToken.None);
-
-        AssertNotFound(result);
+        AssertNotFound(await HandleAsync(query));
     }
 
     [Fact]
-    public async Task Handle_ReturnsNotFound_WhenSlugIsUnknown()
-    {
-        var (tenant, _) = TenantBuilder.Create("acme", Status.Active);
-        await using var db = await SeedAsync(tenant);
-
-        var result = await new Handler(db).Handle(new Query("other"), CancellationToken.None);
-
-        AssertNotFound(result);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsNotFound_WhenSlugCaseDiffers()
-    {
-        var (tenant, _) = TenantBuilder.Create("acme", Status.Active);
-        await using var db = await SeedAsync(tenant);
-
-        var result = await new Handler(db).Handle(new Query("ACME"), CancellationToken.None);
-
-        AssertNotFound(result);
-    }
+    public async Task Handle_ReturnsNotFound_WhenSlugIsUnknown() =>
+        AssertNotFound(await HandleAsync(new FakeSigningKeysQuery(), "other"));
 
     [Fact]
     public async Task Handle_PublishesTheActiveAndRetiringKeys_ButNotRetiredOnes()
     {
-        var (tenant, first) = TenantBuilder.Create("acme", Status.Active);
-        var second = NewKey();
-        var third = NewKey();
-        Assert.True(tenant.RotateSigningKey(second).IsSuccess);
-        Assert.True(tenant.RotateSigningKey(third).IsSuccess);
-        Assert.True(tenant.RetireSigningKey(first.SigningKeyId).IsSuccess);
-        await using var db = await SeedAsync(tenant);
+        var retired = TenantBuilder.Jwk(Guid.NewGuid());
+        var retiring = TenantBuilder.Jwk(Guid.NewGuid());
+        var active = TenantBuilder.Jwk(Guid.NewGuid());
+        var query = QueryReturning(nameof(Status.Active),
+            (SigningKeyStatus.Active, active),
+            (SigningKeyStatus.Retiring, retiring),
+            (SigningKeyStatus.Retired, retired));
 
-        var result = await new Handler(db).Handle(new Query("acme"), CancellationToken.None);
+        var result = await HandleAsync(query);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(
-            new[] { second.PublicKeyJwk, third.PublicKeyJwk }.Order(),
-            result.Value.PublicKeyJwks.Order());
-    }
-
-    private static SigningKey NewKey()
-    {
-        var keyId = Guid.NewGuid();
-        return SigningKey.CreateEs256(keyId, TenantBuilder.Jwk(keyId), [1]);
+        Assert.Equal(new[] { active, retiring }, result.Value.PublicKeyJwks);
     }
 
     private static void AssertNotFound(Result<TenantPublicKeys> result)

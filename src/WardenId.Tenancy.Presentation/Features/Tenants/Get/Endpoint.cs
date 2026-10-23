@@ -9,6 +9,7 @@ using WardenId.SharedKernel.Presentation;
 using WardenId.SharedKernel.Presentation.Utilities;
 using WardenId.Tenancy.Application.Features.Tenants.Get;
 using WardenId.Tenancy.Presentation.Utilities;
+using GetQuery = WardenId.Tenancy.Application.Features.Tenants.Get.Query;
 
 namespace WardenId.Tenancy.Presentation.Features.Tenants.Get;
 
@@ -26,7 +27,7 @@ public sealed class Endpoint : IEndpoint
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(new Query(tenantId), cancellationToken);
+                var result = await sender.Send(new GetQuery(tenantId), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
             })

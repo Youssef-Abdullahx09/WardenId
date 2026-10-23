@@ -1,49 +1,54 @@
 using FluentResults;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using WardenId.ClientManagement.Application.Abstractions;
 using WardenId.ClientManagement.Domain;
+using WardenId.ClientManagement.Query.Contracts;
+using ClientsQuery = WardenId.ClientManagement.Query.Contracts.Features.Clients.Get.Query;
 
 namespace WardenId.ClientManagement.Application.Features.Clients.Get;
 
+/// <summary>Read side: the client comes from the Dapper query layer (ClientManagement.Query), not the aggregate.</summary>
 public sealed class Handler(
-    IClientManagementDbContext dbContext) : IRequestHandler<Query, Result<ClientDetail>>
+    IClientsQuery clientsQuery) : IRequestHandler<Query, Result<ClientDetail>>
 {
     public async Task<Result<ClientDetail>> Handle(
         Query request,
         CancellationToken cancellationToken)
     {
-        var client = await dbContext.Clients
-            .Include(c => c.Secrets)
-            .Include(c => c.SigningKeys)
-            .Where(c => c.Id == request.ClientId && c.TenantId == request.TenantId && !c.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
+        var result = await clientsQuery.Get(
+            new ClientsQuery(request.TenantId, request.ClientId),
+            cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
+        var client = result.Value;
         if (client is null) return Result.Fail(ClientErrors.NotFound);
 
         var detail = new ClientDetail(
             client.Id,
-            client.ClientId.Value,
+            client.ClientId,
             client.TenantId,
-            client.ClientType,
+            ClientRows.ParseEnum<ClientType>(client.ClientType),
             client.DisplayName,
             client.Description,
             client.Enabled,
             client.IsFirstParty,
-            client.GrantType,
+            ClientRows.ParseEnum<GrantType>(client.GrantType),
             client.RequirePkce,
-            client.ClientAuthenticationMethod,
+            ClientRows.ParseEnum<ClientAuthenticationMethod>(client.ClientAuthenticationMethod),
             client.ConsentRequired,
-            client.TokenLifetimeOverrides?.AccessTokenSeconds,
-            client.TokenLifetimeOverrides?.IdTokenSeconds,
-            client.TokenLifetimeOverrides?.RefreshTokenSeconds,
-            client.RedirectUris.Select(r => r.Value).ToArray(),
-            client.PostLogoutRedirectUris.Select(r => r.Value).ToArray(),
-            client.CorsOrigins.Select(o => o.Value).ToArray(),
-            client.Secrets.Select(s => new ClientSecretSummary(s.Id, s.Label, s.ExpiresAt)).ToArray(),
-            client.SigningKeys.Select(k => new ClientSigningKeySummary(k.Id, k.Kid, k.Algorithm, k.ExpiresAt)).ToArray(),
-            client.AssignedScopeIds.ToArray(),
-            client.BackchannelLogoutUri?.Value);
+            client.AccessTokenSeconds,
+            client.IdTokenSeconds,
+            client.RefreshTokenSeconds,
+            client.RedirectUris,
+            client.PostLogoutRedirectUris,
+            client.CorsOrigins,
+            client.Secrets
+                .Select(s => new ClientSecretSummary(s.Id, s.Label, ClientRows.AsUtc(s.ExpiresAt)))
+                .ToArray(),
+            client.SigningKeys
+                .Select(k => new ClientSigningKeySummary(k.Id, k.Kid, k.Algorithm, ClientRows.AsUtc(k.ExpiresAt)))
+                .ToArray(),
+            client.AssignedScopeIds,
+            client.BackchannelLogoutUri);
 
         return Result.Ok(detail);
     }

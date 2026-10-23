@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WardenId.Audit.Infrastructure\WardenId.Audit.Infrastructure.csproj" />
+    <!-- Test-only: runs the Dapper read side (Audit.Query) against the migrated audit.events table. -->
+    <ProjectReference Include="..\..\src\WardenId.Audit.Query\WardenId.Audit.Query.csproj" />
     <!-- Test-only: proves the real Tenancy, ClientManagement and Identity contexts are captured by the audit interceptor. -->
     <ProjectReference Include="..\..\src\WardenId.Tenancy.Infrastructure\WardenId.Tenancy.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\WardenId.ClientManagement.Infrastructure\WardenId.ClientManagement.Infrastructure.csproj" />

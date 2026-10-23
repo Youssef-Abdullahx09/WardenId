@@ -1,56 +1,63 @@
 using WardenId.Tenancy.Application.Features.Tenants.ResolveForIssuance;
 using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
+using TenantRow = WardenId.Tenancy.Query.Contracts.Features.Tenants.ResolveForIssuance.Item;
+using TenantsResolveQuery = WardenId.Tenancy.Query.Contracts.Features.Tenants.ResolveForIssuance.Query;
 
 namespace WardenId.Tenancy.Application.Tests.Features.Tenants.ResolveForIssuance;
 
+// A bare \"Query\" would otherwise bind to the WardenId.Tenancy.Query namespace.
+using Query = WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance.Query;
+
 public class HandlerTests
 {
-    private static async Task<Result<TenantForIssuance>> ResolveAsync(Tenant tenant, string slug)
+    private static readonly Guid TenantId = Guid.NewGuid();
+
+    private static FakeTenantsQuery QueryReturning(string status) => new()
     {
-        await using var db = TestTenancyDbContext.CreateNew(Guid.NewGuid().ToString());
-        db.Tenants.Add(tenant);
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-        return await new Handler(db).Handle(new Query(slug), CancellationToken.None);
-    }
+        ResolveForIssuanceResponse = Result.Ok<TenantRow?>(new TenantRow
+        {
+            Id = TenantId, Slug = "acme", DisplayName = "Display acme", Status = status
+        })
+    };
+
+    private static Task<Result<TenantForIssuance>> ResolveAsync(FakeTenantsQuery tenantsQuery, string slug) =>
+        new Handler(tenantsQuery).Handle(new Query(slug), CancellationToken.None);
 
     [Theory]
     [InlineData(Status.Active, TenantIssuanceStatus.Active)]
     [InlineData(Status.Suspended, TenantIssuanceStatus.Suspended)]
     public async Task Handle_ReturnsTenant_WithIssuanceStatus(Status status, TenantIssuanceStatus expected)
     {
-        var (tenant, _) = TenantBuilder.Create("acme", status);
+        var tenantsQuery = QueryReturning(status.ToString());
 
-        var result = await ResolveAsync(tenant, "acme");
+        var result = await ResolveAsync(tenantsQuery, "acme");
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(tenant.Id, result.Value.TenantId);
+        Assert.Equal(TenantId, result.Value.TenantId);
         Assert.Equal("acme", result.Value.Slug);
         Assert.Equal("Display acme", result.Value.DisplayName);
         Assert.Equal(expected, result.Value.Status);
+        Assert.Equal(new TenantsResolveQuery("acme"), Assert.Single(tenantsQuery.ResolveForIssuanceCalls));
     }
 
     [Theory]
-    [InlineData(Status.Provisioning)]
-    [InlineData(Status.Archived)]
-    public async Task Handle_ReturnsNotFound_ForNonServableStatus(Status status)
-    {
-        var (tenant, _) = TenantBuilder.Create("acme", status);
-        AssertNotFound(await ResolveAsync(tenant, "acme"));
-    }
+    [InlineData(nameof(Status.Provisioning))]
+    [InlineData(nameof(Status.Archived))]
+    [InlineData("SomeFutureStatus")]
+    public async Task Handle_ReturnsNotFound_ForNonServableStatus(string status) =>
+        AssertNotFound(await ResolveAsync(QueryReturning(status), "acme"));
 
     [Fact]
-    public async Task Handle_ReturnsNotFound_ForUnknownSlug()
-    {
-        var (tenant, _) = TenantBuilder.Create("acme", Status.Active);
-        AssertNotFound(await ResolveAsync(tenant, "other"));
-    }
+    public async Task Handle_ReturnsNotFound_ForUnknownSlug() =>
+        AssertNotFound(await ResolveAsync(new FakeTenantsQuery(), "other"));
 
     [Fact]
-    public async Task Handle_ReturnsNotFound_ForBlankSlug()
+    public async Task Handle_ReturnsNotFound_ForBlankSlug_WithoutQuerying()
     {
-        var (tenant, _) = TenantBuilder.Create("acme", Status.Active);
-        AssertNotFound(await ResolveAsync(tenant, " "));
+        var tenantsQuery = QueryReturning(nameof(Status.Active));
+
+        AssertNotFound(await ResolveAsync(tenantsQuery, " "));
+        Assert.Empty(tenantsQuery.ResolveForIssuanceCalls);
     }
 
     private static void AssertNotFound(Result<TenantForIssuance> result)

@@ -2,14 +2,19 @@ using System.Xml;
 using FluentResults;
 using MediatR;
 using Microsoft.Extensions.Options;
-using WardenId.Identity.Application.Abstractions;
+using WardenId.Identity.Application.Utilities;
 using WardenId.Identity.Domain;
+using WardenId.Identity.Query.Contracts;
+using PolicyQuery = WardenId.Identity.Query.Contracts.Features.Policies.GetIdentity.Query;
 
 namespace WardenId.Identity.Application.Features.Policies.GetIdentity;
 
-/// <summary>Reads the tenant's overrides from the database, not the sign-in cache, so an admin sees a save at once.</summary>
+/// <summary>
+/// Reads the tenant's overrides from the database (the Dapper query layer, Identity.Query), not the sign-in cache,
+/// so an admin sees a save at once.
+/// </summary>
 public sealed class Handler(
-    IIdentityTenantPolicyRepository tenantPolicies,
+    IPoliciesQuery policiesQuery,
     IOptions<IdentityPolicyOptions> options) : IRequestHandler<Query, Result<IdentityPolicy>>
 {
     public const string GlobalScope = "global";
@@ -17,7 +22,22 @@ public sealed class Handler(
 
     public async Task<Result<IdentityPolicy>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var overrides = await tenantPolicies.GetOverridesAsync(request.TenantId, cancellationToken);
+        var overridesResult = await policiesQuery.GetIdentity(new PolicyQuery(request.TenantId), cancellationToken);
+        if (overridesResult.IsFailed) return Result.Fail(overridesResult.Errors);
+        var overrides = overridesResult.Value is { } row
+            ? new IdentityPolicyOverrides(
+                row.PasswordMinLength,
+                row.PasswordRequireUppercase,
+                row.PasswordRequireDigit,
+                row.PasswordRequireSymbol,
+                row.PasswordBreachCheckEnabled,
+                row.PasswordHistoryCount,
+                row.MaxFailedLoginAttempts,
+                row.LockoutDuration,
+                QueryColumns.ParseOptionalEnum<MfaPolicyMode>(row.MfaMode),
+                row.SelfRegistrationEnabled,
+                row.TermsUrl)
+            : null;
 
         var effectiveResult = EffectiveIdentityPolicy.Merge(options.Value, overrides);
         if (effectiveResult.IsFailed) return Result.Fail(effectiveResult.Errors);

@@ -1,12 +1,15 @@
 using FluentResults;
 using MediatR;
-using WardenId.Audit.Application.Abstractions;
 using WardenId.Audit.Domain;
+using WardenId.Audit.Query.Contracts;
 using WardenId.SharedKernel.Query.Contracts;
+using AuditEventRow = WardenId.Audit.Query.Contracts.Features.AuditEvents.List.Item;
+using AuditEventsListQuery = WardenId.Audit.Query.Contracts.Features.AuditEvents.List.Query;
 
 namespace WardenId.Audit.Application.Features.Events.List;
 
-public sealed class Handler(IAuditEventSearch search)
+/// <summary>Read side: rows come from the Dapper query layer (Audit.Query); payloads are decoded and summarized here.</summary>
+public sealed class Handler(IAuditEventsQuery auditEventsQuery)
     : IRequestHandler<Query, Result<PaginationListResponse<AuditEventListItem>>>
 {
     public const int MaxPageSize = 100;
@@ -22,35 +25,43 @@ public sealed class Handler(IAuditEventSearch search)
         if (request.From is { } from && request.To is { } to && from > to)
             return Result.Fail(AuditErrors.Validation("'from' must not be after 'to'."));
 
-        var filter = new AuditEventFilter(
-            request.Channel,
-            request.TenantId,
-            request.From,
-            request.To,
-            Normalize(request.EventType),
-            Normalize(request.Actor),
-            Normalize(request.Target),
-            request.Outcome);
+        var result = await auditEventsQuery.List(
+            new AuditEventsListQuery(
+                request.Channel?.ToString(),
+                request.TenantId,
+                request.From,
+                request.To,
+                Normalize(request.EventType),
+                Normalize(request.Actor),
+                Normalize(request.Target),
+                request.Outcome?.ToString(),
+                request.PageNumber,
+                request.PageSize),
+            cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
-        var (total, rows) = await search.SearchAsync(filter, request.PageNumber, request.PageSize, cancellationToken);
-
-        return Result.Ok(new PaginationListResponse<AuditEventListItem>(total, rows.Select(Summarize).ToArray()));
+        return Result.Ok(new PaginationListResponse<AuditEventListItem>(
+            result.Value.RecordsTotal,
+            result.Value.Data.Select(Summarize).ToArray()));
     }
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     /// <summary>From the payload when it can be read; otherwise from the row's search columns.</summary>
-    private static AuditEventListItem Summarize(AuditEventSearchRow row)
+    private static AuditEventListItem Summarize(AuditEventRow row)
     {
+        var channel = AuditEventColumns.ParseChannel(row.Channel);
+        var occurredAt = AuditEventColumns.AsUtc(row.OccurredAt);
+
         var auditEvent = AuditPayloadDecoder.TryDecode(row.Payload);
         if (auditEvent is null)
         {
             return new AuditEventListItem(
-                row.Id, row.Channel, row.TenantId, row.Sequence, row.OccurredAt,
+                row.Id, channel, row.TenantId, row.Sequence, occurredAt,
                 PayloadAvailable: false,
                 row.EventType,
                 Severity: null,
-                row.Outcome,
+                AuditEventColumns.ParseOutcome(row.Outcome),
                 OutcomeReason: null,
                 row.Actor,
                 row.Targets);
@@ -58,10 +69,10 @@ public sealed class Handler(IAuditEventSearch search)
 
         return new AuditEventListItem(
             row.Id,
-            row.Channel,
+            channel,
             row.TenantId,
             row.Sequence,
-            row.OccurredAt,
+            occurredAt,
             PayloadAvailable: true,
             auditEvent.EventType.Key,
             auditEvent.Severity,

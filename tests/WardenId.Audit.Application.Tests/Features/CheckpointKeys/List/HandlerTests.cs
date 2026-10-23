@@ -2,6 +2,9 @@ using WardenId.Audit.Application.Features.CheckpointKeys.List;
 
 namespace WardenId.Audit.Application.Tests.Features.CheckpointKeys.List;
 
+// Aliased inside the namespace: WardenId.Audit.Query (the Dapper read side) would otherwise shadow the request type.
+using Query = WardenId.Audit.Application.Features.CheckpointKeys.List.Query;
+
 public class HandlerTests
 {
     [Fact]

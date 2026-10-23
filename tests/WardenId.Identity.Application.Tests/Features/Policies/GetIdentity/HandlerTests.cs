@@ -1,4 +1,5 @@
 using WardenId.Identity.Application.Features.Policies.GetIdentity;
+using PolicyQuery = WardenId.Identity.Application.Features.Policies.GetIdentity.Query;
 
 namespace WardenId.Identity.Application.Tests.Features.Policies.GetIdentity;
 
@@ -6,8 +7,8 @@ public class HandlerTests
 {
     private static readonly Guid TenantId = Guid.NewGuid();
 
-    private static Handler NewHandler(IdentityPolicyOptions options, FakeIdentityTenantPolicyRepository? tenantPolicies = null) =>
-        new(tenantPolicies ?? new FakeIdentityTenantPolicyRepository(), Microsoft.Extensions.Options.Options.Create(options));
+    private static Handler NewHandler(IdentityPolicyOptions options, FakePoliciesQuery? tenantPolicies = null) =>
+        new(tenantPolicies ?? new FakePoliciesQuery(), Microsoft.Extensions.Options.Options.Create(options));
 
     [Fact]
     public async Task Handle_ReturnsConfiguredPolicy()
@@ -26,7 +27,7 @@ public class HandlerTests
             SelfRegistrationEnabled = false
         };
 
-        var result = await NewHandler(options).Handle(new Query(TenantId), CancellationToken.None);
+        var result = await NewHandler(options).Handle(new PolicyQuery(TenantId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         var policy = result.Value;
@@ -41,7 +42,7 @@ public class HandlerTests
     [Fact]
     public async Task Handle_ReturnsCodeDefaults_WhenNothingIsConfigured()
     {
-        var result = await NewHandler(new IdentityPolicyOptions()).Handle(new Query(TenantId), CancellationToken.None);
+        var result = await NewHandler(new IdentityPolicyOptions()).Handle(new PolicyQuery(TenantId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         var policy = result.Value;
@@ -56,10 +57,10 @@ public class HandlerTests
     public async Task Handle_TheTenantsTermsUrl_WinsOverTheGlobalOne()
     {
         var options = new IdentityPolicyOptions { TermsUrl = "https://global.test/terms" };
-        var global = (await NewHandler(options).Handle(new Query(TenantId), CancellationToken.None)).Value;
-        var tenantPolicies = new FakeIdentityTenantPolicyRepository().With(TenantId, IdentityPolicyOverrides.None with { TermsUrl = "https://tenant.test/terms" });
+        var global = (await NewHandler(options).Handle(new PolicyQuery(TenantId), CancellationToken.None)).Value;
+        var tenantPolicies = new FakePoliciesQuery().With(TenantId, IdentityPolicyOverrides.None with { TermsUrl = "https://tenant.test/terms" });
 
-        var tenant = (await NewHandler(options, tenantPolicies).Handle(new Query(TenantId), CancellationToken.None)).Value;
+        var tenant = (await NewHandler(options, tenantPolicies).Handle(new PolicyQuery(TenantId), CancellationToken.None)).Value;
 
         Assert.Equal("https://global.test/terms", global.Terms.Url);
         Assert.Empty(global.Overrides);
@@ -70,7 +71,7 @@ public class HandlerTests
     [Fact]
     public async Task Handle_ReturnsTheEffectiveValues_AndWhichComeFromTheTenant()
     {
-        var tenantPolicies = new FakeIdentityTenantPolicyRepository().With(TenantId, IdentityPolicyOverrides.None with
+        var tenantPolicies = new FakePoliciesQuery().With(TenantId, IdentityPolicyOverrides.None with
         {
             PasswordMinLength = 14,
             LockoutDuration = TimeSpan.FromHours(1),
@@ -78,7 +79,7 @@ public class HandlerTests
             SelfRegistrationEnabled = false
         });
 
-        var policy = (await NewHandler(new IdentityPolicyOptions(), tenantPolicies).Handle(new Query(TenantId), CancellationToken.None)).Value;
+        var policy = (await NewHandler(new IdentityPolicyOptions(), tenantPolicies).Handle(new PolicyQuery(TenantId), CancellationToken.None)).Value;
 
         Assert.Equal(new PasswordSettings(14, true, true, false, true, 5), policy.Password);
         Assert.Equal(new LockoutSettings(5, "PT1H"), policy.Lockout);
@@ -93,10 +94,10 @@ public class HandlerTests
     [Fact]
     public async Task Handle_ReportsEveryOverriddenField()
     {
-        var tenantPolicies = new FakeIdentityTenantPolicyRepository().With(TenantId, new IdentityPolicyOverrides(
+        var tenantPolicies = new FakePoliciesQuery().With(TenantId, new IdentityPolicyOverrides(
             12, false, false, true, false, 0, 10, TimeSpan.FromMinutes(5), MfaPolicyMode.Off, true, "https://example.test/terms"));
 
-        var policy = (await NewHandler(new IdentityPolicyOptions(), tenantPolicies).Handle(new Query(TenantId), CancellationToken.None)).Value;
+        var policy = (await NewHandler(new IdentityPolicyOptions(), tenantPolicies).Handle(new PolicyQuery(TenantId), CancellationToken.None)).Value;
 
         Assert.Equal(
             [
@@ -110,9 +111,9 @@ public class HandlerTests
     [Fact]
     public async Task Handle_IsGlobalScope_WhenTheTenantClearedEveryOverride()
     {
-        var tenantPolicies = new FakeIdentityTenantPolicyRepository().With(TenantId, IdentityPolicyOverrides.None);
+        var tenantPolicies = new FakePoliciesQuery().With(TenantId, IdentityPolicyOverrides.None);
 
-        var policy = (await NewHandler(new IdentityPolicyOptions(), tenantPolicies).Handle(new Query(TenantId), CancellationToken.None)).Value;
+        var policy = (await NewHandler(new IdentityPolicyOptions(), tenantPolicies).Handle(new PolicyQuery(TenantId), CancellationToken.None)).Value;
 
         Assert.Equal("global", policy.Scope);
         Assert.Empty(policy.Overrides);

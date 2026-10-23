@@ -1,19 +1,17 @@
 using WardenId.Identity.Application.Features.Users.GetForSignIn;
 using ContractRequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
 using ContractUserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
-using Query = WardenId.Identity.Integration.Command.Features.Users.GetForSignIn.Query;
+using SignInQuery = WardenId.Identity.Integration.Command.Features.Users.GetForSignIn.Query;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.GetForSignIn;
 
 public class HandlerTests
 {
-    private static async Task<(Guid TenantId, User User, FakeUserRepository Repository)> SeedAsync()
+    private static Task<(Guid TenantId, User User, FakeUsersQuery Repository)> SeedAsync()
     {
         var tenantId = Guid.NewGuid();
         var user = TestUsers.CreatePendingVerification(tenantId);
-        var repository = new FakeUserRepository();
-        await repository.CreateAsync(user, user.Id, CancellationToken.None);
-        return (tenantId, user, repository);
+        return Task.FromResult((tenantId, user, new FakeUsersQuery().With(user)));
     }
 
     [Fact]
@@ -21,7 +19,7 @@ public class HandlerTests
     {
         var (tenantId, user, repository) = await SeedAsync();
 
-        var result = await new Handler(repository).Handle(new Query(tenantId, user.Id), CancellationToken.None);
+        var result = await new Handler(repository).Handle(new SignInQuery(tenantId, user.Id), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(user.Id, result.Value.UserId);
@@ -36,7 +34,7 @@ public class HandlerTests
     {
         var (_, user, repository) = await SeedAsync();
 
-        var result = await new Handler(repository).Handle(new Query(Guid.NewGuid(), user.Id), CancellationToken.None);
+        var result = await new Handler(repository).Handle(new SignInQuery(Guid.NewGuid(), user.Id), CancellationToken.None);
 
         Assert.True(result.IsFailed);
     }
@@ -46,7 +44,7 @@ public class HandlerTests
     {
         var (tenantId, _, repository) = await SeedAsync();
 
-        var result = await new Handler(repository).Handle(new Query(tenantId, Guid.NewGuid()), CancellationToken.None);
+        var result = await new Handler(repository).Handle(new SignInQuery(tenantId, Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsFailed);
     }
@@ -57,8 +55,20 @@ public class HandlerTests
         var (tenantId, user, repository) = await SeedAsync();
         Assert.True(user.SoftDelete().IsSuccess);
 
-        var result = await new Handler(repository).Handle(new Query(tenantId, user.Id), CancellationToken.None);
+        var result = await new Handler(repository).Handle(new SignInQuery(tenantId, user.Id), CancellationToken.None);
 
         Assert.True(result.IsFailed);
+    }
+
+    [Fact]
+    public async Task Handle_PassesTheQueryLayersFailureThrough()
+    {
+        var (tenantId, user, query) = await SeedAsync();
+        query.Failure = new Error("sql file missing");
+
+        var result = await new Handler(query).Handle(new SignInQuery(tenantId, user.Id), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal("sql file missing", result.Errors[0].Message);
     }
 }

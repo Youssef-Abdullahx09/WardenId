@@ -1,5 +1,6 @@
 using WardenId.ClientManagement.Infrastructure;
 using WardenId.ClientManagement.Presentation;
+using WardenId.ClientManagement.Query;
 
 namespace WardenId.Gateway.DependencyInjection;
 
@@ -11,5 +12,6 @@ public static class ClientManagementDependencyInjection
     {
         services.AddClientManagementPresentation();
         services.AddClientManagementInfrastructure(configuration);
+        services.AddClientManagementQuery();
     }
 }

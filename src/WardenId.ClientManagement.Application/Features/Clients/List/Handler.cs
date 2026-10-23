@@ -1,37 +1,41 @@
 using FluentResults;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using WardenId.ClientManagement.Application.Abstractions;
+using WardenId.ClientManagement.Domain;
+using WardenId.ClientManagement.Query.Contracts;
 using WardenId.SharedKernel.Query.Contracts;
+using ClientsQuery = WardenId.ClientManagement.Query.Contracts.Features.Clients.List.Query;
 
 namespace WardenId.ClientManagement.Application.Features.Clients.List;
 
+/// <summary>Read side: a tenant's clients come from the Dapper query layer (ClientManagement.Query), not the aggregate.</summary>
 public sealed class Handler(
-    IClientManagementDbContext dbContext) : IRequestHandler<Query, Result<PaginationListResponse<ClientListItem>>>
+    IClientsQuery clientsQuery) : IRequestHandler<Query, Result<PaginationListResponse<ClientListItem>>>
 {
     public async Task<Result<PaginationListResponse<ClientListItem>>> Handle(
         Query request,
         CancellationToken cancellationToken)
     {
-        var query = dbContext.Clients
-            .Where(c => c.TenantId == request.TenantId && !c.IsDeleted);
+        var result = await clientsQuery.List(
+            new ClientsQuery(
+                request.TenantId,
+                request.Enabled,
+                request.ClientType?.ToString(),
+                request.PageNumber,
+                request.PageSize),
+            cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
 
-        if (request.Enabled is not null)
-            query = query.Where(c => c.Enabled == request.Enabled);
-
-        if (request.ClientType is not null)
-            query = query.Where(c => c.ClientType == request.ClientType);
-
-        var totalCount = await query.LongCountAsync(cancellationToken);
-
-        var items = await query
-            .OrderByDescending(c => c.CreatedAt)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
+        var items = result.Value.Data
             .Select(c => new ClientListItem(
-                c.Id, c.ClientId.Value, c.DisplayName, c.ClientType, c.Enabled, c.IsFirstParty, c.CreatedAt))
-            .ToListAsync(cancellationToken);
+                c.Id,
+                c.ClientId,
+                c.DisplayName,
+                ClientRows.ParseEnum<ClientType>(c.ClientType),
+                c.Enabled,
+                c.IsFirstParty,
+                ClientRows.AsUtc(c.CreatedAt)))
+            .ToList();
 
-        return Result.Ok(new PaginationListResponse<ClientListItem>(totalCount, items));
+        return Result.Ok(new PaginationListResponse<ClientListItem>(result.Value.RecordsTotal, items));
     }
 }

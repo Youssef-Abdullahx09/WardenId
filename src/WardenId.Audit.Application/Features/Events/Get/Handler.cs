@@ -1,33 +1,39 @@
 using FluentResults;
 using MediatR;
-using WardenId.Audit.Application.Abstractions;
 using WardenId.Audit.Domain;
+using WardenId.Audit.Query.Contracts;
+using AuditEventQuery = WardenId.Audit.Query.Contracts.Features.AuditEvents.Get.Query;
 
 namespace WardenId.Audit.Application.Features.Events.Get;
 
-public sealed class Handler(IAuditEventSearch search) : IRequestHandler<Query, Result<AuditEventDetail>>
+/// <summary>Read side: the row comes from the Dapper query layer (Audit.Query); its payload is decoded here.</summary>
+public sealed class Handler(IAuditEventsQuery auditEventsQuery) : IRequestHandler<Query, Result<AuditEventDetail>>
 {
     public async Task<Result<AuditEventDetail>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var row = await search.FindAsync(request.EventId, cancellationToken);
-        if (row is null) return Result.Fail(AuditErrors.NotFound);
+        var result = await auditEventsQuery.Get(new AuditEventQuery(request.EventId), cancellationToken);
+        if (result.IsFailed) return Result.Fail(result.Errors);
+        if (result.Value is not { } row) return Result.Fail(AuditErrors.NotFound);
+
+        var channel = AuditEventColumns.ParseChannel(row.Channel);
+        var occurredAt = AuditEventColumns.AsUtc(row.OccurredAt);
 
         var auditEvent = AuditPayloadDecoder.TryDecode(row.Payload);
         if (auditEvent is null)
         {
             return Result.Ok(new AuditEventDetail(
-                row.Id, row.Channel, row.TenantId, row.Sequence, row.OccurredAt,
+                row.Id, channel, row.TenantId, row.Sequence, occurredAt,
                 PayloadAvailable: false,
-                row.EventType, row.Actor, row.Targets, row.Outcome,
+                row.EventType, row.Actor, row.Targets, AuditEventColumns.ParseOutcome(row.Outcome),
                 Envelope: null));
         }
 
         return Result.Ok(new AuditEventDetail(
             row.Id,
-            row.Channel,
+            channel,
             row.TenantId,
             row.Sequence,
-            row.OccurredAt,
+            occurredAt,
             PayloadAvailable: true,
             auditEvent.EventType.Key,
             auditEvent.Actor.ToSerializedForm(),

@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.Protocol.Infrastructure.Persistence;
+using WardenId.Protocol.Query.Contracts;
 using WardenId.SharedKernel.Presentation;
 using GetTokensEndpoint = WardenId.Protocol.Presentation.Features.Policies.GetTokens.Endpoint;
 using UpdateTokensEndpoint = WardenId.Protocol.Presentation.Features.Policies.UpdateTokens.Endpoint;
@@ -44,6 +45,7 @@ public class TokenPolicyEndpointTests
         var databaseName = "protocol-" + Guid.NewGuid();
         builder.Services.AddDbContext<ProtocolDbContext>(options => options.UseInMemoryDatabase(databaseName));
         builder.Services.AddScoped<IProtocolDbContext>(sp => sp.GetRequiredService<ProtocolDbContext>());
+        builder.Services.AddScoped<IPoliciesQuery, InMemoryPoliciesQuery>();
         builder.Services.AddSingleton<IRefreshTokenRetention, OpenIddictRefreshTokenRetention>();
         builder.Services.Configure<ProtocolOpenIddictPruningOptions>(_ => { });
         builder.Services.AddAuthentication(TestAuthenticationHandler.Scheme)

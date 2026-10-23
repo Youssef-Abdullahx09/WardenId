@@ -2,12 +2,14 @@ using System.Xml;
 using FluentResults;
 using MediatR;
 using Microsoft.Extensions.Options;
-using WardenId.Protocol.Application.Abstractions;
+using WardenId.Protocol.Domain.TokenPolicies;
+using WardenId.Protocol.Query.Contracts;
+using PolicyQuery = WardenId.Protocol.Query.Contracts.Features.Policies.GetTokens.Query;
 
 namespace WardenId.Protocol.Application.Features.Policies.GetTokens;
 
 public sealed class Handler(
-    IProtocolDbContext dbContext,
+    IPoliciesQuery policiesQuery,
     IOptions<ProtocolTokenOptions> tokenOptions,
     IOptions<ProtocolSessionOptions> sessionOptions) : IRequestHandler<Query, Result<TokenPolicy>>
 {
@@ -17,7 +19,14 @@ public sealed class Handler(
     public async Task<Result<TokenPolicy>> Handle(Query request, CancellationToken cancellationToken)
     {
         // Uncached: an admin reading back what they just saved must see it, whichever node answers.
-        var overrides = await TenantLifetimes.LoadAsync(dbContext, request.TenantId, cancellationToken);
+        var stored = await policiesQuery.GetTokens(new PolicyQuery(request.TenantId), cancellationToken);
+        if (stored.IsFailed) return Result.Fail(stored.Errors);
+
+        var overrides = stored.Value is { } row
+            ? TenantLifetimeOverrides.FromTrustedSource(
+                row.AccessTokenLifetime, row.IdTokenLifetime, row.RefreshTokenLifetime, row.RefreshTokenAbsoluteLifetime,
+                row.AuthorizationCodeLifetime, row.SessionCookieLifetime, row.SessionAbsoluteLifetime)
+            : null;
         var effective = EffectiveLifetimes.Resolve(tokenOptions.Value, sessionOptions.Value, overrides);
         var tenant = effective.Overrides;
 

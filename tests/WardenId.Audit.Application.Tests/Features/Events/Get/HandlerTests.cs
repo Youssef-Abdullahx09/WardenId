@@ -1,6 +1,10 @@
 using WardenId.Audit.Application.Features.Events.Get;
+using AuditEventRow = WardenId.Audit.Query.Contracts.Features.AuditEvents.Get.Item;
 
 namespace WardenId.Audit.Application.Tests.Features.Events.Get;
+
+// Aliased inside the namespace: WardenId.Audit.Query (the Dapper read side) would otherwise shadow the request type.
+using Query = WardenId.Audit.Application.Features.Events.Get.Query;
 
 public class HandlerTests
 {
@@ -32,17 +36,27 @@ public class HandlerTests
             ]).Value;
     }
 
-    private static AuditEventSearchRow Row(Guid id, byte[]? payload) =>
-        new(id, AuditChannel.AdminDirectory, TenantId, 3, OccurredAt, payload,
-            EventType: "admin.entity.update",
-            Actor: $"tenant:{TenantId}:serviceaccount:svc-1",
-            Targets: ["user:user-1"],
-            Outcome: AuditResult.Success);
+    private static FakeAuditEventsQuery QueryReturning(Guid id, byte[]? payload) => new()
+    {
+        GetResponse = Result.Ok<AuditEventRow?>(new AuditEventRow
+        {
+            Id = id,
+            Channel = nameof(AuditChannel.AdminDirectory),
+            TenantId = TenantId,
+            Sequence = 3,
+            OccurredAt = OccurredAt.UtcDateTime,
+            Payload = payload,
+            EventType = "admin.entity.update",
+            Actor = $"tenant:{TenantId}:serviceaccount:svc-1",
+            Targets = ["user:user-1"],
+            Outcome = nameof(AuditResult.Success)
+        })
+    };
 
     [Fact]
     public async Task Handle_UnknownEvent_IsNotFound()
     {
-        var result = await new Handler(new FakeAuditEventSearch()).Handle(new Query(Guid.NewGuid()), CancellationToken.None);
+        var result = await new Handler(new FakeAuditEventsQuery()).Handle(new Query(Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(AuditErrorCodes.NotFound, result.Errors[0].Metadata[AuditErrorCodes.MetadataKey]);
@@ -52,8 +66,7 @@ public class HandlerTests
     public async Task Handle_DecodesTheWholeEnvelope()
     {
         var auditEvent = UpdateEvent();
-        var search = new FakeAuditEventSearch();
-        search.Rows.Add(Row(auditEvent.Id, CanonicalAuditEventSerializer.Serialize(auditEvent)));
+        var search = QueryReturning(auditEvent.Id, CanonicalAuditEventSerializer.Serialize(auditEvent));
 
         var result = await new Handler(search).Handle(new Query(auditEvent.Id), CancellationToken.None);
 
@@ -111,8 +124,7 @@ public class HandlerTests
     public async Task Handle_KeepsRedactedValuesRedacted()
     {
         var auditEvent = UpdateEvent();
-        var search = new FakeAuditEventSearch();
-        search.Rows.Add(Row(auditEvent.Id, CanonicalAuditEventSerializer.Serialize(auditEvent)));
+        var search = QueryReturning(auditEvent.Id, CanonicalAuditEventSerializer.Serialize(auditEvent));
 
         var result = await new Handler(search).Handle(new Query(auditEvent.Id), CancellationToken.None);
 
@@ -128,8 +140,7 @@ public class HandlerTests
     public async Task Handle_WithoutAReadablePayload_ReturnsTheIndexedSummary(bool corrupt)
     {
         var id = Guid.NewGuid();
-        var search = new FakeAuditEventSearch();
-        search.Rows.Add(Row(id, corrupt ? "{\"not\":\"an event\"}"u8.ToArray() : null));
+        var search = QueryReturning(id, corrupt ? "{\"not\":\"an event\"}"u8.ToArray() : null);
 
         var result = await new Handler(search).Handle(new Query(id), CancellationToken.None);
 
@@ -142,5 +153,29 @@ public class HandlerTests
         Assert.Equal(["user:user-1"], detail.Targets);
         Assert.Equal(AuditResult.Success, detail.Result);
         Assert.Equal(3, detail.Sequence);
+        Assert.Equal(AuditChannel.AdminDirectory, detail.Channel);
+        Assert.Equal(OccurredAt, detail.OccurredAt);
+    }
+
+    [Fact]
+    public async Task Handle_AsksForTheRequestedEvent()
+    {
+        var id = Guid.NewGuid();
+        var search = new FakeAuditEventsQuery();
+
+        await new Handler(search).Handle(new Query(id), CancellationToken.None);
+
+        Assert.Equal(id, Assert.Single(search.GetCalls).EventId);
+    }
+
+    [Fact]
+    public async Task Handle_PassesAQueryFailureThrough()
+    {
+        var search = new FakeAuditEventsQuery { GetResponse = Result.Fail<AuditEventRow?>("boom") };
+
+        var result = await new Handler(search).Handle(new Query(Guid.NewGuid()), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal("boom", result.Errors[0].Message);
     }
 }

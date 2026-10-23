@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application.Features.Policies.GetTokens;
-using WardenId.Protocol.Domain.TokenPolicies;
 using GetTokensQuery = WardenId.Protocol.Application.Features.Policies.GetTokens.Query;
+using Item = WardenId.Protocol.Query.Contracts.Features.Policies.GetTokens.Item;
 
 namespace WardenId.Protocol.Application.Tests.Features.Policies.GetTokens;
 
@@ -10,8 +10,8 @@ public class HandlerTests
     private static readonly TokenPolicyOverrides NoOverrides = new(null, null, null, null, null, null, null);
 
     private static Handler CreateHandler(
-        TestProtocolDbContext db, ProtocolTokenOptions? tokens = null, ProtocolSessionOptions? sessions = null) =>
-        new(db, Options.Create(tokens ?? new ProtocolTokenOptions()), Options.Create(sessions ?? new ProtocolSessionOptions()));
+        FakePoliciesQuery query, ProtocolTokenOptions? tokens = null, ProtocolSessionOptions? sessions = null) =>
+        new(query, Options.Create(tokens ?? new ProtocolTokenOptions()), Options.Create(sessions ?? new ProtocolSessionOptions()));
 
     [Fact]
     public async Task Handle_ReturnsConfiguredLifetimes_AsIso8601Durations()
@@ -29,9 +29,7 @@ public class HandlerTests
             CookieLifetime = TimeSpan.FromHours(2),
             AbsoluteLifetime = TimeSpan.FromHours(36)
         };
-        await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());
-
-        var result = await CreateHandler(db, tokens, sessions).Handle(new GetTokensQuery(Guid.NewGuid()), CancellationToken.None);
+        var result = await CreateHandler(new FakePoliciesQuery(), tokens, sessions).Handle(new GetTokensQuery(Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(
@@ -51,9 +49,7 @@ public class HandlerTests
     [Fact]
     public async Task Handle_ReturnsCodeDefaults_WhenNothingIsConfigured()
     {
-        await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());
-
-        var result = await CreateHandler(db).Handle(new GetTokensQuery(Guid.NewGuid()), CancellationToken.None);
+        var result = await CreateHandler(new FakePoliciesQuery()).Handle(new GetTokensQuery(Guid.NewGuid()), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal("PT15M", result.Value.AccessTokenLifetime);
@@ -69,12 +65,19 @@ public class HandlerTests
     public async Task Handle_WithTenantPolicy_ReturnsEffectiveValues_OverridesAndTenantScope()
     {
         var tenantId = Guid.NewGuid();
-        await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());
-        db.TenantTokenPolicies.Add(TenantTokenPolicy.Create(tenantId, TenantLifetimeOverrides.Create(
-            TimeSpan.FromMinutes(5), null, null, null, TimeSpan.FromSeconds(45), TimeSpan.FromHours(1), null).Value));
-        await db.SaveChangesAsync();
+        var query = new FakePoliciesQuery
+        {
+            GetTokensResponse = Result.Ok<Item?>(new Item
+            {
+                AccessTokenLifetime = TimeSpan.FromMinutes(5),
+                AuthorizationCodeLifetime = TimeSpan.FromSeconds(45),
+                SessionCookieLifetime = TimeSpan.FromHours(1)
+            })
+        };
 
-        var result = await CreateHandler(db).Handle(new GetTokensQuery(tenantId), CancellationToken.None);
+        var result = await CreateHandler(query).Handle(new GetTokensQuery(tenantId), CancellationToken.None);
+
+        Assert.Equal(tenantId, Assert.Single(query.GetTokensCalls).TenantId);
 
         Assert.Equal("tenant", result.Value.Scope);
         Assert.Equal("PT5M", result.Value.AccessTokenLifetime);
@@ -88,13 +91,22 @@ public class HandlerTests
     public async Task Handle_WithAllOverridesCleared_IsGlobalScope()
     {
         var tenantId = Guid.NewGuid();
-        await using var db = TestProtocolDbContext.CreateNew(Guid.NewGuid().ToString());
-        db.TenantTokenPolicies.Add(TenantTokenPolicy.Create(tenantId, TenantLifetimeOverrides.None));
-        await db.SaveChangesAsync();
+        var query = new FakePoliciesQuery { GetTokensResponse = Result.Ok<Item?>(new Item()) };
 
-        var result = await CreateHandler(db).Handle(new GetTokensQuery(tenantId), CancellationToken.None);
+        var result = await CreateHandler(query).Handle(new GetTokensQuery(tenantId), CancellationToken.None);
 
         Assert.Equal("global", result.Value.Scope);
         Assert.Equal(NoOverrides, result.Value.Overrides);
+    }
+
+    [Fact]
+    public async Task Handle_QueryFailure_IsPassedThrough()
+    {
+        var query = new FakePoliciesQuery { GetTokensResponse = Result.Fail<Item?>("file missing") };
+
+        var result = await CreateHandler(query).Handle(new GetTokensQuery(Guid.NewGuid()), CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal("file missing", result.Errors[0].Message);
     }
 }

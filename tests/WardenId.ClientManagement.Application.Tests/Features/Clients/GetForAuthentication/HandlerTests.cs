@@ -1,27 +1,69 @@
 using WardenId.ClientManagement.Application.Features.Clients.GetForAuthentication;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
-using DomainBackchannelLogoutUri = WardenId.ClientManagement.Domain.BackchannelLogoutUri;
+using ClientsQuery = WardenId.ClientManagement.Query.Contracts.Features.Clients.GetForAuthentication.Query;
+using QueryItem = WardenId.ClientManagement.Query.Contracts.Features.Clients.GetForAuthentication.Item;
 
 namespace WardenId.ClientManagement.Application.Tests.Features.Clients.GetForAuthentication;
+
+// The sibling namespace WardenId.ClientManagement.Query would otherwise shadow the imported type.
+using Query = WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication.Query;
 
 public class HandlerTests
 {
     private static readonly Guid TenantId = Guid.NewGuid();
+    private const string ClientId = "client-abc";
+
+    private static QueryItem Row(
+        ClientType type = ClientType.Confidential,
+        GrantType grants = GrantType.ClientCredentials,
+        ClientAuthenticationMethod auth = ClientAuthenticationMethod.SharedSecret,
+        bool enabled = true) => new()
+    {
+        Id = Guid.NewGuid(),
+        ClientId = ClientId,
+        ClientType = type.ToString(),
+        Enabled = enabled,
+        GrantType = grants.ToString(),
+        ClientAuthenticationMethod = auth.ToString()
+    };
+
+    private static Task<Result<ClientForAuthentication>> HandleAsync(FakeClientsQuery clientsQuery, string clientId = ClientId) =>
+        new Handler(clientsQuery).Handle(new Query(TenantId, clientId), CancellationToken.None);
+
+    [Fact]
+    public async Task Handle_PassesTenantAndClientId_ToTheQueryLayer()
+    {
+        var clientsQuery = new FakeClientsQuery();
+
+        await HandleAsync(clientsQuery);
+
+        Assert.Equal(new ClientsQuery(TenantId, ClientId), Assert.Single(clientsQuery.GetForAuthenticationCalls));
+    }
 
     [Fact]
     public async Task Handle_ReturnsClient_WithMappedFields()
     {
-        var client = ClientBuilder.Confidential(
-            TenantId, GrantType.AuthorizationCode | GrantType.ClientCredentials | GrantType.RefreshToken);
-        client.UpdateTokenLifetimeOverrides(TokenLifetimeOverrides.Create(600, 300, 86400).Value);
-        await using var db = await ClientBuilder.SeedAsync(client);
+        var row = new QueryItem
+        {
+            Id = Guid.NewGuid(),
+            ClientId = ClientId,
+            ClientType = nameof(ClientType.Confidential),
+            Enabled = true,
+            // As EF's string converter persists a [Flags] value.
+            GrantType = (GrantType.AuthorizationCode | GrantType.ClientCredentials | GrantType.RefreshToken).ToString(),
+            ClientAuthenticationMethod = nameof(ClientAuthenticationMethod.SharedSecret),
+            AccessTokenSeconds = 600,
+            IdTokenSeconds = 300,
+            RefreshTokenSeconds = 86400
+        };
+        var clientsQuery = new FakeClientsQuery { GetForAuthenticationResponse = Result.Ok<QueryItem?>(row) };
 
-        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
+        var result = await HandleAsync(clientsQuery);
 
         Assert.True(result.IsSuccess);
         var value = result.Value;
-        Assert.Equal(client.Id, value.Id);
-        Assert.Equal(client.ClientId.Value, value.ClientId);
+        Assert.Equal(row.Id, value.Id);
+        Assert.Equal(ClientId, value.ClientId);
         Assert.Equal(ClientKind.Confidential, value.Kind);
         Assert.True(value.Enabled);
         Assert.Equal(
@@ -34,120 +76,92 @@ public class HandlerTests
     }
 
     [Fact]
+    public async Task Handle_MapsPublicKind_AndPrivateKeyJwt()
+    {
+        var clientsQuery = new FakeClientsQuery
+        {
+            GetForAuthenticationResponse = Result.Ok<QueryItem?>(
+                Row(ClientType.Public, auth: ClientAuthenticationMethod.PrivateKeyJwt))
+        };
+
+        var result = await HandleAsync(clientsQuery);
+
+        Assert.Equal(ClientKind.Public, result.Value.Kind);
+        Assert.Equal(ClientAuthMethod.PrivateKeyJwt, result.Value.AuthenticationMethod);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsDisabledClient_WithEnabledFalse()
     {
-        var client = ClientBuilder.Confidential(TenantId);
-        client.Disable();
-        await using var db = await ClientBuilder.SeedAsync(client);
+        var clientsQuery = new FakeClientsQuery { GetForAuthenticationResponse = Result.Ok<QueryItem?>(Row(enabled: false)) };
 
-        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
+        var result = await HandleAsync(clientsQuery);
 
         Assert.True(result.IsSuccess);
         Assert.False(result.Value.Enabled);
     }
 
     [Fact]
-    public async Task Handle_ReturnsNotFound_ForOtherTenant()
+    public async Task Handle_ReturnsNotFound_WhenTheQueryFindsNoClient() =>
+        AssertNotFound(await HandleAsync(new FakeClientsQuery()));
+
+    [Fact]
+    public async Task Handle_ReturnsNotFound_ForEmptyClientId_WithoutQuerying()
     {
-        var client = ClientBuilder.Confidential(TenantId);
-        await using var db = await ClientBuilder.SeedAsync(client);
+        var clientsQuery = new FakeClientsQuery { GetForAuthenticationResponse = Result.Ok<QueryItem?>(Row()) };
 
-        var result = await new Handler(db).Handle(new Query(Guid.NewGuid(), client.ClientId.Value), CancellationToken.None);
-
-        AssertNotFound(result);
+        AssertNotFound(await HandleAsync(clientsQuery, ""));
+        Assert.Empty(clientsQuery.GetForAuthenticationCalls);
     }
 
     [Fact]
-    public async Task Handle_ReturnsNotFound_ForUnknownClientId()
+    public async Task Handle_MapsUris_RequirePkce_AndBackchannelLogoutUri()
     {
-        await using var db = await ClientBuilder.SeedAsync(ClientBuilder.Confidential(TenantId));
+        var row = new QueryItem
+        {
+            Id = Guid.NewGuid(),
+            ClientId = ClientId,
+            ClientType = nameof(ClientType.Public),
+            Enabled = true,
+            GrantType = nameof(GrantType.AuthorizationCode),
+            ClientAuthenticationMethod = nameof(ClientAuthenticationMethod.SharedSecret),
+            RedirectUris = ["https://spa.example/cb", "https://spa.example/silent"],
+            RequirePkce = true,
+            PostLogoutRedirectUris = ["https://spa.example/bye"],
+            BackchannelLogoutUri = "https://spa.example/bcl"
+        };
+        var clientsQuery = new FakeClientsQuery { GetForAuthenticationResponse = Result.Ok<QueryItem?>(row) };
 
-        var result = await new Handler(db).Handle(new Query(TenantId, "nope"), CancellationToken.None);
+        var result = await HandleAsync(clientsQuery);
 
-        AssertNotFound(result);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsNotFound_ForEmptyClientId()
-    {
-        await using var db = await ClientBuilder.SeedAsync(ClientBuilder.Confidential(TenantId));
-
-        var result = await new Handler(db).Handle(new Query(TenantId, ""), CancellationToken.None);
-
-        AssertNotFound(result);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsNotFound_ForSoftDeletedClient()
-    {
-        var client = ClientBuilder.Confidential(TenantId);
-        client.Delete();
-        await using var db = await ClientBuilder.SeedAsync(client);
-
-        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
-
-        AssertNotFound(result);
-    }
-
-    [Fact]
-    public async Task Handle_MapsRedirectUris_AndRequirePkce_ForPublicClient()
-    {
-        var client = ClientBuilder.Public(TenantId);
-        client.AddRedirectUri(RedirectUri.Create("https://spa.example/cb").Value);
-        client.AddRedirectUri(RedirectUri.Create("https://spa.example/silent").Value);
-        await using var db = await ClientBuilder.SeedAsync(client);
-
-        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
-
-        Assert.True(result.IsSuccess);
-        Assert.Equal(
-            new[] { "https://spa.example/cb", "https://spa.example/silent" },
-            result.Value.RedirectUris.OrderBy(u => u, StringComparer.Ordinal));
+        Assert.Equal(new[] { "https://spa.example/cb", "https://spa.example/silent" }, result.Value.RedirectUris);
         Assert.True(result.Value.RequirePkce);
-    }
-
-    [Fact]
-    public async Task Handle_ConfidentialClient_DoesNotRequirePkce_AndHasNoRedirectUris()
-    {
-        var client = ClientBuilder.Confidential(TenantId);
-        await using var db = await ClientBuilder.SeedAsync(client);
-
-        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
-
-        Assert.False(result.Value.RequirePkce);
-        Assert.Empty(result.Value.RedirectUris);
-    }
-
-    [Fact]
-    public async Task Handle_MapsPostLogoutRedirectUris_AndBackchannelLogoutUri()
-    {
-        var client = ClientBuilder.Confidential(TenantId, GrantType.AuthorizationCode);
-        client.AddRedirectUri(RedirectUri.Create("https://app.example/cb").Value);
-        client.AddPostLogoutRedirectUri(RedirectUri.Create("https://app.example/logged-out").Value);
-        client.AddPostLogoutRedirectUri(RedirectUri.Create("https://app.example/bye").Value);
-        client.SetBackchannelLogoutUri(DomainBackchannelLogoutUri.Create("https://app.example/bcl").Value);
-        await using var db = await ClientBuilder.SeedAsync(client);
-
-        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
-
-        Assert.True(result.IsSuccess);
-        Assert.Equal(
-            new[] { "https://app.example/bye", "https://app.example/logged-out" },
-            result.Value.PostLogoutRedirectUris.OrderBy(u => u, StringComparer.Ordinal));
-        Assert.Equal(new[] { "https://app.example/cb" }, result.Value.RedirectUris);
-        Assert.Equal("https://app.example/bcl", result.Value.BackchannelLogoutUri);
+        Assert.Equal(new[] { "https://spa.example/bye" }, result.Value.PostLogoutRedirectUris);
+        Assert.Equal("https://spa.example/bcl", result.Value.BackchannelLogoutUri);
     }
 
     [Fact]
     public async Task Handle_ClientWithoutLogoutSettings_HasNoPostLogoutUris_AndNullBackchannelUri()
     {
-        var client = ClientBuilder.Confidential(TenantId);
-        await using var db = await ClientBuilder.SeedAsync(client);
+        var clientsQuery = new FakeClientsQuery { GetForAuthenticationResponse = Result.Ok<QueryItem?>(Row()) };
 
-        var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);
+        var result = await HandleAsync(clientsQuery);
 
+        Assert.Empty(result.Value.RedirectUris);
         Assert.Empty(result.Value.PostLogoutRedirectUris);
         Assert.Null(result.Value.BackchannelLogoutUri);
+        Assert.Null(result.Value.AccessTokenLifetimeSeconds);
+    }
+
+    [Fact]
+    public async Task Handle_PropagatesQueryFailure()
+    {
+        var clientsQuery = new FakeClientsQuery { GetForAuthenticationResponse = Result.Fail("boom") };
+
+        var result = await HandleAsync(clientsQuery);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal("boom", result.Errors[0].Message);
     }
 
     private static void AssertNotFound(Result<ClientForAuthentication> result)

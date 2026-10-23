@@ -4,6 +4,7 @@
       <ProjectReference Include="..\WardenId.SharedKernel.Application\WardenId.SharedKernel.Application.csproj" />
       <ProjectReference Include="..\WardenId.Identity.Domain\WardenId.Identity.Domain.csproj" />
       <ProjectReference Include="..\WardenId.Identity.Integration.Command\WardenId.Identity.Integration.Command.csproj" />
+      <ProjectReference Include="..\WardenId.Identity.Query.Contracts\WardenId.Identity.Query.Contracts.csproj" />
     </ItemGroup>
 
     <ItemGroup>
