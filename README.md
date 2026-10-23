@@ -4,7 +4,7 @@ WardenId is a self-hosted, multi-tenant OpenID Connect / OAuth 2.0 identity prov
 
 It is a **modular monolith** on **.NET 10**: one ASP.NET Core minimal-API host (`WardenId.Gateway`) composes five bounded-context modules. They talk to each other only through in-process contracts and CAP events.
 
-> Status: under active development. See [`docs/Identity-Server-BRD-v1.0.md`](docs/Identity-Server-BRD-v1.0.md) for product scope and roadmap.
+> Status: under active development.
 
 ---
 
@@ -15,7 +15,7 @@ It is a **modular monolith** on **.NET 10**: one ASP.NET Core minimal-API host (
 - Per-tenant issuer `{IssuerBaseUri}/tenants/{slug}` with its own discovery document and JWKS.
 - Per-tenant ES256 signing keys, encrypted with DataProtection, with rotation and retirement.
 
-**OAuth 2.0 / OIDC** (built on [OpenIddict](https://documentation.openiddict.com/), see [ADR-01](docs/adr/ADR-01-openiddict-protocol-layer.md))
+**OAuth 2.0 / OIDC** (built on [OpenIddict](https://documentation.openiddict.com/))
 - Authorization Code + PKCE, Client Credentials, and Refresh Token grants (rotation with reuse detection).
 - Discovery, JWKS, authorize, token, introspection, revocation, userinfo, and end-session endpoints.
 - Login sessions (`sid`), RP-initiated logout, and OIDC back-channel logout.
@@ -116,7 +116,7 @@ Configuration lives in `WardenId.Gateway/appsettings*.json` and can be overridde
 | Section | Purpose |
 |---|---|
 | `ConnectionStrings:DefaultConnectionString` | PostgreSQL connection shared by every module schema |
-| `ConnectionStrings:AuditRetention` | Optional separate role for the audit retention purge (see [`docs/audit/db-roles.sql`](docs/audit/db-roles.sql)) |
+| `ConnectionStrings:AuditRetention` | Optional separate DB role used only by the audit retention purge |
 | `RabbitMq`, `CapPublisher` | Message broker and CAP retry/expiry settings |
 | `Smtp` | Outgoing mail for verification and reset flows |
 | `MasterTenant` | Bootstrap tenant, admin, and client seeded at startup |
@@ -215,9 +215,5 @@ dotnet restore --force-evaluate
 
 | Document | Content |
 |---|---|
-| [`docs/Identity-Server-BRD-v1.0.md`](docs/Identity-Server-BRD-v1.0.md) | Business requirements, roles, roadmap |
-| [`docs/adr/ADR-01-openiddict-protocol-layer.md`](docs/adr/ADR-01-openiddict-protocol-layer.md) | Why OpenIddict, and how it is integrated per tenant |
-| [`docs/audit/audit-module-spec.md`](docs/audit/audit-module-spec.md) | Audit module design: envelope, channels, Merkle integrity |
-| [`docs/audit/PLAN.md`](docs/audit/PLAN.md), [`OPEN-DECISIONS.md`](docs/audit/OPEN-DECISIONS.md) | Audit implementation plan and open decisions |
-| [`docs/audit/db-roles.sql`](docs/audit/db-roles.sql) | Optional DB role separation for audit retention |
+| [`CLAUDE.md`](CLAUDE.md) | Architecture and coding conventions |
 | [`src/WardenId.Identity.Domain/README.md`](src/WardenId.Identity.Domain/README.md) | Identity domain notes |
