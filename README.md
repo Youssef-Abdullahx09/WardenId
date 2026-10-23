@@ -5,6 +5,8 @@ WardenId is a self-hosted, multi-tenant OpenID Connect / OAuth 2.0 identity prov
 It is a **modular monolith** on **.NET 10**: one ASP.NET Core minimal-API host (`WardenId.Gateway`) composes five bounded-context modules. They talk to each other only through in-process contracts and CAP events.
 
 > Status: under active development.
+>
+> Docker image: [`youssefx09/wardenid`](https://hub.docker.com/repository/docker/youssefx09/wardenid) (see [Run with Docker](#run-with-docker)).
 
 ---
 
@@ -97,6 +99,32 @@ On first start, the Gateway:
 3. Seeds the **master tenant**, its **admin user**, and a confidential **master client**, using the `MasterTenant` section of configuration.
 
 Look up the development admin credentials and client settings in `appsettings.Development.json`. Change all of them before deploying anywhere.
+
+### Run with Docker
+
+A prebuilt image of the Gateway is published on Docker Hub as [`youssefx09/wardenid`](https://hub.docker.com/repository/docker/youssefx09/wardenid). It listens on port `8080` and runs in the `Production` environment, so Swagger is off and nothing from `appsettings.Development.json` applies. Supply the connection string, broker, issuer, and master-tenant settings as environment variables:
+
+```bash
+docker pull youssefx09/wardenid:latest
+
+docker run -d --name wardenid -p 8080:8080 \
+  -e ConnectionStrings__DefaultConnectionString='Host=host.docker.internal;Port=5432;Username=postgres;Password=P@ssw0rd;Database=WardenId' \
+  -e RabbitMq__Host=host.docker.internal -e RabbitMq__Username=admin -e RabbitMq__Password='P@ssw0rd' \
+  -e Smtp__Host=host.docker.internal \
+  -e ProtocolToken__IssuerBaseUri=http://localhost:8080 \
+  -e ProtocolOpenIddict__DisableTransportSecurityRequirement=true \
+  -e MasterTenant__Slug=master -e MasterTenant__AdminEmail=admin@wardenid.local \
+  -e MasterTenant__AdminUsername=admin -e MasterTenant__AdminPassword='<strong-password>' \
+  youssefx09/wardenid:latest
+```
+
+`DisableTransportSecurityRequirement` is only for plain-HTTP local use. Behind TLS, drop it and set `IssuerBaseUri` to the public HTTPS origin.
+
+To build the image yourself, run this from the repository root:
+
+```bash
+docker build -f WardenId.Gateway/Dockerfile -t wardenid:latest .
+```
 
 ### Useful URLs (Development)
 
