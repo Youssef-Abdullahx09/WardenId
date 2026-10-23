@@ -247,3 +247,13 @@ dotnet restore --force-evaluate
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | Architecture and coding conventions |
 | [`src/WardenId.Identity.Domain/README.md`](src/WardenId.Identity.Domain/README.md) | Identity domain notes |
+
+---
+
+## Contributing
+
+Contributions are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to set up, the conventions to follow, and how to open a pull request.
+
+## License
+
+WardenId is licensed under the [MIT License](LICENSE).
