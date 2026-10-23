@@ -68,6 +68,9 @@ public sealed class Endpoint : IEndpoint
     {
         var response = new Dictionary<string, object> { [Claims.Subject] = userInfo.Subject };
         if (userInfo.Claims.PreferredUsername is { } username) response[Claims.PreferredUsername] = username;
+        if (userInfo.Claims.GivenName is { } givenName) response[Claims.GivenName] = givenName;
+        if (userInfo.Claims.FamilyName is { } familyName) response[Claims.FamilyName] = familyName;
+        if (userInfo.Claims.Name is { } name) response[Claims.Name] = name;
         if (userInfo.Claims.Email is { } email) response[Claims.Email] = email;
         if (userInfo.Claims.EmailVerified is { } verified) response[Claims.EmailVerified] = verified;
         return response;

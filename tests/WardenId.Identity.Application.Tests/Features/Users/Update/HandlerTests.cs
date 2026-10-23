@@ -30,7 +30,7 @@ public class HandlerTests
         var user = await SeedActiveUserAsync();
 
         var result = await NewHandler().Handle(
-            new Command(_tenantId, user.Id, " Changed@Example.com ", null, _actorUserId), CancellationToken.None);
+            new Command(_tenantId, user.Id, " Changed@Example.com ", null, null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal("changed@example.com", user.Email.Value);
@@ -47,7 +47,7 @@ public class HandlerTests
     public async Task Handle_TheSentToken_VerifiesTheNewEmail()
     {
         var user = await SeedActiveUserAsync();
-        await NewHandler().Handle(new Command(_tenantId, user.Id, "changed@example.com", null, _actorUserId), CancellationToken.None);
+        await NewHandler().Handle(new Command(_tenantId, user.Id, "changed@example.com", null, null, null, _actorUserId), CancellationToken.None);
         var rawToken = _emailSender.SentVerificationEmails.Single().RawToken;
 
         var verify = await new VerifyEmailHandler(_repository).Handle(
@@ -64,7 +64,7 @@ public class HandlerTests
         var user = await SeedActiveUserAsync();
 
         var result = await NewHandler().Handle(
-            new Command(_tenantId, user.Id, null, " renamed ", _actorUserId), CancellationToken.None);
+            new Command(_tenantId, user.Id, null, " renamed ", null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal("renamed", user.Username.Value);
@@ -80,7 +80,7 @@ public class HandlerTests
         var user = await SeedActiveUserAsync();
 
         var result = await NewHandler().Handle(
-            new Command(_tenantId, user.Id, "changed@example.com", "renamed", _actorUserId), CancellationToken.None);
+            new Command(_tenantId, user.Id, "changed@example.com", "renamed", null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal("renamed", Assert.Single(_emailSender.SentVerificationEmails).Username);
@@ -94,7 +94,7 @@ public class HandlerTests
         var user = await SeedActiveUserAsync();
 
         var result = await NewHandler().Handle(
-            new Command(_tenantId, user.Id, "SOMEONE@example.com", "someone", _actorUserId), CancellationToken.None);
+            new Command(_tenantId, user.Id, "SOMEONE@example.com", "someone", null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(0, _repository.UpdateCallCount);
@@ -107,7 +107,7 @@ public class HandlerTests
     {
         var user = await SeedActiveUserAsync();
 
-        var result = await NewHandler().Handle(new Command(_tenantId, user.Id, null, null, _actorUserId), CancellationToken.None);
+        var result = await NewHandler().Handle(new Command(_tenantId, user.Id, null, null, null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(0, _repository.UpdateCallCount);
@@ -120,7 +120,7 @@ public class HandlerTests
         await SeedActiveUserAsync("taken@example.com", "other");
 
         var result = await NewHandler().Handle(
-            new Command(_tenantId, user.Id, "TAKEN@example.com", null, _actorUserId), CancellationToken.None);
+            new Command(_tenantId, user.Id, "TAKEN@example.com", null, null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.EmailAlreadyInUse().Message, result.Errors[0].Message);
@@ -136,7 +136,7 @@ public class HandlerTests
         await SeedActiveUserAsync("other@example.com", "taken");
 
         var result = await NewHandler().Handle(
-            new Command(_tenantId, user.Id, "changed@example.com", "taken", _actorUserId), CancellationToken.None);
+            new Command(_tenantId, user.Id, "changed@example.com", "taken", null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.UsernameAlreadyInUse().Message, result.Errors[0].Message);
@@ -152,7 +152,7 @@ public class HandlerTests
         await _repository.CreateAsync(otherTenantUser, otherTenantUser.Id);
 
         var result = await NewHandler().Handle(
-            new Command(_tenantId, user.Id, "changed@example.com", "renamed", _actorUserId), CancellationToken.None);
+            new Command(_tenantId, user.Id, "changed@example.com", "renamed", null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
     }
@@ -166,7 +166,7 @@ public class HandlerTests
     {
         var user = await SeedActiveUserAsync();
 
-        var result = await NewHandler().Handle(new Command(_tenantId, user.Id, email, username, _actorUserId), CancellationToken.None);
+        var result = await NewHandler().Handle(new Command(_tenantId, user.Id, email, username, null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrorCodes.Validation, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
@@ -180,7 +180,7 @@ public class HandlerTests
         user.Disable("investigation");
 
         var result = await NewHandler().Handle(
-            new Command(_tenantId, user.Id, "changed@example.com", null, _actorUserId), CancellationToken.None);
+            new Command(_tenantId, user.Id, "changed@example.com", null, null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrorCodes.Validation, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
@@ -192,9 +192,68 @@ public class HandlerTests
     public async Task Handle_FailsWithNotFound_WhenTheUserDoesNotExist()
     {
         var result = await NewHandler().Handle(
-            new Command(_tenantId, Guid.NewGuid(), "changed@example.com", null, _actorUserId), CancellationToken.None);
+            new Command(_tenantId, Guid.NewGuid(), "changed@example.com", null, null, null, _actorUserId), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrorCodes.NotFound, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+    }
+
+    [Fact]
+    public async Task Handle_SetsTheNames_WithoutReverification()
+    {
+        var user = await SeedActiveUserAsync();
+
+        var result = await NewHandler().Handle(
+            new Command(_tenantId, user.Id, null, null, " Ada ", "Lovelace", _actorUserId), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Ada", user.FirstName?.Value);
+        Assert.Equal("Lovelace", user.LastName?.Value);
+        Assert.Empty(user.PendingActions);
+        Assert.Empty(_emailSender.SentVerificationEmails);
+        Assert.Contains(user.DomainEvents, e => e is UserPersonNameChangedDomainEvent);
+        Assert.Equal(1, _repository.UpdateCallCount);
+    }
+
+    [Fact]
+    public async Task Handle_LeavesANullName_AndRemovesABlankOne()
+    {
+        var user = await SeedActiveUserAsync();
+        await NewHandler().Handle(new Command(_tenantId, user.Id, null, null, "Ada", "Lovelace", _actorUserId), CancellationToken.None);
+
+        var result = await NewHandler().Handle(
+            new Command(_tenantId, user.Id, null, null, null, "  ", _actorUserId), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Ada", user.FirstName?.Value);
+        Assert.Null(user.LastName);
+        Assert.Equal(2, _repository.UpdateCallCount);
+    }
+
+    [Fact]
+    public async Task Handle_WithTheSameNames_SucceedsWithoutSaving()
+    {
+        var user = await SeedActiveUserAsync();
+        await NewHandler().Handle(new Command(_tenantId, user.Id, null, null, "Ada", null, _actorUserId), CancellationToken.None);
+
+        var result = await NewHandler().Handle(
+            new Command(_tenantId, user.Id, null, null, " Ada ", "", _actorUserId), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, _repository.UpdateCallCount);
+    }
+
+    [Fact]
+    public async Task Handle_FailsWithValidation_WhenANameIsTooLong()
+    {
+        var user = await SeedActiveUserAsync();
+
+        var result = await NewHandler().Handle(
+            new Command(_tenantId, user.Id, null, null, new string('a', PersonName.MaxLength + 1), null, _actorUserId),
+            CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(UserErrorCodes.Validation, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
+        Assert.Equal(0, _repository.UpdateCallCount);
     }
 }

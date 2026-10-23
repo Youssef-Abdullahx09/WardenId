@@ -30,7 +30,7 @@ public sealed class RegistrationTests(PostgresFixture database)
         var (email, _) = await SeedSoftDeletedUserAsync();
 
         var result = await InRequestAsync(repository =>
-            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, email.ToUpperInvariant(), NewUsername(), Password), CancellationToken.None));
+            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, email.ToUpperInvariant(), NewUsername(), null, null, Password), CancellationToken.None));
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.EmailAlreadyInUse().Message, result.Errors[0].Message);
@@ -43,7 +43,7 @@ public sealed class RegistrationTests(PostgresFixture database)
         var (_, username) = await SeedSoftDeletedUserAsync();
 
         var result = await InRequestAsync(repository =>
-            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, NewEmail(), username, Password), CancellationToken.None));
+            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, NewEmail(), username, null, null, Password), CancellationToken.None));
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.UsernameAlreadyInUse().Message, result.Errors[0].Message);
@@ -56,7 +56,7 @@ public sealed class RegistrationTests(PostgresFixture database)
         var (email, _) = await SeedSoftDeletedUserAsync();
 
         var result = await InRequestAsync(repository =>
-            NewCreateHandler(repository).Handle(new CreateCommand(_tenantId, email, NewUsername(), Password, false, Guid.NewGuid()), CancellationToken.None));
+            NewCreateHandler(repository).Handle(new CreateCommand(_tenantId, email, NewUsername(), null, null, Password, false, Guid.NewGuid()), CancellationToken.None));
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.EmailAlreadyInUse().Message, result.Errors[0].Message);
@@ -69,7 +69,7 @@ public sealed class RegistrationTests(PostgresFixture database)
         var (_, username) = await SeedSoftDeletedUserAsync();
 
         var result = await InRequestAsync(repository =>
-            NewCreateHandler(repository).Handle(new CreateCommand(_tenantId, NewEmail(), username, Password, false, Guid.NewGuid()), CancellationToken.None));
+            NewCreateHandler(repository).Handle(new CreateCommand(_tenantId, NewEmail(), username, null, null, Password, false, Guid.NewGuid()), CancellationToken.None));
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.UsernameAlreadyInUse().Message, result.Errors[0].Message);
@@ -82,7 +82,7 @@ public sealed class RegistrationTests(PostgresFixture database)
         var (email, username) = await SeedSoftDeletedUserAsync();
 
         var result = await InRequestAsync(repository =>
-            NewRegisterHandler(repository).Handle(new RegisterCommand(Guid.NewGuid(), email, username, Password), CancellationToken.None));
+            NewRegisterHandler(repository).Handle(new RegisterCommand(Guid.NewGuid(), email, username, null, null, Password), CancellationToken.None));
 
         Assert.True(result.IsSuccess);
     }
@@ -91,7 +91,7 @@ public sealed class RegistrationTests(PostgresFixture database)
     {
         var (email, username) = (NewEmail(), NewUsername());
         var registered = await InRequestAsync(repository =>
-            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, email, username, Password), CancellationToken.None));
+            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, email, username, null, null, Password), CancellationToken.None));
         Assert.True(registered.IsSuccess);
 
         await InRequestAsync(async repository =>

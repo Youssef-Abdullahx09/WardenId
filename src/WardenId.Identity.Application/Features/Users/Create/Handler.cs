@@ -29,6 +29,8 @@ public sealed class Handler(
             policyResult.Value,
             request.Email,
             request.Username,
+            request.FirstName,
+            request.LastName,
             request.TemporaryPassword,
             request.ActorUserId,
             request.RequirePasswordChange ? [RequiredAction.ResetPassword] : [],

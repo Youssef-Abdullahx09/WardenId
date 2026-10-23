@@ -10,7 +10,7 @@ using VerifyEmailHandler = WardenId.Identity.Application.Features.Users.VerifyEm
 namespace WardenId.Identity.Infrastructure.Tests.Features.Users;
 
 /// <summary>
-/// Changing a user's email or username on Postgres: soft-deleted users keep theirs taken (the
+/// Changing a user's email, username or names on Postgres: soft-deleted users keep theirs taken (the
 /// unique indexes cover them), the old address's tokens are deleted, and the audit diff — the
 /// generic capture reads the change tracker's original and current scalar values — sees both
 /// the old and the new value.
@@ -34,7 +34,7 @@ public sealed class UpdateTests(PostgresFixture database)
         var (userId, _, _) = await SeedVerifiedUserAsync();
 
         var result = await InRequestAsync(repository =>
-            NewUpdateHandler(repository).Handle(new UpdateCommand(_tenantId, userId, deletedEmail.ToUpperInvariant(), null, Guid.NewGuid()), CancellationToken.None));
+            NewUpdateHandler(repository).Handle(new UpdateCommand(_tenantId, userId, deletedEmail.ToUpperInvariant(), null, null, null, Guid.NewGuid()), CancellationToken.None));
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.EmailAlreadyInUse().Message, result.Errors[0].Message);
@@ -48,7 +48,7 @@ public sealed class UpdateTests(PostgresFixture database)
         var (userId, _, _) = await SeedVerifiedUserAsync();
 
         var result = await InRequestAsync(repository =>
-            NewUpdateHandler(repository).Handle(new UpdateCommand(_tenantId, userId, null, deletedUsername, Guid.NewGuid()), CancellationToken.None));
+            NewUpdateHandler(repository).Handle(new UpdateCommand(_tenantId, userId, null, deletedUsername, null, null, Guid.NewGuid()), CancellationToken.None));
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.UsernameAlreadyInUse().Message, result.Errors[0].Message);
@@ -70,7 +70,7 @@ public sealed class UpdateTests(PostgresFixture database)
         var newUsername = NewUsername();
 
         var result = await InRequestAsync(repository =>
-            NewUpdateHandler(repository).Handle(new UpdateCommand(_tenantId, userId, newEmail, newUsername, Guid.NewGuid()), CancellationToken.None));
+            NewUpdateHandler(repository).Handle(new UpdateCommand(_tenantId, userId, newEmail, newUsername, null, null, Guid.NewGuid()), CancellationToken.None));
 
         Assert.True(result.IsSuccess);
         var reloaded = await InRequestAsync(async repository => (await repository.GetByIdAsync(_tenantId, userId)).Value);
@@ -122,11 +122,31 @@ public sealed class UpdateTests(PostgresFixture database)
         Assert.DoesNotContain(nameof(User.Username), user.AuditSensitivePropertyNames);
     }
 
+    [SkippableFact]
+    public async Task ChangingTheNames_PersistsThem_AndABlankNameIsStoredAsNull()
+    {
+        Skip.If(database.SkipReason is not null, database.SkipReason);
+        var (userId, _, _) = await SeedVerifiedUserAsync();
+
+        var set = await InRequestAsync(repository =>
+            NewUpdateHandler(repository).Handle(new UpdateCommand(_tenantId, userId, null, null, "Ada", "Lovelace", Guid.NewGuid()), CancellationToken.None));
+        Assert.True(set.IsSuccess);
+        var named = await InRequestAsync(async repository => (await repository.GetByIdAsync(_tenantId, userId)).Value);
+        Assert.Equal("Ada", named.FirstName?.Value);
+        Assert.Equal("Lovelace", named.LastName?.Value);
+
+        var cleared = await InRequestAsync(repository =>
+            NewUpdateHandler(repository).Handle(new UpdateCommand(_tenantId, userId, null, null, null, "", Guid.NewGuid()), CancellationToken.None));
+        Assert.True(cleared.IsSuccess);
+        Assert.Equal(1, await database.CountAsync(
+            """SELECT count(*) FROM "Identity"."Users" WHERE "Id" = $1 AND "FirstName" = 'Ada' AND "LastName" IS NULL""", userId));
+    }
+
     private async Task<(Guid UserId, string Email, string Username)> SeedVerifiedUserAsync()
     {
         var (email, username) = (NewEmail(), NewUsername());
         var registered = await InRequestAsync(repository =>
-            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, email, username, Password), CancellationToken.None));
+            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, email, username, null, null, Password), CancellationToken.None));
         Assert.True(registered.IsSuccess);
 
         var verify = await InRequestAsync(repository =>
@@ -141,7 +161,7 @@ public sealed class UpdateTests(PostgresFixture database)
     {
         var (email, username) = (NewEmail(), NewUsername());
         var registered = await InRequestAsync(repository =>
-            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, email, username, Password), CancellationToken.None));
+            NewRegisterHandler(repository).Handle(new RegisterCommand(_tenantId, email, username, null, null, Password), CancellationToken.None));
         Assert.True(registered.IsSuccess);
 
         await InRequestAsync(async repository =>

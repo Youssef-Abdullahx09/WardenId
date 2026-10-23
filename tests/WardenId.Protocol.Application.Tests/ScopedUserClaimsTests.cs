@@ -35,4 +35,46 @@ public class ScopedUserClaimsTests
         Assert.True(claims.EmailVerified);
         Assert.Null(claims.PreferredUsername);
     }
+
+    [Fact]
+    public void Profile_AddsTheNames_AndTheFullName()
+    {
+        var ada = Alice with { FirstName = "Ada", LastName = "Lovelace" };
+
+        var claims = ScopedUserClaims.From(ada, ["openid", "profile"]);
+
+        Assert.Equal("Ada", claims.GivenName);
+        Assert.Equal("Lovelace", claims.FamilyName);
+        Assert.Equal("Ada Lovelace", claims.Name);
+    }
+
+    [Fact]
+    public void Profile_WithOneName_UsesItAsTheFullName()
+    {
+        var claims = ScopedUserClaims.From(Alice with { LastName = "Lovelace" }, ["openid", "profile"]);
+
+        Assert.Null(claims.GivenName);
+        Assert.Equal("Lovelace", claims.FamilyName);
+        Assert.Equal("Lovelace", claims.Name);
+    }
+
+    [Fact]
+    public void Profile_WithoutNames_HasNoNameClaims()
+    {
+        var claims = ScopedUserClaims.From(Alice, ["openid", "profile"]);
+
+        Assert.Null(claims.GivenName);
+        Assert.Null(claims.FamilyName);
+        Assert.Null(claims.Name);
+    }
+
+    [Fact]
+    public void WithoutProfile_TheNamesAreLeftOut()
+    {
+        var claims = ScopedUserClaims.From(Alice with { FirstName = "Ada", LastName = "Lovelace" }, ["openid", "email"]);
+
+        Assert.Null(claims.GivenName);
+        Assert.Null(claims.FamilyName);
+        Assert.Null(claims.Name);
+    }
 }

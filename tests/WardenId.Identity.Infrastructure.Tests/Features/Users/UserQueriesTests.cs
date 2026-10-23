@@ -33,6 +33,8 @@ public sealed class UserQueriesTests(PostgresFixture database)
         Assert.Equal(user.Id, detail.Id);
         Assert.Equal(user.Email.Value, detail.Email);
         Assert.Equal(user.Username.Value, detail.Username);
+        Assert.Equal("Ada", detail.FirstName);
+        Assert.Equal("Lovelace", detail.LastName);
         Assert.Equal(UserStatus.PendingVerification, detail.Status);
         Assert.Equal(0, detail.FailedLoginAttemptCount);
         Assert.Null(detail.LockedUntilUtc);
@@ -69,7 +71,7 @@ public sealed class UserQueriesTests(PostgresFixture database)
     }
 
     [SkippableFact]
-    public async Task GetForSignIn_ReturnsStatusAndPendingActions()
+    public async Task GetForSignIn_ReturnsNamesStatusAndPendingActions()
     {
         Skip.If(database.SkipReason is not null, database.SkipReason);
         var (user, _, _) = await SeedUserWithMfaAsync();
@@ -79,6 +81,8 @@ public sealed class UserQueriesTests(PostgresFixture database)
 
         Assert.True(result.IsSuccess);
         Assert.Equal(user.Id, result.Value.UserId);
+        Assert.Equal("Ada", result.Value.FirstName);
+        Assert.Equal("Lovelace", result.Value.LastName);
         Assert.Equal(ContractUserStatus.PendingVerification, result.Value.Status);
         Assert.Equal([ContractRequiredAction.VerifyEmail], result.Value.PendingActions);
     }
@@ -113,7 +117,8 @@ public sealed class UserQueriesTests(PostgresFixture database)
     private async Task<(User User, MfaFactor Enabled, MfaFactor Pending)> SeedUserWithMfaAsync()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
-        var user = User.Register(_tenantId, Email.Create($"someone{suffix}@example.com").Value, Username.Create($"Someone{suffix}").Value).Value;
+        var user = User.Register(_tenantId, Email.Create($"someone{suffix}@example.com").Value, Username.Create($"Someone{suffix}").Value,
+            PersonName.FromTrustedSource("Ada"), PersonName.FromTrustedSource("Lovelace")).Value;
         Assert.True(user.SetAttribute("department", "engineering", UserAttributeValueType.String).IsSuccess);
         Assert.True(user.AcceptTerms(Now).IsSuccess);
         var enabled = MfaFactor.Create(MfaFactorType.Totp, "protected:enabled", Now.AddMinutes(-2));

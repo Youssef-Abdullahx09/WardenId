@@ -33,6 +33,9 @@ public static class UserErrors
     public static Error UsernameInvalidLength() => Validation($"Username must be between {Username.MinLength} and {Username.MaxLength} characters.");
     public static Error UsernameInvalidFormat() => Validation("Username may only contain letters, digits, dots, underscores and hyphens.");
 
+    public static Error PersonNameRequired(string fieldName) => Validation($"{fieldName} is required.");
+    public static Error PersonNameTooLong(string fieldName) => Validation($"{fieldName} cannot exceed {PersonName.MaxLength} characters.");
+
     public static Error PasswordPolicyMinLengthInvalid() => Validation("Password policy minimum length must be at least 1.");
     public static Error PasswordPolicyHistoryCountInvalid() => Validation("Password policy history count cannot be negative.");
 

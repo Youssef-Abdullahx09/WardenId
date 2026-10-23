@@ -83,7 +83,7 @@ public static class MasterAdminSeeder
         try
         {
             var registerResult = await sender.Send(
-                new Command(tenantId, options.AdminEmail, options.AdminUsername, options.AdminPassword),
+                new Command(tenantId, options.AdminEmail, options.AdminUsername, FirstName: null, LastName: null, options.AdminPassword),
                 CancellationToken.None);
 
             if (registerResult.IsSuccess)

@@ -7,8 +7,8 @@ namespace WardenId.Identity.Query.Contracts.Features.Users.List;
 /// </summary>
 /// <param name="Status">The <c>UserStatus</c> member name to match; null for any.</param>
 /// <param name="SearchPrefix">
-/// Already lowercased prefix of the email or (lowercased) username, matched literally (% and _ are not wildcards);
-/// null for no filter.
+/// Already lowercased prefix of the email, or of the (lowercased) username, first name, last name or
+/// "first last", matched literally (% and _ are not wildcards); null for no filter.
 /// </param>
 public sealed record Query(
     Guid TenantId,

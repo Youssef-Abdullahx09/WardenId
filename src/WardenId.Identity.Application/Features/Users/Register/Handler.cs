@@ -24,7 +24,8 @@ public sealed class Handler(
         if (!policyResult.Value.SelfRegistrationEnabled) return Result.Fail(UserErrors.SelfRegistrationDisabled());
 
         return await _registration.RegisterAsync(
-            request.TenantId, policyResult.Value, request.Email, request.Username, request.Password,
+            request.TenantId, policyResult.Value, request.Email, request.Username, request.FirstName, request.LastName,
+            request.Password,
             actorUserId: null, requiredActions: [], cancellationToken);
     }
 }

@@ -1,6 +1,8 @@
 SELECT identity_user."Id",
        identity_user."Email",
        identity_user."Username",
+       identity_user."FirstName",
+       identity_user."LastName",
        identity_user."Status",
        identity_user."PendingActions"
 FROM "Identity"."Users" identity_user

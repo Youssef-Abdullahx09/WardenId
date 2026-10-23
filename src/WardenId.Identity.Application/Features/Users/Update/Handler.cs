@@ -7,10 +7,11 @@ using WardenId.Identity.Domain;
 namespace WardenId.Identity.Application.Features.Users.Update;
 
 /// <summary>
-/// An admin changes a user's email and/or username. Same validation and uniqueness rules as
+/// An admin changes a user's email, username and/or names. Same validation and uniqueness rules as
 /// creating a user (soft-deleted users' values stay taken). A new email is unverified: the user
 /// gets the VerifyEmail required action and a verification email at the new address, and the
-/// tokens sent to the old address stop working. Values equal to the current ones are no change.
+/// tokens sent to the old address stop working. A blank name removes it. Values equal to the current ones are no
+/// change.
 /// </summary>
 public sealed class Handler(
     IUserRepository repository,
@@ -44,7 +45,25 @@ public sealed class Handler(
             if (usernameResult.Value != user.Username) newUsername = usernameResult.Value;
         }
 
-        if (newEmail is null && newUsername is null) return Result.Ok();
+        var firstName = user.FirstName;
+        if (request.FirstName is not null)
+        {
+            var firstNameResult = PersonName.CreateOptional(request.FirstName, PersonNameFields.FirstName);
+            if (firstNameResult.IsFailed) return Result.Fail(firstNameResult.Errors);
+            firstName = firstNameResult.Value;
+        }
+
+        var lastName = user.LastName;
+        if (request.LastName is not null)
+        {
+            var lastNameResult = PersonName.CreateOptional(request.LastName, PersonNameFields.LastName);
+            if (lastNameResult.IsFailed) return Result.Fail(lastNameResult.Errors);
+            lastName = lastNameResult.Value;
+        }
+
+        var nameChanged = firstName != user.FirstName || lastName != user.LastName;
+
+        if (newEmail is null && newUsername is null && !nameChanged) return Result.Ok();
 
         if (newEmail is not null && await repository.ExistsByEmailAsync(request.TenantId, newEmail, cancellationToken))
             return Result.Fail(UserErrors.EmailAlreadyInUse());
@@ -56,6 +75,12 @@ public sealed class Handler(
         {
             var changeUsernameResult = user.ChangeUsername(newUsername);
             if (changeUsernameResult.IsFailed) return changeUsernameResult;
+        }
+
+        if (nameChanged)
+        {
+            var changeNameResult = user.ChangePersonName(firstName, lastName);
+            if (changeNameResult.IsFailed) return changeNameResult;
         }
 
         string? rawToken = null;

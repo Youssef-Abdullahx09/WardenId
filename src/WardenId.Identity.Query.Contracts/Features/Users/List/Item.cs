@@ -6,6 +6,8 @@ public sealed class Item
     public Guid Id { get; init; }
     public string Email { get; init; } = "";
     public string Username { get; init; } = "";
+    public string? FirstName { get; init; }
+    public string? LastName { get; init; }
 
     /// <summary>The <c>UserStatus</c> member name, as persisted.</summary>
     public string Status { get; init; } = "";

@@ -26,6 +26,14 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired();
         builder.HasIndex(u => new { u.TenantId, u.Username }).IsUnique();
 
+        builder.Property(u => u.FirstName)
+            .HasConversion(name => name!.Value, value => PersonName.FromTrustedSource(value))
+            .HasMaxLength(PersonName.MaxLength);
+
+        builder.Property(u => u.LastName)
+            .HasConversion(name => name!.Value, value => PersonName.FromTrustedSource(value))
+            .HasMaxLength(PersonName.MaxLength);
+
         builder.Property(u => u.Status)
             .HasConversion<string>()
             .HasMaxLength(30)

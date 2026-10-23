@@ -40,6 +40,9 @@ public class UserInfoFlowTests : IAsyncLifetime
         var body = await JsonAsync(response);
         Assert.Equal(alice.UserId.ToString(), body.GetProperty("sub").GetString());
         Assert.Equal("alice", body.GetProperty("preferred_username").GetString());
+        Assert.Equal("Alice", body.GetProperty("given_name").GetString());
+        Assert.Equal("Liddell", body.GetProperty("family_name").GetString());
+        Assert.Equal("Alice Liddell", body.GetProperty("name").GetString());
         Assert.Equal(alice.Email, body.GetProperty("email").GetString());
         Assert.True(body.GetProperty("email_verified").GetBoolean());
     }

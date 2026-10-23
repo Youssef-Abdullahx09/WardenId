@@ -15,13 +15,15 @@ public sealed class User : AggregateRoot, IAuditableAggregate, ICreationTracked,
     // secret material, so nothing needs redaction here.
     public IReadOnlySet<string> AuditSensitivePropertyNames { get; } = new HashSet<string>();
 
-    private User(Guid tenantId, Email email, Username username)
+    private User(Guid tenantId, Email email, Username username, PersonName? firstName, PersonName? lastName)
     {
         if (tenantId == Guid.Empty) throw new ArgumentException("Tenant id is required.", nameof(tenantId));
 
         TenantId = tenantId;
         Email = email;
         Username = username;
+        FirstName = firstName;
+        LastName = lastName;
         Status = UserStatus.PendingVerification;
         Lockout = LoginLockoutState.None;
     }
@@ -29,6 +31,8 @@ public sealed class User : AggregateRoot, IAuditableAggregate, ICreationTracked,
     public Guid TenantId { get; private set; }
     public Email Email { get; private set; }
     public Username Username { get; private set; }
+    public PersonName? FirstName { get; private set; }
+    public PersonName? LastName { get; private set; }
     public UserStatus Status { get; private set; }
     public PasswordCredential? Credential { get; private set; }
     public LoginLockoutState Lockout { get; private set; }
@@ -60,9 +64,10 @@ public sealed class User : AggregateRoot, IAuditableAggregate, ICreationTracked,
     private readonly List<PasswordResetToken> _passwordResetTokens = new();
     public IReadOnlyCollection<PasswordResetToken> PasswordResetTokens => _passwordResetTokens.AsReadOnly();
 
-    public static Result<User> Register(Guid tenantId, Email email, Username username)
+    public static Result<User> Register(
+        Guid tenantId, Email email, Username username, PersonName? firstName = null, PersonName? lastName = null)
     {
-        var user = new User(tenantId, email, username);
+        var user = new User(tenantId, email, username, firstName, lastName);
         user._pendingActions.Add(RequiredAction.VerifyEmail);
         user.RaiseDomainEvent(new UserRegisteredDomainEvent(email, username));
         return Result.Ok(user);
@@ -135,6 +140,22 @@ public sealed class User : AggregateRoot, IAuditableAggregate, ICreationTracked,
         var previousUsername = Username;
         Username = newUsername;
         RaiseDomainEvent(new UserUsernameChangedDomainEvent(previousUsername, newUsername));
+        return Result.Ok();
+    }
+
+    /// <summary>
+    /// Sets both names; null removes a name. Allowed in any status but Disabled and SoftDeleted,
+    /// like the username. The same names change nothing.
+    /// </summary>
+    public Result ChangePersonName(PersonName? firstName, PersonName? lastName)
+    {
+        var ensureMutable = EnsureMutable();
+        if (ensureMutable.IsFailed) return ensureMutable;
+        if (firstName == FirstName && lastName == LastName) return Result.Ok();
+
+        FirstName = firstName;
+        LastName = lastName;
+        RaiseDomainEvent(new UserPersonNameChangedDomainEvent(firstName, lastName));
         return Result.Ok();
     }
 

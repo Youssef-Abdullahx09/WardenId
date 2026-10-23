@@ -46,8 +46,9 @@ public sealed class Endpoint : IEndpoint
             .WithSummary("List users")
             .WithDescription(
                 "Lists users for the given tenant, paginated and optionally filtered by status. `search` matches " +
-                "the start of the email or username, ignoring case. `sort` is `createdAt`, `email` or `username`, " +
-                "prefixed with `-` for descending; the default is `-createdAt` (newest first).")
+                "the start of the email, username, first name, last name or full name (\"first last\"), ignoring case. " +
+                "`sort` is `createdAt`, `email`, `username`, `firstName` or `lastName`, prefixed with `-` for " +
+                "descending (users without the sorted name come last); the default is `-createdAt` (newest first).")
             .Produces<PaginationListResponse<UserListItem>>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);

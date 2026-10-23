@@ -134,7 +134,7 @@ public sealed class TenantPolicyTests(PostgresFixture database)
         await using var context = database.CreateContext();
         var resolver = new IdentityPolicyResolver(new IdentityTenantPolicyRepository(context), _cache, Global);
         return await new RegisterHandler(new UserRepository(context), new PlainPasswordHasher(), new NeverBreached(), new NoEmail(), resolver)
-            .Handle(new RegisterCommand(_tenantId, $"{name}{Guid.NewGuid():N}@example.test", $"{name}{Guid.NewGuid().ToString("N")[..8]}", "Correct-Horse-1"), CancellationToken.None);
+            .Handle(new RegisterCommand(_tenantId, $"{name}{Guid.NewGuid():N}@example.test", $"{name}{Guid.NewGuid().ToString("N")[..8]}", null, null, "Correct-Horse-1"), CancellationToken.None);
     }
 
     private sealed class PlainPasswordHasher : IPasswordHasher

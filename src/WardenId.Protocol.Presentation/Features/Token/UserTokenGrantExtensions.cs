@@ -24,6 +24,9 @@ public static class UserTokenGrantExtensions
         identity.SetClaim(CustomClaimTypes.TenantId, grant.TenantId.ToString());
         identity.SetClaim(CustomClaimTypes.TokenUse, TokenUse.Access);
         identity.SetClaim(Claims.PreferredUsername, grant.PreferredUsername);
+        identity.SetClaim(Claims.GivenName, grant.GivenName);
+        identity.SetClaim(Claims.FamilyName, grant.FamilyName);
+        identity.SetClaim(Claims.Name, grant.Name);
         identity.SetClaim(Claims.Email, grant.Email);
         identity.RemoveClaims(Claims.EmailVerified);
         if (grant.EmailVerified is { } verified)
@@ -34,8 +37,8 @@ public static class UserTokenGrantExtensions
             Claims.Subject => [Destinations.AccessToken, Destinations.IdentityToken],
             CustomClaimTypes.TenantId or CustomClaimTypes.TokenUse => [Destinations.AccessToken],
             // sid (OIDC Back-Channel Logout §2.1) is copied from the code/refresh principal like auth_time.
-            Claims.AuthenticationTime or Claims.PreferredUsername or Claims.Email or Claims.EmailVerified
-                or SessionClaimTypes.SessionId
+            Claims.AuthenticationTime or Claims.PreferredUsername or Claims.GivenName or Claims.FamilyName
+                or Claims.Name or Claims.Email or Claims.EmailVerified or SessionClaimTypes.SessionId
                 => [Destinations.IdentityToken],
             _ => []
         });

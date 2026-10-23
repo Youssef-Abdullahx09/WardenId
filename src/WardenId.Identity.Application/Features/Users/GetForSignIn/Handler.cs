@@ -30,6 +30,8 @@ public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<GetForSign
             user.PendingActions
                 .Select(QueryColumns.ParseEnum<RequiredAction>)
                 .Select(ContractMapping.MapRequiredAction)
-                .ToArray()));
+                .ToArray(),
+            user.FirstName,
+            user.LastName));
     }
 }

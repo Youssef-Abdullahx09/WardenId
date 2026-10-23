@@ -6,5 +6,7 @@ public sealed record UserListItem(
     Guid Id,
     string Email,
     string Username,
+    string? FirstName,
+    string? LastName,
     UserStatus Status,
     DateTimeOffset CreatedAt);

@@ -22,7 +22,11 @@ public sealed class ListTests(PostgresFixture database)
     [InlineData("%", new string[0])]
     [InlineData("\\", new string[0])]
     [InlineData("example", new string[0])]
-    public async Task Search_MatchesEmailOrUsernamePrefix_IgnoringCase_WithLiteralWildcards(string search, string[] expectedEmails)
+    [InlineData("smi", new[] { "alice@example.com" })]
+    [InlineData("ALICE SM", new[] { "alice@example.com" })]
+    [InlineData("ackroyd", new[] { "bob@corp.test" })]
+    [InlineData("alice smith ", new[] { "alice@example.com" })]
+    public async Task Search_MatchesEmailUsernameOrNamePrefix_IgnoringCase_WithLiteralWildcards(string search, string[] expectedEmails)
     {
         Skip.If(database.SkipReason is not null, database.SkipReason);
         await SeedAsync();
@@ -41,7 +45,11 @@ public sealed class ListTests(PostgresFixture database)
     [InlineData("-email", new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
     [InlineData("Username", new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
     [InlineData("-username", new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
-    public async Task Sort_OrdersTheResults(string? sort, string[] expectedEmails)
+    [InlineData("firstName", new[] { "alice@example.com", "carol@example.com", "bob@corp.test" })]
+    [InlineData("-firstName", new[] { "carol@example.com", "alice@example.com", "bob@corp.test" })]
+    [InlineData("lastName", new[] { "bob@corp.test", "alice@example.com", "carol@example.com" })]
+    [InlineData("-lastName", new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
+    public async Task Sort_OrdersTheResults_WithoutTheSortedNameLast(string? sort, string[] expectedEmails)
     {
         Skip.If(database.SkipReason is not null, database.SkipReason);
         await SeedAsync();
@@ -62,9 +70,10 @@ public sealed class ListTests(PostgresFixture database)
             new ListQuery(_tenantId, PageNumber: 2, PageSize: 1, UserStatus.PendingVerification, Search: "a", Sort: "-email"),
             CancellationToken.None);
 
+        // "a" matches Alice by her email and Bob by his last name (Ackroyd); -email puts Bob on page 1.
         Assert.True(result.IsSuccess);
-        Assert.Equal(1, result.Value.RecordsTotal);
-        Assert.Empty(result.Value.Data);
+        Assert.Equal(2, result.Value.RecordsTotal);
+        Assert.Equal("alice@example.com", Assert.Single(result.Value.Data).Email);
     }
 
     private async Task<FluentResults.Result<SharedKernel.Query.Contracts.PaginationListResponse<UserListItem>>> ListAsync(string? search, string? sort)
@@ -72,13 +81,24 @@ public sealed class ListTests(PostgresFixture database)
         return await new Handler(database.CreateUsersQuery()).Handle(new ListQuery(_tenantId, 1, 10, null, search, sort), CancellationToken.None);
     }
 
-    /// <summary>Alice, then Bob, then Carol, in separate saves so their CreatedAt values differ.</summary>
+    /// <summary>
+    /// Alice Smith, then Bob (last name Ackroyd only), then Carol (first name only), in separate saves so their
+    /// CreatedAt values differ.
+    /// </summary>
     private async Task SeedAsync()
     {
-        foreach (var (email, username) in new[] { ("alice@example.com", "Alice.Smith"), ("bob@corp.test", "bobby"), ("carol@example.com", "c_ross") })
+        foreach (var (email, username, firstName, lastName) in new[]
+                 {
+                     ("alice@example.com", "Alice.Smith", "Alice", "Smith"),
+                     ("bob@corp.test", "bobby", null, "Ackroyd"),
+                     ("carol@example.com", "c_ross", "Carol", null)
+                 })
         {
             await using var context = database.CreateContext();
-            var user = User.Register(_tenantId, Email.Create(email).Value, Username.Create(username).Value).Value;
+            var user = User.Register(
+                _tenantId, Email.Create(email).Value, Username.Create(username).Value,
+                firstName is null ? null : PersonName.FromTrustedSource(firstName),
+                lastName is null ? null : PersonName.FromTrustedSource(lastName)).Value;
             await new UserRepository(context).CreateAsync(user, Guid.NewGuid());
             await Task.Delay(5);
         }

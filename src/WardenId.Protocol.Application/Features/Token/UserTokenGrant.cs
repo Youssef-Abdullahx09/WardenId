@@ -13,5 +13,8 @@ public sealed record UserTokenGrant(
     TimeSpan IdTokenLifetime,
     TimeSpan? RefreshTokenLifetime,
     string? PreferredUsername,
+    string? GivenName,
+    string? FamilyName,
+    string? Name,
     string? Email,
     bool? EmailVerified);

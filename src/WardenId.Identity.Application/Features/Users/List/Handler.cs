@@ -22,7 +22,7 @@ public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<Query, Res
         if (search?.Length > Email.MaxLength)
             return Result.Fail(UserErrors.Validation($"Search cannot exceed {Email.MaxLength} characters."));
 
-        // Emails are stored lowercased (Email.Create) and the username is lowered in SQL, so the prefix is lowered here.
+        // Emails are stored lowercased (Email.Create) and the username and names are lowered in SQL, so the prefix is lowered here.
         // The match is a literal prefix (LIKE 'prefix%' with % and _ escaped); see Features/Users/List/Query.sql.
         var result = await usersQuery.List(
             new UsersListQuery(
@@ -43,6 +43,8 @@ public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<Query, Res
                 item.Id,
                 item.Email,
                 item.Username,
+                item.FirstName,
+                item.LastName,
                 QueryColumns.ParseEnum<UserStatus>(item.Status),
                 QueryColumns.AsUtc(item.CreatedAt)))
             .ToList();
@@ -55,6 +57,8 @@ public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<Query, Res
         UserSortField.CreatedAt => ListSortField.CreatedAt,
         UserSortField.Email => ListSortField.Email,
         UserSortField.Username => ListSortField.Username,
+        UserSortField.FirstName => ListSortField.FirstName,
+        UserSortField.LastName => ListSortField.LastName,
         _ => throw new ArgumentOutOfRangeException(nameof(field), field, "Unmapped UserSortField.")
     };
 }

@@ -26,6 +26,8 @@ internal sealed class UserRegistration(
         EffectiveIdentityPolicy effectivePolicy,
         string rawEmail,
         string rawUsername,
+        string? rawFirstName,
+        string? rawLastName,
         string password,
         Guid? actorUserId,
         IReadOnlyCollection<RequiredAction> requiredActions,
@@ -36,6 +38,12 @@ internal sealed class UserRegistration(
 
         var usernameResult = Username.Create(rawUsername);
         if (usernameResult.IsFailed) return Result.Fail(usernameResult.Errors);
+
+        var firstNameResult = PersonName.CreateOptional(rawFirstName, PersonNameFields.FirstName);
+        if (firstNameResult.IsFailed) return Result.Fail(firstNameResult.Errors);
+
+        var lastNameResult = PersonName.CreateOptional(rawLastName, PersonNameFields.LastName);
+        if (lastNameResult.IsFailed) return Result.Fail(lastNameResult.Errors);
 
         var email = emailResult.Value;
         var username = usernameResult.Value;
@@ -51,7 +59,7 @@ internal sealed class UserRegistration(
             policy, password, currentCredential: null, history: [], passwordHasher, breachedPasswordChecker);
         if (evaluateResult.IsFailed) return evaluateResult;
 
-        var registerResult = User.Register(tenantId, email, username);
+        var registerResult = User.Register(tenantId, email, username, firstNameResult.Value, lastNameResult.Value);
         if (registerResult.IsFailed) return Result.Fail(registerResult.Errors);
 
         var user = registerResult.Value;

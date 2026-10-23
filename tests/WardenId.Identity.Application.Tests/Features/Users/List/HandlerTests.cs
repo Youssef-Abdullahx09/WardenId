@@ -49,7 +49,7 @@ public class HandlerTests
         Assert.True(result.IsSuccess);
         Assert.Equal(7, result.Value.RecordsTotal);
         Assert.Equal(
-            new UserListItem(id, "a@example.com", "Alice", UserStatus.Active, new DateTimeOffset(createdAt)),
+            new UserListItem(id, "a@example.com", "Alice", null, null, UserStatus.Active, new DateTimeOffset(createdAt)),
             Assert.Single(result.Value.Data));
     }
 
@@ -99,6 +99,8 @@ public class HandlerTests
     [InlineData("-email", SortField.Email, SortDirection.Desc)]
     [InlineData("Username", SortField.Username, SortDirection.Asc)]
     [InlineData("-username", SortField.Username, SortDirection.Desc)]
+    [InlineData("firstName", SortField.FirstName, SortDirection.Asc)]
+    [InlineData("-LASTNAME", SortField.LastName, SortDirection.Desc)]
     public async Task Handle_PassesTheSort(string? sort, SortField field, SortDirection direction)
     {
         await CreateHandler().Handle(new ListQuery(_tenantId, 1, 10, null, Sort: sort), CancellationToken.None);

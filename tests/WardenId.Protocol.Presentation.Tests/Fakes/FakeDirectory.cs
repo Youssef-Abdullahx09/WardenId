@@ -55,6 +55,8 @@ public sealed class FakeDirectory
         public Guid UserId { get; } = Guid.NewGuid();
         public string Username { get; } = username;
         public string Email => $"{Username}@example.test";
+        public string? FirstName { get; init; }
+        public string? LastName { get; init; }
         public UserStatus Status { get; set; } = status;
         public List<RequiredAction> PendingActions { get; } = [.. pendingActions];
 
@@ -127,7 +129,7 @@ public sealed class FakeDirectory
         AddClient(globex, "web-rt", grants: [AllowedGrant.AuthorizationCode, AllowedGrant.RefreshToken],
             secrets: [GlobexSecret], redirectUris: [WebRedirect]);
 
-        Users.Add(new UserEntry(acme.TenantId, "alice", UserStatus.Active));
+        Users.Add(new UserEntry(acme.TenantId, "alice", UserStatus.Active) { FirstName = "Alice", LastName = "Liddell" });
         Users.Add(new UserEntry(acme.TenantId, "dave", UserStatus.Active));
         Users.Add(new UserEntry(acme.TenantId, "bob", UserStatus.PendingVerification, RequiredAction.VerifyEmail));
         Users.Add(new UserEntry(acme.TenantId, "carol", UserStatus.Disabled));

@@ -17,6 +17,8 @@ public sealed record UserDetail(
     Guid Id,
     string Email,
     string Username,
+    string? FirstName,
+    string? LastName,
     UserStatus Status,
     int FailedLoginAttemptCount,
     DateTimeOffset? LockedUntilUtc,

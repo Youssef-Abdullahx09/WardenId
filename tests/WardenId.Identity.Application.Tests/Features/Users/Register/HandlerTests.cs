@@ -24,7 +24,7 @@ public class HandlerTests
         var handler = CreateHandler(new FakeUserRepository(), emailSender: emailSender);
 
         var result = await handler.Handle(
-            new Command(Guid.NewGuid(), "someone@example.com", "someone", "P@ssw0rd1"),
+            new Command(Guid.NewGuid(), "someone@example.com", "someone", null, null, "P@ssw0rd1"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -36,14 +36,46 @@ public class HandlerTests
     }
 
     [Fact]
+    public async Task Handle_SavesTheNames_BlankAsNone()
+    {
+        var repository = new FakeUserRepository();
+        var handler = CreateHandler(repository);
+
+        var tenantId = Guid.NewGuid();
+
+        var result = await handler.Handle(
+            new Command(tenantId, "someone@example.com", "someone", " Ada ", " ", "P@ssw0rd1"),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        var user = (await repository.GetByIdAsync(tenantId, result.Value.UserId)).Value;
+        Assert.Equal("Ada", user.FirstName?.Value);
+        Assert.Null(user.LastName);
+    }
+
+    [Fact]
+    public async Task Handle_Fails_WhenANameIsTooLong()
+    {
+        var repository = new FakeUserRepository();
+        var handler = CreateHandler(repository);
+
+        var result = await handler.Handle(
+            new Command(Guid.NewGuid(), "someone@example.com", "someone", null, new string('a', PersonName.MaxLength + 1), "P@ssw0rd1"),
+            CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(0, repository.CreateCallCount);
+    }
+
+    [Fact]
     public async Task Handle_Fails_WhenEmailAlreadyInUse()
     {
         var tenantId = Guid.NewGuid();
         var repository = new FakeUserRepository();
         var handler = CreateHandler(repository);
 
-        await handler.Handle(new Command(tenantId, "dup@example.com", "first", "P@ssw0rd1"), CancellationToken.None);
-        var result = await handler.Handle(new Command(tenantId, "dup@example.com", "second", "P@ssw0rd1"), CancellationToken.None);
+        await handler.Handle(new Command(tenantId, "dup@example.com", "first", null, null, "P@ssw0rd1"), CancellationToken.None);
+        var result = await handler.Handle(new Command(tenantId, "dup@example.com", "second", null, null, "P@ssw0rd1"), CancellationToken.None);
 
         Assert.True(result.IsFailed);
     }
@@ -55,8 +87,8 @@ public class HandlerTests
         var repository = new FakeUserRepository();
         var handler = CreateHandler(repository);
 
-        await handler.Handle(new Command(tenantId, "one@example.com", "dupname", "P@ssw0rd1"), CancellationToken.None);
-        var result = await handler.Handle(new Command(tenantId, "two@example.com", "dupname", "P@ssw0rd1"), CancellationToken.None);
+        await handler.Handle(new Command(tenantId, "one@example.com", "dupname", null, null, "P@ssw0rd1"), CancellationToken.None);
+        var result = await handler.Handle(new Command(tenantId, "two@example.com", "dupname", null, null, "P@ssw0rd1"), CancellationToken.None);
 
         Assert.True(result.IsFailed);
     }
@@ -67,7 +99,7 @@ public class HandlerTests
         var handler = CreateHandler(new FakeUserRepository(), options: new IdentityPolicyOptions { PasswordMinLength = 12 });
 
         var result = await handler.Handle(
-            new Command(Guid.NewGuid(), "someone@example.com", "someone", "short1A"),
+            new Command(Guid.NewGuid(), "someone@example.com", "someone", null, null, "short1A"),
             CancellationToken.None);
 
         Assert.True(result.IsFailed);
@@ -79,7 +111,7 @@ public class HandlerTests
         var handler = CreateHandler(new FakeUserRepository());
 
         var result = await handler.Handle(
-            new Command(Guid.NewGuid(), "not-an-email", "someone", "P@ssw0rd1"),
+            new Command(Guid.NewGuid(), "not-an-email", "someone", null, null, "P@ssw0rd1"),
             CancellationToken.None);
 
         Assert.True(result.IsFailed);
@@ -98,7 +130,7 @@ public class HandlerTests
             .With(tenantId, IdentityPolicyOverrides.None with { SelfRegistrationEnabled = false });
 
         var result = await HandlerFor(repository, new IdentityPolicyOptions(), tenantPolicies)
-            .Handle(new Command(tenantId, "someone@example.com", "someone", "P@ssw0rd1"), CancellationToken.None);
+            .Handle(new Command(tenantId, "someone@example.com", "someone", null, null, "P@ssw0rd1"), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrorCodes.Forbidden, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
@@ -110,12 +142,12 @@ public class HandlerTests
     {
         var tenantId = Guid.NewGuid();
         var repository = new FakeUserRepository();
-        await CreateHandler(repository).Handle(new Command(tenantId, "taken@example.com", "first", "P@ssw0rd1"), CancellationToken.None);
+        await CreateHandler(repository).Handle(new Command(tenantId, "taken@example.com", "first", null, null, "P@ssw0rd1"), CancellationToken.None);
         var tenantPolicies = new FakeIdentityTenantPolicyRepository()
             .With(tenantId, IdentityPolicyOverrides.None with { SelfRegistrationEnabled = false });
 
         var result = await HandlerFor(repository, new IdentityPolicyOptions(), tenantPolicies)
-            .Handle(new Command(tenantId, "taken@example.com", "second", "P@ssw0rd1"), CancellationToken.None);
+            .Handle(new Command(tenantId, "taken@example.com", "second", null, null, "P@ssw0rd1"), CancellationToken.None);
 
         Assert.Equal(UserErrors.SelfRegistrationDisabled().Message, result.Errors[0].Message);
     }
@@ -124,7 +156,7 @@ public class HandlerTests
     public async Task Handle_FailsWithForbidden_WhenSelfRegistrationIsDisabledGlobally()
     {
         var result = await CreateHandler(new FakeUserRepository(), options: new IdentityPolicyOptions { SelfRegistrationEnabled = false })
-            .Handle(new Command(Guid.NewGuid(), "someone@example.com", "someone", "P@ssw0rd1"), CancellationToken.None);
+            .Handle(new Command(Guid.NewGuid(), "someone@example.com", "someone", null, null, "P@ssw0rd1"), CancellationToken.None);
 
         Assert.Equal(UserErrorCodes.Forbidden, result.Errors[0].Metadata[UserErrorCodes.MetadataKey]);
     }
@@ -137,7 +169,7 @@ public class HandlerTests
             .With(tenantId, IdentityPolicyOverrides.None with { SelfRegistrationEnabled = true });
 
         var result = await HandlerFor(new FakeUserRepository(), new IdentityPolicyOptions { SelfRegistrationEnabled = false }, tenantPolicies)
-            .Handle(new Command(tenantId, "someone@example.com", "someone", "P@ssw0rd1"), CancellationToken.None);
+            .Handle(new Command(tenantId, "someone@example.com", "someone", null, null, "P@ssw0rd1"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
     }
@@ -150,7 +182,7 @@ public class HandlerTests
             .With(tenantId, IdentityPolicyOverrides.None with { PasswordMinLength = 16 });
 
         var result = await HandlerFor(new FakeUserRepository(), new IdentityPolicyOptions(), tenantPolicies)
-            .Handle(new Command(tenantId, "someone@example.com", "someone", "P@ssw0rd1"), CancellationToken.None);
+            .Handle(new Command(tenantId, "someone@example.com", "someone", null, null, "P@ssw0rd1"), CancellationToken.None);
 
         Assert.True(result.IsFailed);
         Assert.Equal(UserErrors.PasswordTooShort(16).Message, result.Errors[0].Message);

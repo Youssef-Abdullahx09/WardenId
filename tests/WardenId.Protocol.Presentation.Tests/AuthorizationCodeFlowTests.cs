@@ -84,6 +84,10 @@ public class AuthorizationCodeFlowTests : IAsyncLifetime
         Assert.Equal(alice.UserId.ToString(), id.Subject);
         Assert.Equal("n-123", id.GetClaim("nonce").Value);
         Assert.Equal("alice", id.GetClaim("preferred_username").Value);
+        Assert.Equal("Alice", id.GetClaim("given_name").Value);
+        Assert.Equal("Liddell", id.GetClaim("family_name").Value);
+        Assert.Equal("Alice Liddell", id.GetClaim("name").Value);
+        Assert.False(access.TryGetClaim("given_name", out _));
         Assert.Equal(alice.Email, id.GetClaim("email").Value);
         var rawPayload = JsonDocument.Parse(
             Base64UrlEncoder.Decode(body.GetProperty("id_token").GetString()!.Split('.')[1])).RootElement;
@@ -123,6 +127,9 @@ public class AuthorizationCodeFlowTests : IAsyncLifetime
         Assert.False(id.TryGetClaim("email", out _));
         Assert.False(id.TryGetClaim("email_verified", out _));
         Assert.False(id.TryGetClaim("preferred_username", out _));
+        Assert.False(id.TryGetClaim("given_name", out _));
+        Assert.False(id.TryGetClaim("family_name", out _));
+        Assert.False(id.TryGetClaim("name", out _));
     }
 
     [Fact]

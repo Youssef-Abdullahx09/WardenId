@@ -22,6 +22,8 @@ public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<Query, Res
             user.Id,
             user.Email,
             user.Username,
+            user.FirstName,
+            user.LastName,
             QueryColumns.ParseEnum<UserStatus>(user.Status),
             user.FailedAttemptCount,
             QueryColumns.AsUtc(user.LockedUntilUtc),

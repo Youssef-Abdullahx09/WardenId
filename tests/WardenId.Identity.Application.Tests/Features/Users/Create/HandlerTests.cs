@@ -21,7 +21,7 @@ public class HandlerTests
     }
 
     private static Command NewUser(bool requirePasswordChange = true, string email = "new@example.com", string password = "P@ssw0rd1") =>
-        new(TenantId, email, "newuser", password, requirePasswordChange, AdminId);
+        new(TenantId, email, "newuser", null, null, password, requirePasswordChange, AdminId);
 
     [Fact]
     public async Task Handle_CreatesTheUser_AsTheAdmin_AndAsksForANewPassword()

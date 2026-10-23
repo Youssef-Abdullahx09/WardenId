@@ -60,6 +60,9 @@ public sealed class UserTokenGrantFactory(
             IdTokenLifetime: lifetimes.IdTokenFor(client.IdTokenLifetimeSeconds),
             RefreshTokenLifetime: refreshLifetime,
             PreferredUsername: claims.PreferredUsername,
+            GivenName: claims.GivenName,
+            FamilyName: claims.FamilyName,
+            Name: claims.Name,
             Email: claims.Email,
             EmailVerified: claims.EmailVerified));
     }

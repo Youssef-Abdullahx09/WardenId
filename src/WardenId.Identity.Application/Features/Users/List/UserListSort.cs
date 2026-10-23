@@ -7,12 +7,14 @@ public enum UserSortField
 {
     CreatedAt = 1,
     Email = 2,
-    Username = 3
+    Username = 3,
+    FirstName = 4,
+    LastName = 5
 }
 
 /// <summary>
 /// The user list's <c>sort</c> value: a field name (<c>createdAt</c>, <c>email</c>, <c>username</c>,
-/// any case), ascending, or prefixed with <c>-</c> for descending. The default is <c>-createdAt</c>.
+/// <c>firstName</c>, <c>lastName</c>, any case), ascending, or prefixed with <c>-</c> for descending. The default is <c>-createdAt</c>.
 /// </summary>
 public sealed record UserListSort(UserSortField Field, bool Descending)
 {
@@ -34,7 +36,7 @@ public sealed record UserListSort(UserSortField Field, bool Descending)
 
         return field is null
             ? Result.Fail(UserErrors.Validation(
-                $"Sort must be one of createdAt, email or username, optionally prefixed with '-' for descending; got '{value}'."))
+                $"Sort must be one of createdAt, email, username, firstName or lastName, optionally prefixed with '-' for descending; got '{value}'."))
             : new UserListSort(field.Value, descending);
     }
 }

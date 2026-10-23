@@ -43,7 +43,8 @@ public sealed class Endpoint : IEndpoint
             .WithSummary("Create a user")
             .WithDescription(
                 "Creates a user with a temporary password, checked against the password policy. The user still " +
-                "verifies their email (a code is sent), and by default must choose a new password at first sign-in.")
+                "verifies their email (a code is sent), and by default must choose a new password at first sign-in. " +
+                "The first and last names are optional.")
             .Produces<Response>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)

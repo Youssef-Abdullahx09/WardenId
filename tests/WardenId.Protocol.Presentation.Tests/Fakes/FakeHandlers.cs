@@ -151,7 +151,8 @@ public sealed class GetForSignInHandler(FakeDirectory directory) : IRequestHandl
     {
         var user = directory.Users.FirstOrDefault(u => u.TenantId == request.TenantId && u.UserId == request.UserId);
         return Task.FromResult(user is not null && user.Status != UserStatus.SoftDeleted
-            ? Result.Ok(new SignInUser(user.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray()))
+            ? Result.Ok(new SignInUser(
+                user.UserId, user.Email, user.Username, user.Status, user.PendingActions.ToArray(), user.FirstName, user.LastName))
             : Result.Fail<SignInUser>(Fail.NotFound));
     }
 }
