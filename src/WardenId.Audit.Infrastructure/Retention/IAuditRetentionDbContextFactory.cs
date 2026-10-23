@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using WardenId.Audit.Infrastructure.Persistence;
 
 namespace WardenId.Audit.Infrastructure.Retention;
@@ -16,7 +17,7 @@ internal sealed class AuditRetentionDbContextFactory(string connectionString) : 
 {
     public AuditDbContext CreateDbContext() =>
         new(new DbContextOptionsBuilder<AuditDbContext>()
-            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", AuditDbContext.Schema))
+            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, AuditDbContext.Schema))
             .Options);
 
     public Task<AuditDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>

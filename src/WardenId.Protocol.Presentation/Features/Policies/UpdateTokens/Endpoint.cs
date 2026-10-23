@@ -12,12 +12,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Policies")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Policies)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPut("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/policies/tokens", async (
+        return app.MapPut(ProtocolRoutes.Admin.TokenPolicy, async (
                 [FromRoute] Guid tenantId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Policies.UpdateTokens)
             .RequireAuthorization()
-            .WithTags("Protocol - Policies")
+            .WithTags(EndpointTags.Policies)
             .WithSummary("Set the tenant's token and session lifetimes")
             .WithDescription(
                 "Replaces the tenant's lifetime overrides. Every field is an ISO 8601 duration (days, hours, minutes, " +

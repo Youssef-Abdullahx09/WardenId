@@ -28,7 +28,7 @@ namespace WardenId.Protocol.Presentation.Features.Authorize;
 public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app) =>
-        app.MapMethods(ProtocolRoutes.TenantIssuer + "/authorize", [HttpMethods.Get, HttpMethods.Post], async (
+        app.MapMethods(ProtocolRoutes.UnderTenantIssuer(ProtocolPaths.Endpoints.Authorize), [HttpMethods.Get, HttpMethods.Post], async (
                 HttpContext httpContext,
                 [FromServices] ITenantContext tenantContext,
                 [FromServices] IAntiforgery antiforgery,
@@ -47,7 +47,7 @@ public sealed class Endpoint : IEndpoint
                 }
 
                 if (HttpMethods.IsPost(httpContext.Request.Method)
-                    && request.GetParameter(AuthorizeRequestExtensions.CancelParameter) is not null)
+                    && request.GetParameter(TenantPages.FormFields.Cancel) is not null)
                 {
                     // Only our own pages post cancel; RPs posting authorize requests never send it.
                     if (!await antiforgery.IsRequestValidAsync(httpContext)) return Results.BadRequest();
@@ -82,8 +82,7 @@ public sealed class Endpoint : IEndpoint
                     if (request.HasPromptValue(PromptValues.None))
                         return OpenIddictResults.Forbid(Errors.LoginRequired, "The user is not signed in.");
 
-                    return Results.Redirect(
-                        $"/tenants/{slug}/login?ReturnUrl={Uri.EscapeDataString(request.ToReturnUrl(slug))}");
+                    return Results.Redirect(TenantPages.Login(slug, request.ToReturnUrl(slug)));
                 }
 
                 var identity = new ClaimsIdentity(
@@ -109,7 +108,7 @@ public sealed class Endpoint : IEndpoint
             })
             .AllowAnonymous()
             .DisableAntiforgery()
-            .WithTags("Protocol - Authorize")
+            .WithTags(EndpointTags.Authorize)
             .WithSummary("OAuth 2.0 / OIDC authorization endpoint (code + PKCE)")
             .ExcludeFromDescription();
 }

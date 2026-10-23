@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using WardenId.Protocol.Application;
+using WardenId.SharedKernel.Domain;
 
 namespace WardenId.Protocol.Presentation;
 
@@ -30,8 +31,8 @@ public sealed class TenantPathCookieBuilder : RequestPathBaseCookieBuilder
     {
         // "/tenants/{slug}/{rest}" -> ["", "tenants", "{slug}", "{rest}"]
         var segments = requestPath.Value?.Split('/', 4) ?? [];
-        return segments.Length >= 3 && segments[1] == "tenants" && TenantSlugFormat.IsValid(segments[2])
-            ? $"/tenants/{segments[2]}"
+        return segments.Length >= 3 && segments[1] == ProtocolPaths.TenantsSegment && TenantSlugFormat.IsValid(segments[2])
+            ? ProtocolPaths.Tenant(segments[2])
             : null;
     }
 }

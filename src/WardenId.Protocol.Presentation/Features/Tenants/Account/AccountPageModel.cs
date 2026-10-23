@@ -36,10 +36,10 @@ public abstract class AccountPageModel(ISender sender) : PageModel
     /// <summary>Set by <see cref="LoadAsync"/> before any handler continues.</summary>
     public AccountSummary Account { get; private set; } = null!;
 
-    public string AccountUrl => $"/tenants/{Slug}/account";
+    public string AccountUrl => TenantPages.Account(Slug);
 
     /// <summary>The login page, coming back to the account page.</summary>
-    public string SignInUrl => $"/tenants/{Slug}/login?ReturnUrl={Uri.EscapeDataString(AccountUrl)}";
+    public string SignInUrl => TenantPages.Login(Slug, AccountUrl);
 
     /// <summary>
     /// Null when the page may go on with <see cref="Account"/> loaded; otherwise where to go instead: 404 for an
@@ -76,6 +76,6 @@ public abstract class AccountPageModel(ISender sender) : PageModel
     private IActionResult ToLogin()
     {
         var back = AuthorizeReturnUrl.IsAccountPage(Request.Path.Value, Slug) ? Request.Path.Value! : AccountUrl;
-        return LocalRedirect($"/tenants/{Slug}/login?ReturnUrl={Uri.EscapeDataString(back)}");
+        return LocalRedirect(TenantPages.Login(Slug, back));
     }
 }

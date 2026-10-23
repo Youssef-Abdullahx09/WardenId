@@ -38,7 +38,7 @@ public static class MasterAdminSeeder
 
         using var scope = app.Services.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("WardenId.Gateway.MasterAdminSeed");
+            .CreateLogger(SeederIdentifiers.LoggerCategories.MasterAdmin);
 
         var tenantRepository = scope.ServiceProvider.GetRequiredService<ITenantRepository>();
         var slug = Slug.FromTrustedSource(options.Slug);
@@ -76,7 +76,7 @@ public static class MasterAdminSeeder
         // seeding is the one legitimate non-HTTP writer of a User today; a System actor records
         // that plainly rather than faking an end-user identity.
         var auditContextAccessor = scope.ServiceProvider.GetRequiredService<IAuditContextAccessor>();
-        var systemActor = Actor.Create(ActorType.System, "master-admin-seeder", ActorScope.Platform()).Value;
+        var systemActor = Actor.Create(ActorType.System, SeederIdentifiers.SystemActorIds.MasterAdmin, ActorScope.Platform()).Value;
         using var auditScope = auditContextAccessor.BeginScope(
             new AuditAmbientContext(systemActor, tenantId, Correlation.None(), ClientContext.Unknown()));
 

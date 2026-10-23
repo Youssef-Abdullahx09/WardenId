@@ -56,5 +56,5 @@ public sealed record AuditCheckpoint
         => NoteHeader(Channel, scopeLabel, TreeSize, RootHash) + $"\n— {Kid} {Convert.ToBase64String(Signature)}\n";
 
     private static string NoteHeader(AuditChannel channel, string scopeLabel, long treeSize, byte[] rootHash)
-        => $"warden-audit/{scopeLabel}/{channel.ToString().ToLowerInvariant()}\n{treeSize}\n{Convert.ToBase64String(rootHash)}\n";
+        => $"{AuditFormats.SignedNotes.CheckpointOrigin}/{scopeLabel}/{channel.ToString().ToLowerInvariant()}\n{treeSize}\n{Convert.ToBase64String(rootHash)}\n";
 }

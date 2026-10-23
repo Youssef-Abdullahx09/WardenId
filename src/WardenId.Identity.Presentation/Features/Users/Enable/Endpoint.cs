@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/enable", async (
+        return app.MapPost(IdentityRoutes.Users.Enable, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromServices] ISender sender,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.Enable)
             .RequireAuthorization()
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Enable a user")
             .WithDescription("Re-enables a disabled user: back to Active, or to PendingVerification if the email was never verified. Clears any lockout; keeps pending required actions. 400 if the user is not disabled.")
             .Produces(StatusCodes.Status204NoContent)

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Net.Http.Headers;
 
 namespace WardenId.Protocol.Presentation;
 
@@ -10,10 +11,10 @@ internal sealed class AuthPageHeadersFilter : IAsyncPageFilter
     public Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
     {
         var headers = context.HttpContext.Response.Headers;
-        headers.CacheControl = "no-store";
-        headers.Pragma = "no-cache";
-        headers.XFrameOptions = "DENY";
-        headers.ContentSecurityPolicy = "frame-ancestors 'none'";
+        headers.CacheControl = CacheControlHeaderValue.NoStoreString;
+        headers.Pragma = CacheControlHeaderValue.NoCacheString;
+        headers.XFrameOptions = HeaderValues.FrameOptionsDeny;
+        headers.ContentSecurityPolicy = HeaderValues.FrameAncestorsNone;
         return next();
     }
 }

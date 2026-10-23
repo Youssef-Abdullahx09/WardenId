@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Presentation.Cors;
+using WardenId.SharedKernel.Presentation;
 
 namespace WardenId.Gateway.Cors;
 
@@ -28,7 +29,7 @@ public sealed class GatewayCorsPolicyProvider(
             return protocolPolicy;
 
         var adminOrigins = gatewayOptions.Value.AllowedAdminOrigins;
-        if (adminOrigins.Length > 0 && context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+        if (adminOrigins.Length > 0 && context.Request.Path.StartsWithSegments(ApiRoutes.Prefix, StringComparison.OrdinalIgnoreCase))
         {
             return new CorsPolicyBuilder()
                 .WithOrigins(adminOrigins)

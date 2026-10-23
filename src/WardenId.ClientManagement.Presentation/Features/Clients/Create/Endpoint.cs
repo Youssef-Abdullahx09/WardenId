@@ -13,12 +13,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Clients")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Clients)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/clients", async (
+        return app.MapPost(ClientManagementRoutes.Clients, async (
                 [FromRoute] Guid tenantId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
@@ -28,14 +28,14 @@ public sealed class Endpoint : IEndpoint
                 var result = await sender.Send(request.ToCommand(tenantId, currentUser.UserId), cancellationToken);
 
                 return result.IsSuccess
-                    ? Results.Created($"/api/v1/admin/tenants/{tenantId}/clients/{result.Value}", new Response(result.Value))
+                    ? Results.Created(ClientManagementRoutes.ClientLocation(tenantId, result.Value), new Response(result.Value))
                     : result.HandleApiFailure();
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Clients.Create)
             .RequireAuthorization()
-            .WithTags("ClientManagement - Clients")
+            .WithTags(EndpointTags.Clients)
             .WithSummary("Create a Client")
             .WithDescription("Creates an OAuth client for the given tenant.")
             .Produces<Response>(StatusCodes.Status201Created)

@@ -13,7 +13,7 @@
 <section class="section">
     <h2 class="section-title">Password</h2>
     <ul class="auth-links">
-        <li><a href="@Model.AccountUrl/password">Change your password</a></li>
+        <li><a href="@ProtocolPaths.Tenant(Model.Slug, ProtocolPaths.Pages.AccountPassword)">Change your password</a></li>
     </ul>
 </section>
 
@@ -39,11 +39,11 @@
             <p class="section-text">@Model.Account.RemainingRecoveryCodes recovery codes left.</p>
         }
         <ul class="auth-links">
-            <li><a href="@Model.AccountUrl/authenticator/replace">Replace your authenticator app</a></li>
-            <li><a href="@Model.AccountUrl/recovery-codes">Get new recovery codes</a></li>
+            <li><a href="@ProtocolPaths.Tenant(Model.Slug, ProtocolPaths.Pages.AccountReplaceAuthenticator)">Replace your authenticator app</a></li>
+            <li><a href="@ProtocolPaths.Tenant(Model.Slug, ProtocolPaths.Pages.AccountRecoveryCodes)">Get new recovery codes</a></li>
             @if (!Model.Account.MfaRequired)
             {
-                <li><a href="@Model.AccountUrl/two-step/remove">Turn off two-step verification</a></li>
+                <li><a href="@ProtocolPaths.Tenant(Model.Slug, ProtocolPaths.Pages.AccountRemoveMfa)">Turn off two-step verification</a></li>
             }
         </ul>
     }
@@ -52,7 +52,7 @@
         <h2 class="section-title">Two-step verification <span class="badge">Off</span></h2>
         <p class="section-text">Add a code from an authenticator app to your sign-in.</p>
         <ul class="auth-links">
-            <li><a href="@Model.AccountUrl/authenticator">Set up an authenticator app</a></li>
+            <li><a href="@ProtocolPaths.Tenant(Model.Slug, ProtocolPaths.Pages.AccountAuthenticator)">Set up an authenticator app</a></li>
         </ul>
     }
     else
@@ -62,7 +62,7 @@
 </section>
 
 <section class="section">
-    <form method="post" action="/tenants/@Model.Slug/endsession" asp-antiforgery="true">
-        <button class="button button-secondary" type="submit" name="confirm" value="true">Sign out</button>
+    <form method="post" action="@ProtocolPaths.Tenant(Model.Slug, ProtocolPaths.Endpoints.EndSession)" asp-antiforgery="true">
+        <button class="button button-secondary" type="submit" name="@TenantPages.FormFields.Confirm" value="@XmlConvert.ToString(true)">Sign out</button>
     </form>
 </section>

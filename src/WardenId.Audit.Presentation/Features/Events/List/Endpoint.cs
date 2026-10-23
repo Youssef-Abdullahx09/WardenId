@@ -16,12 +16,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Audit")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Audit)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/audit/events", async (
+        return app.MapGet(EndpointRoutes.Events.List, async (
                 [FromQuery] int pageNumber,
                 [FromQuery] int pageSize,
                 [FromQuery] AuditChannel? channel,
@@ -45,7 +45,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Events.List)
             .RequireAuthorization()
-            .WithTags("Audit - Events")
+            .WithTags(EndpointTags.Events)
             .WithSummary("List audit events")
             .WithDescription(
                 "Pages through audit events, newest first, filtered by channel, tenant, occurred-at range, " +

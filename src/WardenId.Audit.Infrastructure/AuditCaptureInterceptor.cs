@@ -32,6 +32,8 @@ namespace WardenId.Audit.Infrastructure;
 /// </summary>
 public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAccessor) : SaveChangesInterceptor
 {
+    private const string NullDisplayValue = "null";
+
     public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
@@ -207,11 +209,11 @@ public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAc
     // (assigned scope ids) as its items — ToString() would give the type name for both.
     private static string RenderRaw(object? value) => value switch
     {
-        null => "null",
+        null => NullDisplayValue,
         byte[] bytes => Convert.ToBase64String(bytes),
         string text => text,
         System.Collections.IEnumerable items => $"[{string.Join(", ", items.Cast<object?>().Select(RenderRaw))}]",
-        _ => value.ToString() ?? "null"
+        _ => value.ToString() ?? NullDisplayValue
     };
 
     private static AuditEventType ResolveEventType(EntityState state, IReadOnlyList<PropertyChange> changes)
@@ -220,8 +222,8 @@ public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAc
 
         var becameDeleted = changes.Any(c =>
             c.PropertyName == nameof(IAudit.IsDeleted) &&
-            c.OldValue is AuditValue.Plain { DisplayValue: "False" } &&
-            c.NewValue is AuditValue.Plain { DisplayValue: "True" });
+            c.OldValue is AuditValue.Plain { DisplayValue: var oldValue } && oldValue == bool.FalseString &&
+            c.NewValue is AuditValue.Plain { DisplayValue: var newValue } && newValue == bool.TrueString);
 
         return becameDeleted ? AuditEventType.AdminEntityDelete : AuditEventType.AdminEntityUpdate;
     }

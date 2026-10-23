@@ -7,7 +7,7 @@ public sealed class AuditCheckpointConfiguration : IEntityTypeConfiguration<Audi
 {
     public void Configure(EntityTypeBuilder<AuditCheckpointRecord> builder)
     {
-        builder.ToTable("checkpoints");
+        builder.ToTable(AuditDbNames.Tables.Checkpoints);
 
         builder.HasKey(c => c.Id);
         builder.Property(c => c.Id).ValueGeneratedNever();

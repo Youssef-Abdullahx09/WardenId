@@ -30,7 +30,7 @@ public class HandlerTests
         Assert.Null(account.TermsUrl);
         Assert.True(account.MfaAvailable);
         Assert.False(account.MfaRequired);
-        Assert.Equal(new AccountFactor(enabled.Id, "Totp", enabled.EnrolledAtUtc, enabled.LastUsedAtUtc), Assert.Single(account.Factors));
+        Assert.Equal(new AccountFactor(enabled.Id, AccountFactorType.Totp, enabled.EnrolledAtUtc, enabled.LastUsedAtUtc), Assert.Single(account.Factors));
         Assert.Equal(2, account.RemainingRecoveryCodes);
     }
 

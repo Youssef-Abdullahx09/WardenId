@@ -28,7 +28,7 @@ public sealed class Subscriber(
     private const string AuditActor = "protocol";
 
     // Group is explicit: CAP silently drops one of two subscriptions sharing (topic, group).
-    [CapSubscriber(nameof(SessionEndedDomainEvent), Group = "protocol." + nameof(SessionEndedDomainEvent))]
+    [CapSubscriber(nameof(SessionEndedDomainEvent), Group = SubscriberGroups.Prefix + nameof(SessionEndedDomainEvent))]
     public async Task OnReceive(Message message)
     {
         var revocable = message.Authorizations

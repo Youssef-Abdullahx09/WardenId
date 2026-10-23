@@ -1,4 +1,5 @@
 using WardenId.Identity.Domain;
+using ContractFactorType = WardenId.Identity.Integration.Command.Features.Users.GetAccount.AccountFactorType;
 using ContractRequiredAction = WardenId.Identity.Integration.Command.Features.Users.Authenticate.RequiredAction;
 using ContractUserStatus = WardenId.Identity.Integration.Command.Features.Users.Authenticate.UserStatus;
 
@@ -6,7 +7,7 @@ namespace WardenId.Identity.Application.Features.Users;
 
 // Identity.Integration.Command must not depend on Identity.Domain (it's the module's public
 // wire contract, kept independent so consumers never see internal domain enum changes) — so
-// its UserStatus/RequiredAction mirror Domain's members and get mapped explicitly here rather
+// its UserStatus/RequiredAction/AccountFactorType mirror Domain's members and get mapped explicitly here rather
 // than via a blind cast.
 internal static class ContractMapping
 {
@@ -27,5 +28,12 @@ internal static class ContractMapping
         RequiredAction.EnrollMfa => ContractRequiredAction.EnrollMfa,
         RequiredAction.VerifyEmail => ContractRequiredAction.VerifyEmail,
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unmapped RequiredAction.")
+    };
+
+    public static ContractFactorType MapFactorType(MfaFactorType type) => type switch
+    {
+        MfaFactorType.Totp => ContractFactorType.Totp,
+        MfaFactorType.WebAuthnPasskey => ContractFactorType.WebAuthnPasskey,
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unmapped MfaFactorType.")
     };
 }

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using WardenId.Protocol.Application;
 using ListAllowedOriginsQuery = WardenId.Protocol.Application.Features.Cors.ListAllowedOrigins.Query;
 
 namespace WardenId.Protocol.Presentation.Cors;
@@ -26,18 +27,21 @@ public sealed class ProtocolCorsPolicyResolver(ISender sender, IMemoryCache cach
 {
     public static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(1);
 
-    private static readonly HashSet<string> BrowserFacingEndpoints = new(StringComparer.Ordinal) { "token", "revoke", "userinfo" };
+    private static readonly HashSet<string> BrowserFacingEndpoints = new(StringComparer.Ordinal)
+    {
+        ProtocolPaths.Endpoints.Token, ProtocolPaths.Endpoints.Revoke, ProtocolPaths.Endpoints.UserInfo
+    };
 
     public async Task<CorsPolicy?> ResolveAsync(HttpContext context)
     {
         // "/tenants/{slug}/{endpoint}" -> ["", "tenants", "{slug}", "{endpoint}"]
         var segments = context.Request.Path.Value?.Split('/') ?? [];
-        if (segments.Length != 4 || segments[1] != "tenants" || !BrowserFacingEndpoints.Contains(segments[3]))
+        if (segments.Length != 4 || segments[1] != ProtocolPaths.TenantsSegment || !BrowserFacingEndpoints.Contains(segments[3]))
             return null;
 
         var slug = segments[2];
         var origins = await cache.GetOrCreateAsync(
-            "wardenid:protocol-cors-origins:" + slug,
+            ProtocolCacheKeys.CorsOriginsPrefix + slug,
             entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = CacheDuration;

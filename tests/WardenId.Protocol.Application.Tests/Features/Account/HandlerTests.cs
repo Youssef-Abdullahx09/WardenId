@@ -54,7 +54,7 @@ public class HandlerTests
 
     private static AccountView View(string? termsUrl) =>
         new("alice@acme.test", "alice", null, termsUrl, MfaAvailable: true, MfaRequired: false,
-            [new AccountFactor(FactorId, "Totp", Enrolled, null)], 7);
+            [new AccountFactor(FactorId, AccountFactorType.Totp, Enrolled, null)], 7);
 
     [Fact]
     public async Task Get_MapsTheAccount_ForTheGivenUser()

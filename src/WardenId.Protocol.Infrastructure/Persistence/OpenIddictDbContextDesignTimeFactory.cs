@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.SharedKernel.Persistence;
@@ -21,7 +22,7 @@ internal sealed class OpenIddictDbContextDesignTimeFactory : IDesignTimeDbContex
 
         var options = new DbContextOptionsBuilder<OpenIddictDbContext>()
             .UseNpgsql(connectionString, npgsql =>
-                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", OpenIddictDbContext.Schema))
+                npgsql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, OpenIddictDbContext.Schema))
             .UseOpenIddict()
             .Options;
 

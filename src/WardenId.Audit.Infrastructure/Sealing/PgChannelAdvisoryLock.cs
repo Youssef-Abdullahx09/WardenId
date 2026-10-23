@@ -13,6 +13,10 @@ namespace WardenId.Audit.Infrastructure.Sealing;
 /// </summary>
 public sealed class PgChannelAdvisoryLock : IChannelAdvisoryLock
 {
+    private const string LockKeyParameter = "key";
+    private const string AcquireSql = "SELECT pg_try_advisory_lock(@" + LockKeyParameter + ")";
+    private const string ReleaseSql = "SELECT pg_advisory_unlock(@" + LockKeyParameter + ")";
+
     public async Task<IAsyncDisposable?> TryAcquireAsync(
         AuditDbContext db, long lockKey, CancellationToken cancellationToken = default)
     {
@@ -21,8 +25,8 @@ public sealed class PgChannelAdvisoryLock : IChannelAdvisoryLock
             await connection.OpenAsync(cancellationToken);
 
         await using var acquireCommand = connection.CreateCommand();
-        acquireCommand.CommandText = "SELECT pg_try_advisory_lock(@key)";
-        AddParameter(acquireCommand, "key", lockKey);
+        acquireCommand.CommandText = AcquireSql;
+        AddParameter(acquireCommand, LockKeyParameter, lockKey);
 
         var acquired = (bool)(await acquireCommand.ExecuteScalarAsync(cancellationToken))!;
         return acquired ? new Handle(connection, lockKey) : null;
@@ -43,8 +47,8 @@ public sealed class PgChannelAdvisoryLock : IChannelAdvisoryLock
             if (connection.State != ConnectionState.Open) return;
 
             await using var releaseCommand = connection.CreateCommand();
-            releaseCommand.CommandText = "SELECT pg_advisory_unlock(@key)";
-            AddParameter(releaseCommand, "key", lockKey);
+            releaseCommand.CommandText = ReleaseSql;
+            AddParameter(releaseCommand, LockKeyParameter, lockKey);
             await releaseCommand.ExecuteScalarAsync();
         }
     }

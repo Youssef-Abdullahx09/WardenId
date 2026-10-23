@@ -6,12 +6,9 @@ namespace WardenId.Protocol.Infrastructure.Persistence.Configurations;
 
 public sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
 {
-    public const string SessionsTable = "Sessions";
-    public const string SessionAuthorizationsTable = "SessionAuthorizations";
-
     public void Configure(EntityTypeBuilder<Session> builder)
     {
-        builder.ToTable(SessionsTable);
+        builder.ToTable(SchemaConsts.SessionsTable);
 
         builder.Property(s => s.TenantId).IsRequired();
         builder.Property(s => s.SubjectId).IsRequired();
@@ -28,13 +25,13 @@ public sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
 
         builder.OwnsMany(s => s.Authorizations, b =>
         {
-            b.ToTable(SessionAuthorizationsTable);
-            b.WithOwner().HasForeignKey("SessionId");
+            b.ToTable(SchemaConsts.SessionAuthorizationsTable);
+            b.WithOwner().HasForeignKey(SchemaConsts.SessionForeignKey);
             b.Property(a => a.AuthorizationId).HasMaxLength(100).IsRequired();
             b.Property(a => a.ClientId).HasMaxLength(100).IsRequired();
             b.Property(a => a.OfflineAccess).IsRequired();
             b.Property(a => a.CreatedAt).IsRequired();
-            b.HasKey("SessionId", nameof(SessionAuthorization.AuthorizationId));
+            b.HasKey(SchemaConsts.SessionForeignKey, nameof(SessionAuthorization.AuthorizationId));
         });
         builder.Navigation(s => s.Authorizations).UsePropertyAccessMode(PropertyAccessMode.Field);
 

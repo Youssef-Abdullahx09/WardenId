@@ -13,12 +13,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Policies")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Policies)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/policies/identity", async (
+        return app.MapGet(IdentityRoutes.Policies.Identity, async (
                 [FromRoute] Guid tenantId,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
@@ -31,7 +31,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Policies.GetIdentity)
             .RequireAuthorization()
-            .WithTags("Identity - Policies")
+            .WithTags(EndpointTags.Policies)
             .WithSummary("Get the identity policy")
             .WithDescription(
                 "Returns the password, lockout, MFA, self-registration and terms of service policy in effect for the tenant: the tenant's " +

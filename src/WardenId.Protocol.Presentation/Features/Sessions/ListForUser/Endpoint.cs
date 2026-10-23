@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Sessions")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Sessions)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/sessions", async (
+        return app.MapGet(ProtocolRoutes.Admin.UserSessions, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromQuery] bool? includeEnded,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Sessions.ListForUser)
             .RequireAuthorization()
-            .WithTags("Protocol - Sessions")
+            .WithTags(EndpointTags.Sessions)
             .WithSummary("List a User's Sessions")
             .WithDescription(
                 "Lists the user's live login sessions in the tenant, newest first, with the clients that took part in each. " +

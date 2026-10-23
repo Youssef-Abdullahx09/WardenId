@@ -8,6 +8,9 @@ namespace WardenId.Protocol.Infrastructure.OpenIddict.Stores;
 /// <summary>ClientManagement's view of a client → the transient entity OpenIddict validates against.</summary>
 public static class ClientApplicationMapper
 {
+    // Non-null marks the client as having a secret; the real check is WardenApplicationManager.
+    private const string ManagedSecretPlaceholder = "managed-by-ClientManagement";
+
     public static OpenIddictEntityFrameworkCoreApplication Map(ClientForAuthentication client)
     {
         var permissions = new List<string> { Permissions.Endpoints.Token };
@@ -47,8 +50,7 @@ public static class ClientApplicationMapper
             Id = client.Id.ToString(),
             ClientId = client.ClientId,
             ClientType = confidential ? ClientTypes.Confidential : ClientTypes.Public,
-            // Non-null marks the client as having a secret; the real check is WardenApplicationManager.
-            ClientSecret = confidential ? "managed-by-ClientManagement" : null,
+            ClientSecret = confidential ? ManagedSecretPlaceholder : null,
             Permissions = JsonSerializer.Serialize(permissions),
             RedirectUris = JsonSerializer.Serialize(client.RedirectUris),
             // OpenIddict exact-matches post_logout_redirect_uri against this list (ValidatePostLogoutRedirectUriAsync).

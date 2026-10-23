@@ -32,7 +32,7 @@ public static class MasterTenantSeeder
 
         using var scope = app.Services.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("WardenId.Gateway.MasterTenantSeed");
+            .CreateLogger(SeederIdentifiers.LoggerCategories.MasterTenant);
 
         var slugResult = Slug.Create(options.Slug);
         if (slugResult.IsFailed)
@@ -64,7 +64,7 @@ public static class MasterTenantSeeder
         // No request, so no AuditContextMiddleware: AuditCaptureInterceptor fails closed without an
         // ambient audit context, and a Tenant is audited. Same System actor pattern as MasterAdminSeeder.
         var auditContextAccessor = scope.ServiceProvider.GetRequiredService<IAuditContextAccessor>();
-        var systemActor = Actor.Create(ActorType.System, "master-tenant-seeder", ActorScope.Platform()).Value;
+        var systemActor = Actor.Create(ActorType.System, SeederIdentifiers.SystemActorIds.MasterTenant, ActorScope.Platform()).Value;
         using (auditContextAccessor.BeginScope(
                    new AuditAmbientContext(systemActor, tenant.Id, Correlation.None(), ClientContext.Unknown())))
         {

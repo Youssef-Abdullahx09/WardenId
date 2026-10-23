@@ -8,6 +8,8 @@ namespace WardenId.SharedKernel.Infrastructure;
 internal sealed class SmtpEmailService(
     SmtpSettings smtpSettings) : IEmailService
 {
+    private const string OAuth2Mechanism = "XOAUTH2";
+
     public async Task SendAsync(
         EmailMessage message,
         CancellationToken cancellationToken)
@@ -59,7 +61,7 @@ internal sealed class SmtpEmailService(
             smtpSettings.Port,
             smtpSettings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None,
             cancellationToken);
-        smtpClient.AuthenticationMechanisms.Remove("XOAUTH2");
+        smtpClient.AuthenticationMechanisms.Remove(OAuth2Mechanism);
 
         try
         {

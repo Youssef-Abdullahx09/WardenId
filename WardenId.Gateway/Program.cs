@@ -3,6 +3,7 @@ using WardenId.Audit.Presentation;
 using WardenId.Gateway.Bootstrap;
 using WardenId.Gateway.DependencyInjection;
 using WardenId.Gateway.Health;
+using WardenId.Gateway.Utilities;
 using WardenId.SharedKernel.Infrastructure;
 using WardenId.SharedKernel.Presentation;
 
@@ -54,8 +55,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "WardenId v1.0");
-        options.RoutePrefix = "swagger"; // Swagger will be at /swagger
+        options.SwaggerEndpoint(SwaggerDocument.JsonEndpoint, SwaggerDocument.DisplayName);
+        options.RoutePrefix = SwaggerDocument.RoutePrefix;
         options.ConfigObject.PersistAuthorization = true; // Keep token after page refresh
         options.ConfigObject.DisplayRequestDuration = true; // Display request duration
         options.ConfigObject.TryItOutEnabled = true; // Enable Try It Out button

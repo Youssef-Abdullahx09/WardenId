@@ -13,13 +13,13 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
         return app.MapPost(
-                "/api/v{version:apiVersion}/tenants/{tenantId:guid}/auth/email-verification/{userId:guid}/verify", async (
+                IdentityRoutes.UserAuth.VerifyEmail, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromBody] Request request,
@@ -33,7 +33,7 @@ public sealed class Endpoint : IEndpoint
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.VerifyEmail)
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Verify an email address")
             .WithDescription("Consumes an email-verification token: activates a new account, or clears the VerifyEmail required action (e.g. after an email change) without changing the status. 400 if the user is disabled or has nothing to verify.")
             .Produces(StatusCodes.Status204NoContent)

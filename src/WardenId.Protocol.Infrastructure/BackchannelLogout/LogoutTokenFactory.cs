@@ -59,7 +59,7 @@ public sealed class LogoutTokenFactory(
                         [JwtRegisteredClaimNames.Sub] = subjectId.ToString(),
                         [SessionClaimTypes.SessionId] = sid.ToString(),
                         // §2.4: a JSON object whose only member is the back-channel logout event, with an empty object value.
-                        ["events"] = new Dictionary<string, object>
+                        [OidcValues.Claims.Events] = new Dictionary<string, object>
                         {
                             [BackchannelLogoutEvent] = new Dictionary<string, object>()
                         }

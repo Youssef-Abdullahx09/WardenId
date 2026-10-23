@@ -33,8 +33,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.OwnsOne(u => u.Lockout, o =>
         {
-            o.Property(l => l.FailedAttemptCount).HasColumnName("FailedAttemptCount");
-            o.Property(l => l.LockedUntilUtc).HasColumnName("LockedUntilUtc");
+            o.Property(l => l.FailedAttemptCount).HasColumnName(nameof(LoginLockoutState.FailedAttemptCount));
+            o.Property(l => l.LockedUntilUtc).HasColumnName(nameof(LoginLockoutState.LockedUntilUtc));
         });
 
         builder.Property(u => u.PendingActions)
@@ -45,7 +45,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
                     (a, b) => (a ?? Array.Empty<RequiredAction>()).SequenceEqual(b ?? Array.Empty<RequiredAction>()),
                     a => a.Aggregate(0, (hash, action) => HashCode.Combine(hash, action)),
                     a => a.ToList()))
-            .HasColumnName("PendingActions");
+            .HasColumnName(nameof(User.PendingActions));
 
         builder.HasOne(u => u.Credential)
             .WithOne()

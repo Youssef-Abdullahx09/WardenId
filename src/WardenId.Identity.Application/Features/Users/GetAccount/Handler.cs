@@ -24,7 +24,7 @@ public sealed class Handler(
         var factors = user.MfaFactors
             .Where(f => f.Enabled)
             .OrderBy(f => f.EnrolledAtUtc)
-            .Select(f => new AccountFactor(f.Id, f.FactorType.ToString(), f.EnrolledAtUtc, f.LastUsedAtUtc))
+            .Select(f => new AccountFactor(f.Id, ContractMapping.MapFactorType(f.FactorType), f.EnrolledAtUtc, f.LastUsedAtUtc))
             .ToArray();
 
         return Result.Ok(new AccountView(

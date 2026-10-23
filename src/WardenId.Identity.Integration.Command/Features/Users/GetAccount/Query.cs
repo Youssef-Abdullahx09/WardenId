@@ -20,4 +20,4 @@ public sealed record AccountView(
     IReadOnlyList<AccountFactor> Factors,
     int RemainingRecoveryCodes);
 
-public sealed record AccountFactor(Guid Id, string Type, DateTimeOffset EnrolledAtUtc, DateTimeOffset? LastUsedAtUtc);
+public sealed record AccountFactor(Guid Id, AccountFactorType Type, DateTimeOffset EnrolledAtUtc, DateTimeOffset? LastUsedAtUtc);

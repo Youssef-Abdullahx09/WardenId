@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Http;
 using OpenIddict.Abstractions;
+using WardenId.Protocol.Application;
 
 namespace WardenId.Protocol.Presentation.Features.Authorize;
 
 internal static class AuthorizeRequestExtensions
 {
-    public const string CancelParameter = "cancel";
     private const string AntiforgeryField = "__RequestVerificationToken";
 
     /// <summary>
@@ -15,8 +15,8 @@ internal static class AuthorizeRequestExtensions
     public static string ToReturnUrl(this OpenIddictRequest request, string slug)
     {
         var query = QueryString.Create(request.GetParameters()
-            .Where(p => p.Key is not (CancelParameter or AntiforgeryField))
+            .Where(p => p.Key is not (TenantPages.FormFields.Cancel or AntiforgeryField))
             .Select(p => KeyValuePair.Create(p.Key, (string?)p.Value.ToString())));
-        return $"/tenants/{slug}/authorize{query}";
+        return $"{ProtocolPaths.Tenant(slug, ProtocolPaths.Endpoints.Authorize)}{query}";
     }
 }

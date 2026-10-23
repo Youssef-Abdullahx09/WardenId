@@ -1,3 +1,5 @@
+using System.Net.Mime;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +29,9 @@ public static class GatewayHealthChecks
     public const string LivePath = "/health/live";
     public const string ReadyPath = "/health/ready";
 
+    private const string DefaultRabbitMqHost = "localhost";
+    private static readonly string JsonContentType = $"{MediaTypeNames.Application.Json}; charset={Encoding.UTF8.WebName}";
+
     // Inside the probe's own timeout: a hung database or broker reports a failure rather than a hung probe.
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromSeconds(5);
 
@@ -36,20 +41,20 @@ public static class GatewayHealthChecks
     {
         var rabbitMq = configuration.GetSection(RabbitMqKeys.Section);
         var rabbitMqSettings = new RabbitMqHealthCheckSettings(
-            rabbitMq[RabbitMqKeys.Host] ?? "localhost",
+            rabbitMq[RabbitMqKeys.Host] ?? DefaultRabbitMqHost,
             rabbitMq.GetValue<int?>(RabbitMqKeys.Port) ?? 5672,
             rabbitMq[RabbitMqKeys.Username] ?? string.Empty,
             rabbitMq[RabbitMqKeys.Password] ?? string.Empty);
 
         return services.AddHealthChecks()
-            .AddDatabase<TenancyDbContext>("postgres-tenancy")
-            .AddDatabase<IdentityDbContext>("postgres-identity")
-            .AddDatabase<ClientManagementDbContext>("postgres-clientmanagement")
-            .AddDatabase<ProtocolDbContext>("postgres-protocol")
-            .AddDatabase<OpenIddictDbContext>("postgres-openiddict")
-            .AddDatabase<AuditDbContext>("postgres-audit")
+            .AddDatabase<TenancyDbContext>(HealthCheckNames.PostgresTenancy)
+            .AddDatabase<IdentityDbContext>(HealthCheckNames.PostgresIdentity)
+            .AddDatabase<ClientManagementDbContext>(HealthCheckNames.PostgresClientManagement)
+            .AddDatabase<ProtocolDbContext>(HealthCheckNames.PostgresProtocol)
+            .AddDatabase<OpenIddictDbContext>(HealthCheckNames.PostgresOpenIddict)
+            .AddDatabase<AuditDbContext>(HealthCheckNames.PostgresAudit)
             .AddCheck(
-                "rabbitmq",
+                HealthCheckNames.RabbitMq,
                 new RabbitMqHealthCheck(rabbitMqSettings),
                 HealthStatus.Degraded,
                 [HealthCheckTags.Ready],
@@ -82,7 +87,7 @@ public static class GatewayHealthChecks
 
     private static Task WriteResponseAsync(HttpContext context, HealthReport report)
     {
-        context.Response.ContentType = "application/json; charset=utf-8";
+        context.Response.ContentType = JsonContentType;
         var body = new
         {
             status = report.Status.ToString(),

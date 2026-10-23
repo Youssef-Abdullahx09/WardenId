@@ -46,17 +46,17 @@ public sealed class Handler(
         var fields = new List<string>();
         void Add(bool isSet, string path) { if (isSet) fields.Add(path); }
 
-        Add(overrides.PasswordMinLength is not null, "password.minLength");
-        Add(overrides.PasswordRequireUppercase is not null, "password.requireUppercase");
-        Add(overrides.PasswordRequireDigit is not null, "password.requireDigit");
-        Add(overrides.PasswordRequireSymbol is not null, "password.requireSymbol");
-        Add(overrides.PasswordBreachCheckEnabled is not null, "password.breachCheckEnabled");
-        Add(overrides.PasswordHistoryCount is not null, "password.historyCount");
-        Add(overrides.MaxFailedLoginAttempts is not null, "lockout.maxFailedAttempts");
-        Add(overrides.LockoutDuration is not null, "lockout.lockoutDuration");
-        Add(overrides.MfaMode is not null, "mfa.mode");
-        Add(overrides.SelfRegistrationEnabled is not null, "selfRegistration.enabled");
-        Add(overrides.TermsUrl is not null, "terms.url");
+        Add(overrides.PasswordMinLength is not null, IdentityPolicyFieldPaths.Password.MinLength);
+        Add(overrides.PasswordRequireUppercase is not null, IdentityPolicyFieldPaths.Password.RequireUppercase);
+        Add(overrides.PasswordRequireDigit is not null, IdentityPolicyFieldPaths.Password.RequireDigit);
+        Add(overrides.PasswordRequireSymbol is not null, IdentityPolicyFieldPaths.Password.RequireSymbol);
+        Add(overrides.PasswordBreachCheckEnabled is not null, IdentityPolicyFieldPaths.Password.BreachCheckEnabled);
+        Add(overrides.PasswordHistoryCount is not null, IdentityPolicyFieldPaths.Password.HistoryCount);
+        Add(overrides.MaxFailedLoginAttempts is not null, IdentityPolicyFieldPaths.Lockout.MaxFailedAttempts);
+        Add(overrides.LockoutDuration is not null, IdentityPolicyFieldPaths.Lockout.LockoutDuration);
+        Add(overrides.MfaMode is not null, IdentityPolicyFieldPaths.Mfa.Mode);
+        Add(overrides.SelfRegistrationEnabled is not null, IdentityPolicyFieldPaths.SelfRegistration.Enabled);
+        Add(overrides.TermsUrl is not null, IdentityPolicyFieldPaths.Terms.Url);
         return fields;
     }
 }

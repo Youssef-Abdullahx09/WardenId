@@ -56,40 +56,40 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
 
         builder.OwnsOne(c => c.TokenLifetimeOverrides, o =>
         {
-            o.Property(t => t.AccessTokenSeconds).HasColumnName("AccessTokenSeconds");
-            o.Property(t => t.IdTokenSeconds).HasColumnName("IdTokenSeconds");
-            o.Property(t => t.RefreshTokenSeconds).HasColumnName("RefreshTokenSeconds");
+            o.Property(t => t.AccessTokenSeconds).HasColumnName(nameof(TokenLifetimeOverrides.AccessTokenSeconds));
+            o.Property(t => t.IdTokenSeconds).HasColumnName(nameof(TokenLifetimeOverrides.IdTokenSeconds));
+            o.Property(t => t.RefreshTokenSeconds).HasColumnName(nameof(TokenLifetimeOverrides.RefreshTokenSeconds));
         });
 
         builder.OwnsMany(c => c.RedirectUris, b =>
         {
             b.ToTable(SchemaConsts.ClientRedirectUrisTable);
-            b.WithOwner().HasForeignKey("ClientId");
-            b.Property(r => r.Value).HasColumnName("Value").HasMaxLength(2000).IsRequired();
-            b.HasKey("ClientId", "Value");
+            b.WithOwner().HasForeignKey(SchemaConsts.ClientIdForeignKey);
+            b.Property(r => r.Value).HasColumnName(nameof(RedirectUri.Value)).HasMaxLength(2000).IsRequired();
+            b.HasKey(SchemaConsts.ClientIdForeignKey, nameof(RedirectUri.Value));
         });
         builder.Navigation(c => c.RedirectUris).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.OwnsMany(c => c.PostLogoutRedirectUris, b =>
         {
             b.ToTable(SchemaConsts.ClientPostLogoutRedirectUrisTable);
-            b.WithOwner().HasForeignKey("ClientId");
-            b.Property(r => r.Value).HasColumnName("Value").HasMaxLength(2000).IsRequired();
-            b.HasKey("ClientId", "Value");
+            b.WithOwner().HasForeignKey(SchemaConsts.ClientIdForeignKey);
+            b.Property(r => r.Value).HasColumnName(nameof(RedirectUri.Value)).HasMaxLength(2000).IsRequired();
+            b.HasKey(SchemaConsts.ClientIdForeignKey, nameof(RedirectUri.Value));
         });
         builder.Navigation(c => c.PostLogoutRedirectUris).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.OwnsMany(c => c.CorsOrigins, b =>
         {
             b.ToTable(SchemaConsts.ClientCorsOriginsTable);
-            b.WithOwner().HasForeignKey("ClientId");
-            b.Property(o => o.Value).HasColumnName("Value").HasMaxLength(255).IsRequired();
-            b.HasKey("ClientId", "Value");
+            b.WithOwner().HasForeignKey(SchemaConsts.ClientIdForeignKey);
+            b.Property(o => o.Value).HasColumnName(nameof(CorsOrigin.Value)).HasMaxLength(255).IsRequired();
+            b.HasKey(SchemaConsts.ClientIdForeignKey, nameof(CorsOrigin.Value));
         });
         builder.Navigation(c => c.CorsOrigins).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.Property(c => c.AssignedScopeIds)
-            .HasColumnName("AssignedScopeIds");
+            .HasColumnName(nameof(Client.AssignedScopeIds));
 
         builder.HasMany(c => c.Secrets)
             .WithOne()

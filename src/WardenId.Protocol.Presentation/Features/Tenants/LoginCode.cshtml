@@ -21,7 +21,7 @@ else
     }
     <partial name="_Alert" model="Model.ErrorMessage" />
     <form method="post">
-        <input type="hidden" name="UseRecoveryCode" value="@(Model.UseRecoveryCode ? "true" : "false")" />
+        <input type="hidden" name="@TenantPages.QueryParameters.UseRecoveryCode" value="@XmlConvert.ToString(Model.UseRecoveryCode)" />
         <div class="field">
             @if (Model.UseRecoveryCode)
             {
@@ -39,11 +39,11 @@ else
     <ul class="auth-links">
         @if (Model.UseRecoveryCode)
         {
-            <li><a href="/tenants/@Model.Slug/login/code">Use a code from your authenticator app</a></li>
+            <li><a href="@TenantPages.LoginCode(Model.Slug, useRecoveryCode: false)">Use a code from your authenticator app</a></li>
         }
         else
         {
-            <li><a href="/tenants/@Model.Slug/login/code?UseRecoveryCode=true">Lost access to your app? Use a recovery code</a></li>
+            <li><a href="@TenantPages.LoginCode(Model.Slug, useRecoveryCode: true)">Lost access to your app? Use a recovery code</a></li>
         }
         <li><a href="@Model.StartOverUrl">Start over</a></li>
     </ul>

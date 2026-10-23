@@ -17,7 +17,7 @@ public sealed class Tenant : AggregateRoot, IAuditableAggregate
 
     private static readonly IReadOnlySet<string> AuditNavigations = new HashSet<string> { nameof(SigningKeys) };
 
-    public string AuditTargetTypeKey => "tenant";
+    public string AuditTargetTypeKey => AuditTargetTypeKeys.Tenant;
     public AuditableChannel AuditChannel => AuditableChannel.AdminConfig;
     public IReadOnlySet<string> AuditSensitivePropertyNames => AuditSensitive;
     public IReadOnlySet<string> AuditedNavigationNames => AuditNavigations;

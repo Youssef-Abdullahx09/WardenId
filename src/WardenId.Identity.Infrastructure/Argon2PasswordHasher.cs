@@ -14,7 +14,7 @@ public sealed partial class Argon2PasswordHasher : IPasswordHasher
     private const int SaltLengthBytes = 16;
     private const int HashLengthBytes = 32;
 
-    public string Algorithm => "Argon2id";
+    public string Algorithm => PasswordHashAlgorithms.Argon2id;
 
     public string Hash(string plaintext)
     {
@@ -54,13 +54,20 @@ public sealed partial class Argon2PasswordHasher : IPasswordHasher
         var match = CostParametersRegex().Match(hash);
         if (!match.Success) return true;
 
-        var memoryCost = int.Parse(match.Groups["m"].Value);
-        var timeCost = int.Parse(match.Groups["t"].Value);
-        var parallelism = int.Parse(match.Groups["p"].Value);
+        var memoryCost = int.Parse(match.Groups[MemoryCostGroup].Value);
+        var timeCost = int.Parse(match.Groups[TimeCostGroup].Value);
+        var parallelism = int.Parse(match.Groups[ParallelismGroup].Value);
 
         return memoryCost != MemoryCostKib || timeCost != TimeCost || parallelism != Parallelism;
     }
 
-    [GeneratedRegex(@"m=(?<m>\d+),t=(?<t>\d+),p=(?<p>\d+)")]
+    // PHC string cost parameters, e.g. "m=19456,t=2,p=1".
+    private const string MemoryCostGroup = "m";
+    private const string TimeCostGroup = "t";
+    private const string ParallelismGroup = "p";
+    private const string CostParametersPattern =
+        $@"m=(?<{MemoryCostGroup}>\d+),t=(?<{TimeCostGroup}>\d+),p=(?<{ParallelismGroup}>\d+)";
+
+    [GeneratedRegex(CostParametersPattern)]
     private static partial Regex CostParametersRegex();
 }

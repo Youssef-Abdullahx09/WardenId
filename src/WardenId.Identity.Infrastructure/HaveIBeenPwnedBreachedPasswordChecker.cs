@@ -7,6 +7,8 @@ namespace WardenId.Identity.Infrastructure;
 public sealed class HaveIBeenPwnedBreachedPasswordChecker(
     HttpClient httpClient) : IBreachedPasswordChecker
 {
+    private const string RangePath = "range/";
+
     public async Task<bool> IsBreachedAsync(string plaintext)
     {
         var sha1Hex = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(plaintext)));
@@ -14,7 +16,7 @@ public sealed class HaveIBeenPwnedBreachedPasswordChecker(
         var suffix = sha1Hex[5..];
 
         // k-Anonymity model: only the first 5 hex chars of the SHA-1 hash ever leave the process.
-        var body = await httpClient.GetStringAsync($"range/{prefix}");
+        var body = await httpClient.GetStringAsync(RangePath + prefix);
 
         foreach (var line in body.Split('\n'))
         {

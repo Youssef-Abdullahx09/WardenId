@@ -20,9 +20,9 @@ public static class DependencyInjection
     // OtlpExporterOptions' built-in binding) reads them with no further code needed here.
     private static readonly string[] OpenTelemetryEnvironmentVariableNames =
     [
-        "OTEL_SERVICE_NAME",
-        "OTEL_EXPORTER_OTLP_ENDPOINT",
-        "OTEL_RESOURCE_ATTRIBUTES"
+        OpenTelemetryEnvironmentVariables.ServiceName,
+        OpenTelemetryEnvironmentVariables.ExporterOtlpEndpoint,
+        OpenTelemetryEnvironmentVariables.ResourceAttributes
     ];
 
     public static void AddSharedKernelInfrastructure(
@@ -92,7 +92,7 @@ public static class DependencyInjection
                 configure.Password = rabbitMqSection[ConfigurationKeys.RabbitMq.Password]
                                      ?? throw new InvalidOperationException(ConfigurationKeys.RabbitMq.Password);
                 configure.BasicQosOptions = new RabbitMQOptions.BasicQos(
-                    ushort.Parse(rabbitMqSection[ConfigurationKeys.RabbitMq.PrefetchCount] ?? "10"));
+                    rabbitMqSection.GetValue<ushort?>(ConfigurationKeys.RabbitMq.PrefetchCount) ?? 10);
             });
         });
     }

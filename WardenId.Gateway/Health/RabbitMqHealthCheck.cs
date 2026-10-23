@@ -12,6 +12,7 @@ public sealed record RabbitMqHealthCheckSettings(string Host, int Port, string U
 /// </summary>
 public sealed class RabbitMqHealthCheck(RabbitMqHealthCheckSettings settings) : IHealthCheck
 {
+    private const string ConnectionName = "WardenId health check";
     private static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(5);
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -24,7 +25,7 @@ public sealed class RabbitMqHealthCheck(RabbitMqHealthCheckSettings settings) : 
             Password = settings.Password,
             RequestedConnectionTimeout = ConnectionTimeout,
             AutomaticRecoveryEnabled = false,
-            ClientProvidedName = "WardenId health check"
+            ClientProvidedName = ConnectionName
         };
 
         try

@@ -25,7 +25,7 @@ public sealed class Client : AggregateRoot, IAuditableAggregate
         nameof(TokenLifetimeOverrides)
     };
 
-    public string AuditTargetTypeKey => "oauth_client";
+    public string AuditTargetTypeKey => AuditTargetTypeKeys.OAuthClient;
     public AuditableChannel AuditChannel => AuditableChannel.AdminConfig;
     public IReadOnlySet<string> AuditSensitivePropertyNames => AuditSensitive;
     public IReadOnlySet<string> AuditedNavigationNames => AuditNavigations;

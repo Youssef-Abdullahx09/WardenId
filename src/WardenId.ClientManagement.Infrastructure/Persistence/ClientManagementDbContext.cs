@@ -24,7 +24,7 @@ public sealed class ClientManagementDbContext(
         // needs applying explicitly. AuditDbContext owns the migration for audit.events; every
         // other module maps the same entity but excludes it from its own migrations.
         modelBuilder.ApplyConfiguration(new AuditEventConfiguration());
-        modelBuilder.Entity<AuditEventRecord>().ToTable("events", "audit", t => t.ExcludeFromMigrations());
+        modelBuilder.Entity<AuditEventRecord>().ToTable(AuditEventConfiguration.Table, AuditEventConfiguration.Schema, t => t.ExcludeFromMigrations());
 
         base.OnModelCreating(modelBuilder);
     }

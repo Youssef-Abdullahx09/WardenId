@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Policies")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Policies)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/policies/tokens", async (
+        return app.MapGet(ProtocolRoutes.Admin.TokenPolicy, async (
                 [FromRoute] Guid tenantId,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
@@ -32,7 +32,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Policies.GetTokens)
             .RequireAuthorization()
-            .WithTags("Protocol - Policies")
+            .WithTags(EndpointTags.Policies)
             .WithSummary("Get the token and session lifetimes")
             .WithDescription(
                 "Returns the token and login-session lifetimes in effect for the tenant. Every lifetime is an ISO 8601 " +

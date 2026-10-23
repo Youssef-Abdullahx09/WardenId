@@ -1,6 +1,7 @@
 using FluentResults;
 using MediatR;
 using Microsoft.Extensions.Options;
+using WardenId.SharedKernel.Domain;
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
 
 namespace WardenId.Protocol.Application.Features.Discovery.Get;
@@ -8,6 +9,11 @@ namespace WardenId.Protocol.Application.Features.Discovery.Get;
 public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> options)
     : IRequestHandler<Query, Result<DiscoveryDocument>>
 {
+    private static readonly string[] SecretAuthMethods =
+        [OidcValues.ClientAuthenticationMethods.ClientSecretBasic, OidcValues.ClientAuthenticationMethods.ClientSecretPost];
+
+    private static readonly string[] AllAuthMethods = [.. SecretAuthMethods, OidcValues.ClientAuthenticationMethods.None];
+
     public async Task<Result<DiscoveryDocument>> Handle(Query request, CancellationToken cancellationToken)
     {
         // Keys are unused here — the call only confirms the tenant is servable (Active/Suspended).
@@ -18,24 +24,28 @@ public sealed class Handler(ISender sender, IOptions<ProtocolTokenOptions> optio
 
         return Result.Ok(new DiscoveryDocument(
             Issuer: issuer,
-            JwksUri: $"{issuer}/jwks",
-            ResponseTypesSupported: ["code"],
-            SubjectTypesSupported: ["public"],
-            IdTokenSigningAlgValuesSupported: ["ES256"],
-            TokenEndpoint: $"{issuer}/token",
-            GrantTypesSupported: ["authorization_code", "client_credentials", "refresh_token"],
-            TokenEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post", "none"],
-            AuthorizationEndpoint: $"{issuer}/authorize",
+            JwksUri: $"{issuer}/{ProtocolPaths.Endpoints.Jwks}",
+            ResponseTypesSupported: [OidcValues.ResponseTypes.Code],
+            SubjectTypesSupported: [OidcValues.SubjectTypes.Public],
+            IdTokenSigningAlgValuesSupported: [JsonWebKeyValues.Algorithms.Es256],
+            TokenEndpoint: $"{issuer}/{ProtocolPaths.Endpoints.Token}",
+            GrantTypesSupported: [
+                OidcValues.GrantTypes.AuthorizationCode,
+                OidcValues.GrantTypes.ClientCredentials,
+                OidcValues.GrantTypes.RefreshToken
+            ],
+            TokenEndpointAuthMethodsSupported: AllAuthMethods,
+            AuthorizationEndpoint: $"{issuer}/{ProtocolPaths.Endpoints.Authorize}",
             ScopesSupported: OidcScopes.Supported,
-            CodeChallengeMethodsSupported: ["S256"],
+            CodeChallengeMethodsSupported: [OidcValues.CodeChallengeMethods.S256],
             AuthorizationResponseIssParameterSupported: true,
-            IntrospectionEndpoint: $"{issuer}/introspect",
+            IntrospectionEndpoint: $"{issuer}/{ProtocolPaths.Endpoints.Introspect}",
             // Confidential clients only (RFC 7662 requires caller authentication).
-            IntrospectionEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post"],
-            RevocationEndpoint: $"{issuer}/revoke",
-            RevocationEndpointAuthMethodsSupported: ["client_secret_basic", "client_secret_post", "none"],
-            UserInfoEndpoint: $"{issuer}/userinfo",
-            EndSessionEndpoint: $"{issuer}/endsession",
+            IntrospectionEndpointAuthMethodsSupported: SecretAuthMethods,
+            RevocationEndpoint: $"{issuer}/{ProtocolPaths.Endpoints.Revoke}",
+            RevocationEndpointAuthMethodsSupported: AllAuthMethods,
+            UserInfoEndpoint: $"{issuer}/{ProtocolPaths.Endpoints.UserInfo}",
+            EndSessionEndpoint: $"{issuer}/{ProtocolPaths.Endpoints.EndSession}",
             BackchannelLogoutSupported: true,
             // logout_token always carries sid (no per-client backchannel_logout_session_required flag).
             BackchannelLogoutSessionSupported: true));

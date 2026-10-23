@@ -14,7 +14,7 @@ namespace WardenId.Audit.Domain;
 /// </summary>
 public sealed class AuditTargetType : Enumeration<AuditTargetType>
 {
-    private static readonly Regex KeyFormat = new(@"^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
+    private static readonly Regex KeyFormat = new(AuditFormats.KeyPatterns.SnakeCase, RegexOptions.Compiled);
 
     public string Key { get; }
 
@@ -26,23 +26,23 @@ public sealed class AuditTargetType : Enumeration<AuditTargetType>
         Key = key;
     }
 
-    public static readonly AuditTargetType Tenant = new(1, nameof(Tenant), "tenant");
-    public static readonly AuditTargetType User = new(2, nameof(User), "user");
+    public static readonly AuditTargetType Tenant = new(1, nameof(Tenant), AuditTargetTypeKeys.Tenant);
+    public static readonly AuditTargetType User = new(2, nameof(User), AuditTargetTypeKeys.User);
 
     /// <summary>A login session; the id is the OIDC sid.</summary>
-    public static readonly AuditTargetType Session = new(3, nameof(Session), "session");
+    public static readonly AuditTargetType Session = new(3, nameof(Session), AuditTargetTypeKeys.Session);
 
     /// <summary>An OAuth client; the id is its public client_id.</summary>
-    public static readonly AuditTargetType OAuthClient = new(4, nameof(OAuthClient), "oauth_client");
+    public static readonly AuditTargetType OAuthClient = new(4, nameof(OAuthClient), AuditTargetTypeKeys.OAuthClient);
 
     /// <summary>A grant's token family; the id is the OpenIddict authorization id.</summary>
-    public static readonly AuditTargetType TokenFamily = new(5, nameof(TokenFamily), "token_family");
+    public static readonly AuditTargetType TokenFamily = new(5, nameof(TokenFamily), AuditTargetTypeKeys.TokenFamily);
 
     /// <summary>A key that signs audit checkpoints; the id is its kid.</summary>
-    public static readonly AuditTargetType CheckpointSigningKey = new(6, nameof(CheckpointSigningKey), "checkpoint_signing_key");
+    public static readonly AuditTargetType CheckpointSigningKey = new(6, nameof(CheckpointSigningKey), AuditTargetTypeKeys.CheckpointSigningKey);
 
     /// <summary>A tenant's identity policy overrides (Identity module); the id is the tenant id, one policy per tenant.</summary>
-    public static readonly AuditTargetType IdentityPolicy = new(7, nameof(IdentityPolicy), "identity_policy");
+    public static readonly AuditTargetType IdentityPolicy = new(7, nameof(IdentityPolicy), AuditTargetTypeKeys.IdentityPolicy);
 
     public static readonly IReadOnlyList<AuditTargetType> All =
     [

@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Tenants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Tenants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/tenants/{tenantId:guid}/suspend", async (
+        return app.MapPost(TenancyRoutes.Tenants.Suspend, async (
                 [FromRoute] Guid tenantId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Tenants.Suspend)
             .RequireAuthorization()
-            .WithTags("Tenancy - Tenants")
+            .WithTags(EndpointTags.Tenants)
             .WithSummary("Suspend a Tenant")
             .WithDescription("Stops sign-ins and token issuance for an active tenant until it is reactivated. Requires a reason.")
             .Produces(StatusCodes.Status204NoContent)

@@ -16,12 +16,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users", async (
+        return app.MapGet(IdentityRoutes.Users.Collection, async (
                 [FromRoute] Guid tenantId,
                 [FromQuery] int pageNumber,
                 [FromQuery] int pageSize,
@@ -40,7 +40,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.List)
             .RequireAuthorization()
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("List users")
             .WithDescription(
                 "Lists users for the given tenant, paginated and optionally filtered by status. `search` matches " +

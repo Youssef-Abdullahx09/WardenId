@@ -15,12 +15,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Tenants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Tenants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/tenants/by-slug/{slug}", async (
+        return app.MapGet(TenancyRoutes.Tenants.BySlug, async (
                 [FromRoute] string slug,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
@@ -33,7 +33,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Tenants.GetBySlug)
             .RequireAuthorization()
-            .WithTags("Tenancy - Tenants")
+            .WithTags(EndpointTags.Tenants)
             .WithSummary("Get a Tenant by slug")
             .WithDescription("Same as Get a Tenant, looked up by its slug (the issuer path segment).")
             .Produces<TenantDetail>(StatusCodes.Status200OK)

@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text;
 using Microsoft.Extensions.Options;
 using WardenId.Audit.Application.Abstractions;
@@ -17,7 +18,7 @@ public sealed class WebhookCheckpointWitness(HttpClient httpClient, IOptions<Aud
         var url = options.Value.WebhookUrl
             ?? throw new InvalidOperationException("WebhookCheckpointWitness requires WebhookUrl to be configured.");
 
-        using var content = new StringContent(signedNoteText, Encoding.UTF8, "text/plain");
+        using var content = new StringContent(signedNoteText, Encoding.UTF8, MediaTypeNames.Text.Plain);
         var response = await httpClient.PostAsync(url, content, cancellationToken);
         response.EnsureSuccessStatusCode();
     }

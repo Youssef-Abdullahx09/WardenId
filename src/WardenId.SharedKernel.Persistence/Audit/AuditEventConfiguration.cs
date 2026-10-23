@@ -49,6 +49,6 @@ public sealed class AuditEventConfiguration : IEntityTypeConfiguration<AuditEven
         builder.HasIndex(e => new { e.Actor, e.OccurredAt });
         builder.HasIndex(e => new { e.ActorId, e.OccurredAt });
         builder.HasIndex(e => new { e.Outcome, e.OccurredAt });
-        builder.HasIndex(e => e.Targets).HasMethod("gin");
+        builder.HasIndex(e => e.Targets).HasMethod(PostgresConventions.IndexMethods.Gin);
     }
 }

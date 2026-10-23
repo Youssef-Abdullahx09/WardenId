@@ -18,7 +18,7 @@ public static class ConfigurationKeys
     
     public static class RabbitMq
     {
-        public const string Section = "RabbitMq";
+        public const string Section = nameof(RabbitMq);
         public const string Host = nameof(Host);
         public const string Port = nameof(Port);
         public const string Username = nameof(Username);

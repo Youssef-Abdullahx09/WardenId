@@ -21,5 +21,5 @@ public static class CheckpointKeyRotation
         => NoteHeader(previousKid, newKid, newKeyX, newKeyY) + $"\n— {previousKid} {Convert.ToBase64String(signature)}\n";
 
     private static string NoteHeader(string previousKid, string newKid, string newKeyX, string newKeyY)
-        => $"warden-audit-key-rotation\n{previousKid}\n{newKid}\n{newKeyX}\n{newKeyY}\n";
+        => $"{AuditFormats.SignedNotes.KeyRotationOrigin}\n{previousKid}\n{newKid}\n{newKeyX}\n{newKeyY}\n";
 }

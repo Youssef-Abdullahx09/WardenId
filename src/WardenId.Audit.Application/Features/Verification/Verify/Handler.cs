@@ -4,6 +4,7 @@ using FluentResults;
 using MediatR;
 using WardenId.Audit.Application.Abstractions;
 using WardenId.Audit.Domain;
+using WardenId.SharedKernel.Domain;
 
 namespace WardenId.Audit.Application.Features.Verification.Verify;
 
@@ -73,7 +74,7 @@ public sealed class Handler(IAuditProofRepository repository) : IRequestHandler<
 
     private static bool VerifySignature(AuditChannel channel, Guid? tenantId, CheckpointRow checkpoint, CheckpointKeyRow key)
     {
-        var scopeLabel = tenantId?.ToString() ?? "platform";
+        var scopeLabel = tenantId?.ToString() ?? AuditFormats.Scopes.Platform;
         var unsignedBody = AuditCheckpoint.BuildUnsignedBody(channel, scopeLabel, checkpoint.TreeSize, checkpoint.RootHash);
         return VerifyEs256(key.PublicKeyJwk, unsignedBody, checkpoint.Signature);
     }
@@ -107,12 +108,12 @@ public sealed class Handler(IAuditProofRepository repository) : IRequestHandler<
 
     private static bool TryReadPoint(string publicKeyJwk, out string x, out string y)
     {
-        x = y = "";
+        x = y = string.Empty;
         try
         {
             using var jwk = JsonDocument.Parse(publicKeyJwk);
-            x = jwk.RootElement.GetProperty("x").GetString() ?? "";
-            y = jwk.RootElement.GetProperty("y").GetString() ?? "";
+            x = jwk.RootElement.GetProperty(JsonWebKeyValues.PublicMembers.X).GetString() ?? string.Empty;
+            y = jwk.RootElement.GetProperty(JsonWebKeyValues.PublicMembers.Y).GetString() ?? string.Empty;
             return x.Length > 0 && y.Length > 0;
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)

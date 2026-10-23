@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,7 @@ public static class DependencyInjection
         services.AddPooledDbContextFactory<AuditDbContext>(options =>
             options.UseNpgsql(
                 defaultConnectionString,
-                postgresSql => postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", AuditDbContext.Schema)));
+                postgresSql => postgresSql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, AuditDbContext.Schema)));
 
         services.AddSingleton<IAuditContextAccessor, AsyncLocalAuditContextAccessor>();
         services.AddSingleton<IAuditActorScope, AuditActorScope>();

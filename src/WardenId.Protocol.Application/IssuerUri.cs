@@ -7,5 +7,5 @@ namespace WardenId.Protocol.Application;
 public static class IssuerUri
 {
     public static string For(string issuerBaseUri, string slug) =>
-        $"{issuerBaseUri.TrimEnd('/')}/tenants/{slug}";
+        issuerBaseUri.TrimEnd('/') + ProtocolPaths.Tenant(slug);
 }

@@ -2,6 +2,7 @@ using System.Data;
 using Microsoft.EntityFrameworkCore;
 using WardenId.Audit.Domain;
 using WardenId.Audit.Infrastructure.Persistence;
+using WardenId.SharedKernel.Persistence;
 using WardenId.SharedKernel.Persistence.Audit;
 
 namespace WardenId.Audit.Infrastructure.Sealing;
@@ -17,21 +18,26 @@ namespace WardenId.Audit.Infrastructure.Sealing;
 /// </summary>
 public sealed class PgSealableEventReader : ISealableEventReader
 {
+    // Positional {0}..{3} are bound as parameters by FromSqlRaw; only the constant identifiers are inlined.
+    private const string SealableEventsSql = $$"""
+        SELECT * FROM {{AuditEventConfiguration.Schema}}.{{AuditEventConfiguration.Table}}
+        WHERE "{{nameof(AuditEventRecord.Channel)}}" = {0}
+          AND "{{nameof(AuditEventRecord.TenantId)}}" IS NOT DISTINCT FROM {1}
+          AND "{{nameof(AuditEventRecord.Sequence)}}" IS NULL
+          AND {{PostgresConventions.SystemColumns.Xmin}}::text::xid8 < {2}::xid8
+        ORDER BY "{{nameof(AuditEventRecord.Id)}}" ASC
+        LIMIT {3}
+        """;
+
     public async Task<IReadOnlyList<AuditEventRecord>> GetSealableEventsAsync(
         AuditDbContext db, AuditChannel channel, Guid? tenantId, int limit, CancellationToken cancellationToken = default)
     {
         var watermark = await GetWatermarkAsync(db, cancellationToken);
         var channelName = channel.ToString();
 
-        return await db.AuditEvents.FromSqlInterpolated($"""
-            SELECT * FROM audit.events
-            WHERE "Channel" = {channelName}
-              AND "TenantId" IS NOT DISTINCT FROM {tenantId}
-              AND "Sequence" IS NULL
-              AND xmin::text::xid8 < {watermark}::xid8
-            ORDER BY "Id" ASC
-            LIMIT {limit}
-            """).ToListAsync(cancellationToken);
+        return await db.AuditEvents
+            .FromSqlRaw(SealableEventsSql, channelName, tenantId!, watermark, limit)
+            .ToListAsync(cancellationToken);
     }
 
     private static async Task<string> GetWatermarkAsync(AuditDbContext db, CancellationToken cancellationToken)

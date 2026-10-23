@@ -4,6 +4,7 @@ using OpenIddict.Server;
 using OpenIddict.Server.AspNetCore;
 using WardenId.Protocol.Application;
 using WardenId.SharedKernel.Application.Abstractions;
+using WardenId.SharedKernel.Domain;
 using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace WardenId.Protocol.Infrastructure.OpenIddict.Handlers;
@@ -33,7 +34,7 @@ public sealed class ResolveTenantFromPath(IOptions<ProtocolTokenOptions> options
         // "/tenants/{slug}/{rest}" -> ["", "tenants", "{slug}", "{rest}"]
         var segments = request.Path.Value?.Split('/', 4) ?? [];
 
-        if (segments.Length == 4 && segments[1] == "tenants" && TenantSlugFormat.IsValid(segments[2]))
+        if (segments.Length == 4 && segments[1] == ProtocolPaths.TenantsSegment && TenantSlugFormat.IsValid(segments[2]))
         {
             var slug = segments[2];
             var issuerBase = options.Value.IssuerBaseUri;

@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Audit")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Audit)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/audit/events/{eventId:guid}/inclusion-proof", async (
+        return app.MapGet(EndpointRoutes.Proofs.Inclusion, async (
                 [FromRoute] Guid eventId,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
@@ -32,7 +32,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Proofs.Inclusion)
             .RequireAuthorization()
-            .WithTags("Audit - Proofs")
+            .WithTags(EndpointTags.Proofs)
             .WithSummary("Get an inclusion proof for an audit event")
             .WithDescription(
                 "Returns the event's canonical bytes, leaf hash, Merkle audit path, and the earliest checkpoint that covers its segment.")

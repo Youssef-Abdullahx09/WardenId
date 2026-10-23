@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Asp.Versioning;
+using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using WardenId.Gateway.Authentication;
 using WardenId.Gateway.Cors;
@@ -63,10 +64,10 @@ public static class GatewayDependencyInjection
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
-            options.SwaggerDoc("v1", new OpenApiInfo
+            options.SwaggerDoc(SwaggerDocument.Name, new OpenApiInfo
             {
-                Title = "WardenId",
-                Version = "1.0"
+                Title = SwaggerDocument.Title,
+                Version = SwaggerDocument.Version
             });
 
             options.OperationFilter<AsParametersOperationFilter>();
@@ -76,23 +77,23 @@ public static class GatewayDependencyInjection
             options.MapType<DateOnly>(() => new OpenApiSchema
             {
                 Type = JsonSchemaType.String,
-                Format = "date"
+                Format = SwaggerDocument.Formats.Date
             });
 
             options.MapType<TimeOnly>(() => new OpenApiSchema
             {
                 Type = JsonSchemaType.String,
-                Format = "time",
+                Format = SwaggerDocument.Formats.Time,
                 Example = JsonValue.Create("14:00:00")
             });
 
             // Configure Bearer Token Authentication for Swagger UI
-            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            options.AddSecurityDefinition(SwaggerDocument.BearerSecurityScheme.Id, new OpenApiSecurityScheme
             {
-                Name = "Authorization",
+                Name = HeaderNames.Authorization,
                 Type = SecuritySchemeType.Http,
-                Scheme = "bearer",
-                BearerFormat = "JWT",
+                Scheme = SwaggerDocument.BearerSecurityScheme.HttpScheme,
+                BearerFormat = SwaggerDocument.BearerSecurityScheme.BearerFormat,
                 In = ParameterLocation.Header,
                 Description =
                     "Enter your JWT token only. The 'Bearer ' prefix will be added automatically.\n\nExample: eyJhbGciOiJSUzI1NiIsInR5cCI..."
@@ -101,7 +102,7 @@ public static class GatewayDependencyInjection
             options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
             {
                 {
-                    new OpenApiSecuritySchemeReference("Bearer", document), []
+                    new OpenApiSecuritySchemeReference(SwaggerDocument.BearerSecurityScheme.Id, document), []
                 }
             });
         });

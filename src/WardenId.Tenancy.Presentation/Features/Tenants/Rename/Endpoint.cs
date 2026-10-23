@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Tenants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Tenants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPatch("/api/v{version:apiVersion}/tenants/{tenantId:guid}", async (
+        return app.MapPatch(TenancyRoutes.Tenants.Item, async (
                 [FromRoute] Guid tenantId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Tenants.Rename)
             .RequireAuthorization()
-            .WithTags("Tenancy - Tenants")
+            .WithTags(EndpointTags.Tenants)
             .WithSummary("Rename a Tenant")
             .WithDescription("Changes the display name. The slug, and so the issuer, never changes.")
             .Produces(StatusCodes.Status204NoContent)

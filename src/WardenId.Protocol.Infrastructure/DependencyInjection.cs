@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -24,7 +25,7 @@ public static class DependencyInjection
                 configuration.GetConnectionString(AppConfigurationConstants.DbConnectionStringKey) ??
                 throw new InvalidOperationException(AppConfigurationConstants.NotFoundConnectionStringMessage),
                 postgresSql =>
-                    postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", OpenIddictDbContext.Schema));
+                    postgresSql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, OpenIddictDbContext.Schema));
             options.UseOpenIddict();
         });
 
@@ -34,7 +35,7 @@ public static class DependencyInjection
                 configuration.GetConnectionString(AppConfigurationConstants.DbConnectionStringKey) ??
                 throw new InvalidOperationException(AppConfigurationConstants.NotFoundConnectionStringMessage),
                 postgresSql =>
-                    postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", ProtocolDbContext.Schema));
+                    postgresSql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, ProtocolDbContext.Schema));
             options.AddSharedInterceptors(serviceProvider);
         });
 

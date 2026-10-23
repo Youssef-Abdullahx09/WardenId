@@ -39,5 +39,5 @@ public sealed class TenantLifetimes(
         return policy?.Overrides;
     }
 
-    private static string CacheKey(Guid tenantId) => "wardenid:protocol-tenant-lifetimes:" + tenantId.ToString("N");
+    private static string CacheKey(Guid tenantId) => ProtocolCacheKeys.TenantLifetimesPrefix + tenantId.ToString("N");
 }

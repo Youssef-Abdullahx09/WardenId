@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Xml;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using WardenId.Protocol.Application;
@@ -26,7 +27,7 @@ public static class UserTokenGrantExtensions
         identity.SetClaim(Claims.Email, grant.Email);
         identity.RemoveClaims(Claims.EmailVerified);
         if (grant.EmailVerified is { } verified)
-            identity.AddClaim(new Claim(Claims.EmailVerified, verified ? "true" : "false", ClaimValueTypes.Boolean));
+            identity.AddClaim(new Claim(Claims.EmailVerified, XmlConvert.ToString(verified), ClaimValueTypes.Boolean));
 
         identity.SetDestinations(static claim => claim.Type switch
         {

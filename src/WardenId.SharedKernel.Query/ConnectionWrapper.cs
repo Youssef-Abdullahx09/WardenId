@@ -25,7 +25,7 @@ public sealed class ConnectionWrapper(
         object? param = null,
         IDbTransaction? transaction = null,
         bool buffered = true,
-        string splitOn = "Id",
+        string splitOn = QueryDefaults.SplitOn,
         int? commandTimeout = null,
         CommandType? commandType = null,
         CancellationToken cancellationToken = default)
@@ -51,7 +51,7 @@ public sealed class ConnectionWrapper(
         object? param = null,
         IDbTransaction? transaction = null,
         bool buffered = true,
-        string splitOn = "Id",
+        string splitOn = QueryDefaults.SplitOn,
         int? commandTimeout = null,
         CommandType? commandType = null,
         CancellationToken cancellationToken = default)
@@ -78,7 +78,7 @@ public sealed class ConnectionWrapper(
         object? param = null,
         IDbTransaction? transaction = null,
         bool buffered = true,
-        string splitOn = "Id",
+        string splitOn = QueryDefaults.SplitOn,
         int? commandTimeout = null,
         CommandType? commandType = null,
         CancellationToken cancellationToken = default)
@@ -110,7 +110,7 @@ public sealed class ConnectionWrapper(
 
     public async Task<IEnumerable<TReturn>> QueryAsync<TFirst, TSecond, TThird, TForth, TFifth, TReturn>(string sql,
         Func<TFirst, TSecond, TThird, TForth, TFifth, TReturn> map, object? param = null,
-        IDbTransaction? transaction = null, bool buffered = true, string splitOn = "Id", int? commandTimeout = null,
+        IDbTransaction? transaction = null, bool buffered = true, string splitOn = QueryDefaults.SplitOn, int? commandTimeout = null,
         CommandType? commandType = null, CancellationToken cancellationToken = default)
     {
         if (connection.State != ConnectionState.Open) await connection.OpenAsync(cancellationToken);

@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Sessions")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Sessions)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapDelete("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/sessions/{sessionId:guid}", async (
+        return app.MapDelete(ProtocolRoutes.Admin.Session, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid sessionId,
                 [FromServices] ISender sender,
@@ -35,7 +35,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Sessions.End)
             .RequireAuthorization()
-            .WithTags("Protocol - Sessions")
+            .WithTags(EndpointTags.Sessions)
             .WithSummary("End a Session")
             .WithDescription("Ends one live login session. Its non-offline refresh tokens are revoked and participating clients receive a back-channel logout.")
             .Produces(StatusCodes.Status204NoContent)

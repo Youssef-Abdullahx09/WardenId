@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using WardenId.SharedKernel.Persistence;
 using WardenId.Tenancy.Domain;
 
 namespace WardenId.Tenancy.Infrastructure.Persistence.Configurations;
@@ -15,7 +16,7 @@ public sealed class SigningKeyConfiguration: IEntityTypeConfiguration<SigningKey
             .IsRequired();
         
         builder.Property(k => k.PublicKeyJwk)
-            .HasColumnType("jsonb")
+            .HasColumnType(PostgresConventions.ColumnTypes.Jsonb)
             .IsRequired();
  
         builder.Property(k => k.EncryptedPrivateKey)
@@ -34,12 +35,12 @@ public sealed class SigningKeyConfiguration: IEntityTypeConfiguration<SigningKey
         builder.Ignore(k => k.IsActive);
         builder.Ignore(k => k.IsPublished);
         
-        builder.HasIndex("TenantId")
-            .HasDatabaseName("IX_TenantSigningKeys_TenantId");
+        builder.HasIndex(SchemaConsts.SigningKeyTenantIdColumn)
+            .HasDatabaseName(SchemaConsts.SigningKeysTenantIdIndex);
         
-        builder.HasIndex("TenantId")
+        builder.HasIndex(SchemaConsts.SigningKeyTenantIdColumn)
             .IsUnique()
             .HasFilter($"\"{nameof(SigningKey.Status)}\" = '{nameof(SigningKeyStatus.Active)}'")
-            .HasDatabaseName("IX_TenantSigningKeys_TenantId_ActiveUnique");
+            .HasDatabaseName(SchemaConsts.SigningKeysActiveUniqueIndex);
     }
 }

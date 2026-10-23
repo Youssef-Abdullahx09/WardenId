@@ -11,13 +11,16 @@ namespace WardenId.Tenancy.Domain;
 /// </summary>
 public sealed class Slug : ValueObject
 {
-    public const int MinLength = 3;
-    public const int MaxLength = 63;
+    public const int MinLength = TenantSlugFormat.MinLength;
+    public const int MaxLength = TenantSlugFormat.MaxLength;
  
-    // lowercase letters/digits, single internal hyphens, no leading/trailing hyphen
-    private static readonly Regex FormatRegex =
-        new(@"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$", RegexOptions.Compiled);
- 
+    private const char Hyphen = '-';
+    private const string HyphenSeparator = "-";
+    private const string ConsecutiveHyphens = "--";
+
+    private const string NonSlugCharactersPattern = "[^a-z0-9]+";
+    private const string HyphenRunPattern = "-{2,}";
+
     // Reserved so a tenant slug can never collide with a system route or a future one.
     private static readonly HashSet<string> ReservedSlugs = new(StringComparer.Ordinal)
     {
@@ -48,10 +51,10 @@ public sealed class Slug : ValueObject
         if (!string.Equals(candidate, candidate.ToLowerInvariant(), StringComparison.Ordinal))
             return Result.Fail(TenantErrors.TenantSlugMustBeLowercase());
  
-        if (candidate.Contains("--", StringComparison.Ordinal))
+        if (candidate.Contains(ConsecutiveHyphens, StringComparison.Ordinal))
             return Result.Fail(TenantErrors.TenantSlugConsecutiveHyphens());
  
-        if (!FormatRegex.IsMatch(candidate)) return Result.Fail(TenantErrors.TenantSlugInvalidFormat());
+        if (!TenantSlugFormat.IsValid(candidate)) return Result.Fail(TenantErrors.TenantSlugInvalidFormat());
         
         if (ReservedSlugs.Contains(candidate)) return Result.Fail(TenantErrors.TenantSlugReserved(candidate));
  
@@ -77,10 +80,10 @@ public sealed class Slug : ValueObject
     public static string Slugify(string displayName)
     {
         var lowered = displayName.Trim().ToLowerInvariant();
-        var replaced = Regex.Replace(lowered, @"[^a-z0-9]+", "-");
-        var trimmedHyphens = replaced.Trim('-');
-        var collapsed = Regex.Replace(trimmedHyphens, "-{2,}", "-");
-        return collapsed.Length > MaxLength ? collapsed[..MaxLength].Trim('-') : collapsed;
+        var replaced = Regex.Replace(lowered, NonSlugCharactersPattern, HyphenSeparator);
+        var trimmedHyphens = replaced.Trim(Hyphen);
+        var collapsed = Regex.Replace(trimmedHyphens, HyphenRunPattern, HyphenSeparator);
+        return collapsed.Length > MaxLength ? collapsed[..MaxLength].Trim(Hyphen) : collapsed;
     }
  
     public override string ToString() => Value;
@@ -89,4 +92,4 @@ public sealed class Slug : ValueObject
     {
         yield return Value;
     }
-}
+}

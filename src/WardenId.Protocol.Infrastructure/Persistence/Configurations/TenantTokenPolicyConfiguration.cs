@@ -6,11 +6,9 @@ namespace WardenId.Protocol.Infrastructure.Persistence.Configurations;
 
 public sealed class TenantTokenPolicyConfiguration : IEntityTypeConfiguration<TenantTokenPolicy>
 {
-    public const string TenantTokenPoliciesTable = "TenantTokenPolicies";
-
     public void Configure(EntityTypeBuilder<TenantTokenPolicy> builder)
     {
-        builder.ToTable(TenantTokenPoliciesTable);
+        builder.ToTable(SchemaConsts.TenantTokenPoliciesTable);
 
         builder.Property(p => p.TenantId).IsRequired();
         // One policy per tenant; also the hot-path lookup (TenantLifetimes).

@@ -14,13 +14,13 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Clients")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Clients)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
         return app.MapDelete(
-                "/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/clients/{clientId:guid}/secrets/{secretId:guid}", async (
+                ClientManagementRoutes.Secret, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid clientId,
                 [FromRoute] Guid secretId,
@@ -36,7 +36,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Clients.ExpireSecret)
             .RequireAuthorization()
-            .WithTags("ClientManagement - Clients")
+            .WithTags(EndpointTags.Clients)
             .WithSummary("Expire a Client secret")
             .WithDescription("Expires a specific client secret immediately (e.g. a leaked secret), independent of rotation.")
             .Produces(StatusCodes.Status204NoContent)

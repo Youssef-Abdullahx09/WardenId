@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Grants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Grants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/grants", async (
+        return app.MapGet(ProtocolRoutes.Admin.UserGrants, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromServices] ISender sender,
@@ -33,7 +33,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Grants.ListForUser)
             .RequireAuthorization()
-            .WithTags("Protocol - Grants")
+            .WithTags(EndpointTags.Grants)
             .WithSummary("List a User's Grants")
             .WithDescription(
                 "Lists the apps the user signed in to in the tenant: one OpenIddict authorization per /authorize sign-in, " +

@@ -1,4 +1,5 @@
 using MediatR;
+using WardenId.SharedKernel.Domain;
 using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
 using ListCorsOriginsQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.ListCorsOrigins.Query;
 using ResolveForIssuanceQuery = WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance.Query;

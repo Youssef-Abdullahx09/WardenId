@@ -40,7 +40,7 @@ public sealed class SigningKey : Entity
         Guid signingKeyId,
         string publicKeyJwk,
         byte[] encryptedPrivateKey) =>
-        new(signingKeyId, "ES256", publicKeyJwk, encryptedPrivateKey);
+        new(signingKeyId, JsonWebKeyValues.Algorithms.Es256, publicKeyJwk, encryptedPrivateKey);
 
     /// <summary>Active -> Retiring. Only Tenant calls this, as part of a rotation.</summary>
     internal void BeginRetiring()

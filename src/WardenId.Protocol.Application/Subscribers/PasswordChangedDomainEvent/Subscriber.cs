@@ -9,7 +9,7 @@ namespace WardenId.Protocol.Application.Subscribers.PasswordChangedDomainEvent;
 public sealed class Subscriber(ISender sender) : ICapSubscriber<Message>
 {
     // Group is explicit: CAP silently drops one of two subscriptions sharing (topic, group).
-    [CapSubscriber(nameof(PasswordChangedDomainEvent), Group = "protocol." + nameof(PasswordChangedDomainEvent))]
+    [CapSubscriber(nameof(PasswordChangedDomainEvent), Group = SubscriberGroups.Prefix + nameof(PasswordChangedDomainEvent))]
     public async Task OnReceive(Message message)
     {
         // Every unended session of the user across tenants: Identity events carry no tenant and user ids are

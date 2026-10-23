@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.Extensions.Logging;
+using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Features.BackchannelLogout;
 
 namespace WardenId.Protocol.Infrastructure.BackchannelLogout;
@@ -21,7 +22,7 @@ public sealed class HttpBackchannelLogoutSender(HttpClient httpClient, ILogger<H
             return DeliveryOutcome.Rejected;
         }
 
-        using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("logout_token", logoutToken)]);
+        using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>(OidcValues.Parameters.LogoutToken, logoutToken)]);
         try
         {
             using var response = await httpClient.PostAsync(backchannelLogoutUri, content, cancellationToken);

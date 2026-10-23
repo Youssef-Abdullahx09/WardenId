@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WardenId.Identity.Application.Abstractions;
@@ -22,7 +23,7 @@ public static class DependencyInjection
                 configuration.GetConnectionString(AppConfigurationConstants.DbConnectionStringKey) ??
                 throw new InvalidOperationException(AppConfigurationConstants.NotFoundConnectionStringMessage),
                 postgresSql =>
-                    postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", IdentityDbContext.Schema));
+                    postgresSql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, IdentityDbContext.Schema));
             options.AddSharedInterceptors(serviceProvider);
         });
 

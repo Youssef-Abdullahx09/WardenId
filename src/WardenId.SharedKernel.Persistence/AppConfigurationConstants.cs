@@ -7,5 +7,5 @@ public static class AppConfigurationConstants
     public const string PathToGateway = ".";
 
     public const string NotFoundConnectionStringMessage =
-        "Connection string 'DefaultConnectionString' is missing or empty.";
+        $"Connection string '{DbConnectionStringKey}' is missing or empty.";
 }

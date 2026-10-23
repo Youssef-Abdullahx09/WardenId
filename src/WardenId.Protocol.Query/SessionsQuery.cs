@@ -12,12 +12,16 @@ public sealed class SessionsQuery(
     IConnectionWrapper connectionWrapper,
     IReadFileService readFileService) : ISessionsQuery
 {
+    private const string ListForUserSql = "/Features/Sessions/ListForUser/Query.sql";
+    private const string ListSql = "/Features/Sessions/List/Query.sql";
+    private const string OffsetParameter = "Offset";
+
     public async Task<Result<List<Contracts.Features.Sessions.ListForUser.Item>>> ListForUser(
         Contracts.Features.Sessions.ListForUser.Query query,
         CancellationToken cancellationToken)
     {
         var readingFileResult = await readFileService.ReadFileContentAsync(
-            "/Features/Sessions/ListForUser/Query.sql",
+            ListForUserSql,
             cancellationToken);
         if (readingFileResult.IsFailed) return Result.Fail(readingFileResult.Errors);
 
@@ -40,7 +44,7 @@ public sealed class SessionsQuery(
         CancellationToken cancellationToken)
     {
         var readingFileResult = await readFileService.ReadFileContentAsync(
-            "/Features/Sessions/List/Query.sql",
+            ListSql,
             cancellationToken);
         if (readingFileResult.IsFailed) return Result.Fail(readingFileResult.Errors);
 
@@ -52,7 +56,7 @@ public sealed class SessionsQuery(
         queryParameters.Add(nameof(query.IncludeEnded), query.IncludeEnded);
         queryParameters.Add(nameof(query.Now), query.Now);
         queryParameters.Add(nameof(query.PageSize), query.PageSize);
-        queryParameters.Add("Offset", (query.PageNumber - 1) * query.PageSize);
+        queryParameters.Add(OffsetParameter, (query.PageNumber - 1) * query.PageSize);
 
         await using var grid = await connectionWrapper.QueryMultipleAsync(
             readingFileResult.Value,

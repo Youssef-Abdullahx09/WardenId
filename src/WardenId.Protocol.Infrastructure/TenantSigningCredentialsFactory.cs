@@ -19,7 +19,7 @@ public sealed class TenantSigningCredentialsFactory(IDataProtectionProvider data
 
     public SigningCredentials Create(ActiveSigningKey key)
     {
-        if (key.Algorithm != "ES256")
+        if (key.Algorithm != SecurityAlgorithms.EcdsaSha256)
             throw new NotSupportedException($"Unsupported signing key algorithm: '{key.Algorithm}'. Only ES256 is supported.");
 
         var privateKeyPkcs8 = _protector.Unprotect(key.EncryptedPrivateKey);

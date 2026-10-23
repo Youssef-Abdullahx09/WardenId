@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -17,7 +18,7 @@ public static class DependencyInjection
         // tightening the Gateway's default CORS policy never breaks them. Public data, no credentials.
         services.AddCors(options => options.AddPolicy(
             CorsPolicyNames.ProtocolPublicMetadata,
-            policy => policy.AllowAnyOrigin().WithMethods("GET").AllowAnyHeader()));
+            policy => policy.AllowAnyOrigin().WithMethods(HttpMethods.Get).AllowAnyHeader()));
         // Token, revoke and userinfo: only the tenant's client origins (W17b). The host's CORS policy provider asks it.
         services.AddMemoryCache();
         services.AddScoped<IProtocolCorsPolicyResolver, ProtocolCorsPolicyResolver>();
@@ -26,9 +27,9 @@ public static class DependencyInjection
         // Features/Shared the layout/partial fallback) instead of the default Pages/.
         services.AddRazorPages(options =>
             {
-                options.RootDirectory = "/Features";
+                options.RootDirectory = TenantPages.RootDirectory;
                 options.Conventions.AddFolderApplicationModelConvention(
-                    "/Tenants", model => model.Filters.Add(new AuthPageHeadersFilter()));
+                    TenantPages.Folder, model => model.Filters.Add(new AuthPageHeadersFilter()));
             })
             .AddApplicationPart(typeof(DependencyInjection).Assembly);
 

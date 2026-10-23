@@ -14,7 +14,7 @@ namespace WardenId.Protocol.Application.Subscribers.BackchannelLogoutRequested;
 public sealed class Subscriber(ISender sender, ILogger<Subscriber> logger) : ICapSubscriber<Message>
 {
     // Group is explicit: CAP silently drops one of two subscriptions sharing (topic, group).
-    [CapSubscriber(nameof(BackchannelLogoutRequested), Group = "protocol." + nameof(BackchannelLogoutRequested))]
+    [CapSubscriber(nameof(BackchannelLogoutRequested), Group = SubscriberGroups.Prefix + nameof(BackchannelLogoutRequested))]
     public async Task OnReceive(Message message)
     {
         var result = await sender.Send(new DeliverCommand(

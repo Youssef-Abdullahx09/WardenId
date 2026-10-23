@@ -13,13 +13,13 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
         return app.MapPost(
-                "/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/change-password", async (
+                IdentityRoutes.Users.ChangePassword, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromBody] Request request,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.ChangePassword)
             .RequireAuthorization()
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Change a user's password")
             .WithDescription("Verifies the current password before setting the new one.")
             .Produces(StatusCodes.Status204NoContent)

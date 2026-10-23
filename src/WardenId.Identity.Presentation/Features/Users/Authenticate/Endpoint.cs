@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/tenants/{tenantId:guid}/auth/authenticate", async (
+        return app.MapPost(IdentityRoutes.UserAuth.Authenticate, async (
                 [FromRoute] Guid tenantId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
@@ -32,7 +32,7 @@ public sealed class Endpoint : IEndpoint
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.Authenticate)
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Authenticate a user")
             .WithDescription("Validates credentials and returns the user's status/pending actions. Does not issue a token or session — that ties to Tenancy's signing keys and is a separate future pass.")
             .Produces<AuthenticatedUser>(StatusCodes.Status200OK)

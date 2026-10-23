@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Sessions")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Sessions)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapDelete("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/sessions", async (
+        return app.MapDelete(ProtocolRoutes.Admin.UserSessions, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromServices] ISender sender,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Sessions.EndForUser)
             .RequireAuthorization()
-            .WithTags("Protocol - Sessions")
+            .WithTags(EndpointTags.Sessions)
             .WithSummary("End all of a User's Sessions")
             .WithDescription("Ends every unended login session of the user in the tenant (expired-but-unended included). Idempotent: 204 even when there is none.")
             .Produces(StatusCodes.Status204NoContent)

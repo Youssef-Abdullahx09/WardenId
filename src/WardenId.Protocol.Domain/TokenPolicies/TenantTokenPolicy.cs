@@ -12,7 +12,7 @@ public sealed class TenantTokenPolicy : AggregateRoot, IAuditableAggregate
     private static readonly IReadOnlySet<string> NothingSensitive = new HashSet<string>();
 
     // Lifetimes are tenant configuration: admin.config, filed under the tenant they belong to.
-    public string AuditTargetTypeKey => "tenant";
+    public string AuditTargetTypeKey => AuditTargetTypeKeys.Tenant;
     public AuditableChannel AuditChannel => AuditableChannel.AdminConfig;
     public IReadOnlySet<string> AuditSensitivePropertyNames => NothingSensitive;
     public string? AuditTargetId => TenantId.ToString();

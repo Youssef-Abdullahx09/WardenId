@@ -1,8 +1,10 @@
+using WardenId.SharedKernel.Domain;
+
 namespace WardenId.ClientManagement.Domain;
 
 public static class ClientErrorCodes
 {
-    public const string MetadataKey = "ErrorCode";
+    public const string MetadataKey = ErrorMetadataKeys.ErrorCode;
 
     public const string NotFound = "NotFound";
     public const string Validation = "Validation";

@@ -13,12 +13,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users", async (
+        return app.MapPost(IdentityRoutes.Users.Collection, async (
                 [FromRoute] Guid tenantId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
@@ -29,7 +29,7 @@ public sealed class Endpoint : IEndpoint
 
                 return result.IsSuccess
                     ? Results.Created(
-                        $"/api/v1/admin/tenants/{tenantId}/users/{result.Value.UserId}",
+                        IdentityRoutes.Users.Location(tenantId, result.Value.UserId),
                         new Response(result.Value.UserId))
                     : result.HandleApiFailure();
             })
@@ -37,7 +37,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.Create)
             .RequireAuthorization()
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Create a user")
             .WithDescription(
                 "Creates a user with a temporary password, checked against the password policy. The user still " +

@@ -1,7 +1,9 @@
 ﻿using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
+using WardenId.SharedKernel.Domain;
 using WardenId.Tenancy.Application.Abstractions;
+using WardenId.Tenancy.Domain;
 
 namespace WardenId.Tenancy.Infrastructure;
 
@@ -40,18 +42,23 @@ public sealed class Es256SigningKeyGenerator(
  
         var jwk = new
         {
-            kty = "EC",
-            crv = "P-256",
+            kty = JsonWebKeyValues.KeyTypes.Ec,
+            crv = JsonWebKeyValues.Curves.P256,
             x = Base64UrlEncode(parameters.Q.X!),
             y = Base64UrlEncode(parameters.Q.Y!),
-            alg = "ES256",
-            use = "sig",
-            kid = keyId.ToString("N")
+            alg = JsonWebKeyValues.Algorithms.Es256,
+            use = JsonWebKeyValues.Uses.Signature,
+            kid = keyId.ToString(EcJwk.KeyIdFormat)
         };
  
         return JsonSerializer.Serialize(jwk);
     }
  
+    private static class EcJwk
+    {
+        public const string KeyIdFormat = "N";
+    }
+
     private static string Base64UrlEncode(byte[] input) =>
         Convert.ToBase64String(input)
             .TrimEnd('=')

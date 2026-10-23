@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Tenants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Tenants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/tenants/{tenantId:guid}/signing-keys/{keyId:guid}/retire", async (
+        return app.MapPost(TenancyRoutes.SigningKeys.Retire, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid keyId,
                 [FromServices] ISender sender,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.SigningKeys.Retire)
             .RequireAuthorization()
-            .WithTags("Tenancy - Signing Keys")
+            .WithTags(EndpointTags.SigningKeys)
             .WithSummary("Retire a Tenant's Signing Key")
             .WithDescription("Removes a Retiring key from JWKS; tokens it signed stop verifying. Wait at least the longest token lifetime after the rotation (the key's retiringSince) before retiring. The active key cannot be retired.")
             .Produces(StatusCodes.Status204NoContent)

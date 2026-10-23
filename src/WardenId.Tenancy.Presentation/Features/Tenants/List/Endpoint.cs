@@ -16,12 +16,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Tenants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Tenants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/tenants", async (
+        return app.MapGet(TenancyRoutes.Tenants.Collection, async (
                 [FromQuery] int pageNumber,
                 [FromQuery] int pageSize,
                 [FromQuery] Status? status,
@@ -36,7 +36,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Tenants.List)
             .RequireAuthorization()
-            .WithTags("Tenancy - Tenants")
+            .WithTags(EndpointTags.Tenants)
             .WithSummary("List Tenants")
             .WithDescription("Lists tenants, newest first, paginated and optionally filtered by status.")
             .Produces<PaginationListResponse<TenantListItem>>(StatusCodes.Status200OK)

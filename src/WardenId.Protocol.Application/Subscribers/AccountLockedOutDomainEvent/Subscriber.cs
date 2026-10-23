@@ -12,7 +12,7 @@ namespace WardenId.Protocol.Application.Subscribers.AccountLockedOutDomainEvent;
 public sealed class Subscriber(ISender sender) : ICapSubscriber<Message>
 {
     // Group is explicit: CAP silently drops one of two subscriptions sharing (topic, group).
-    [CapSubscriber(nameof(AccountLockedOutDomainEvent), Group = "protocol." + nameof(AccountLockedOutDomainEvent))]
+    [CapSubscriber(nameof(AccountLockedOutDomainEvent), Group = SubscriberGroups.Prefix + nameof(AccountLockedOutDomainEvent))]
     public async Task OnReceive(Message message)
     {
         // Every unended session of the user across tenants: Identity events carry no tenant and user ids are

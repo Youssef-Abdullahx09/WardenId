@@ -159,7 +159,7 @@ public sealed class AuditSealerService(
 
         var treeSize = allSegments.Count;
         var rootHash = MerkleTree.ComputeRoot(allSegments.Select(s => s.HeaderHash).ToList());
-        var scopeLabel = tenantId?.ToString() ?? "platform";
+        var scopeLabel = tenantId?.ToString() ?? AuditFormats.Scopes.Platform;
 
         var unsignedBody = AuditCheckpoint.BuildUnsignedBody(channel, scopeLabel, treeSize, rootHash);
         var (kid, signature) = await checkpointSigner.SignAsync(unsignedBody, cancellationToken);

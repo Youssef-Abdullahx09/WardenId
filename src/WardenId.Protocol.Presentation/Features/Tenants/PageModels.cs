@@ -6,12 +6,15 @@ namespace WardenId.Protocol.Presentation.Features.Tenants;
 /// <summary>Posts the original authorize parameters back with cancel=true → access_denied at the RP.</summary>
 public sealed record ReturnToApplication(string Slug, IReadOnlyList<KeyValuePair<string, string>> Parameters, string Label)
 {
+    // Any absolute base: it only lets Uri split the query off a local URL.
+    private const string ParsingBase = "https://local";
+
     /// <summary>Null unless <paramref name="returnUrl"/> is this tenant's authorize endpoint.</summary>
     public static ReturnToApplication? For(string? returnUrl, string slug, string label)
     {
         if (!AuthorizeReturnUrl.IsAuthorizeRequest(returnUrl, slug)) return null;
 
-        var query = QueryHelpers.ParseQuery(new Uri("https://local" + returnUrl).Query);
+        var query = QueryHelpers.ParseQuery(new Uri(ParsingBase + returnUrl).Query);
         var parameters = query
             .SelectMany(p => p.Value.Select(v => KeyValuePair.Create(p.Key, v ?? string.Empty)))
             .ToArray();

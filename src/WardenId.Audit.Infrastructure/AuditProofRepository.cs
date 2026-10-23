@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WardenId.Audit.Application.Abstractions;
 using WardenId.Audit.Domain;
 using WardenId.Audit.Infrastructure.Persistence;
+using WardenId.Audit.Infrastructure.Sealing;
 
 namespace WardenId.Audit.Infrastructure;
 
@@ -80,8 +81,8 @@ public sealed class AuditProofRepository(IDbContextFactory<AuditDbContext> dbCon
         return records
             .OrderBy(k => k.CreatedAt)
             .Select(k => new CheckpointKeyRow(
-                k.Id.ToString("N"), k.PublicKeyJwk, k.IsActive, k.CreatedAt,
-                k.PreviousKeyId?.ToString("N"), k.RotationAttestation, k.DeactivatedAt))
+                k.Id.ToString(CheckpointSigningKeyFactory.KidFormat), k.PublicKeyJwk, k.IsActive, k.CreatedAt,
+                k.PreviousKeyId?.ToString(CheckpointSigningKeyFactory.KidFormat), k.RotationAttestation, k.DeactivatedAt))
             .ToList();
     }
 

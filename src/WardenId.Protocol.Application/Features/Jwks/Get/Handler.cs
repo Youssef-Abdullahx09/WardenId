@@ -1,14 +1,20 @@
 using System.Text.Json;
 using FluentResults;
 using MediatR;
+using WardenId.SharedKernel.Domain;
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
 
 namespace WardenId.Protocol.Application.Features.Jwks.Get;
 
 public sealed class Handler(ISender sender) : IRequestHandler<Query, Result<JsonWebKeySetDocument>>
 {
-    // Private-key members across JWK key types (EC/OKP: d; RSA: d, p, q, dp, dq, qi, oth; oct: k).
-    private static readonly string[] PrivateMembers = ["d", "p", "q", "dp", "dq", "qi", "oth", "k"];
+    private static readonly string[] PrivateMembers =
+    [
+        JsonWebKeyValues.PrivateMembers.D, JsonWebKeyValues.PrivateMembers.P,
+        JsonWebKeyValues.PrivateMembers.Q, JsonWebKeyValues.PrivateMembers.DP,
+        JsonWebKeyValues.PrivateMembers.DQ, JsonWebKeyValues.PrivateMembers.QI,
+        JsonWebKeyValues.PrivateMembers.Oth, JsonWebKeyValues.PrivateMembers.K
+    ];
 
     public async Task<Result<JsonWebKeySetDocument>> Handle(Query request, CancellationToken cancellationToken)
     {

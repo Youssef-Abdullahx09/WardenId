@@ -10,18 +10,18 @@ public sealed class OpenTelemetryOptions
     public bool Enabled { get; init; } = true;
 
     [Required]
-    [ConfigurationKeyName("OTEL_SERVICE_NAME")]
+    [ConfigurationKeyName(OpenTelemetryEnvironmentVariables.ServiceName)]
     public string ServiceName { get; init; } = string.Empty;
 
     [Required]
-    [ConfigurationKeyName("OTEL_EXPORTER_OTLP_ENDPOINT")]
+    [ConfigurationKeyName(OpenTelemetryEnvironmentVariables.ExporterOtlpEndpoint)]
     public string OtlpEndpoint { get; init; } = string.Empty;
 
     [Required]
-    [ConfigurationKeyName("OTEL_EXPORTER_OTLP_PROTOCOL")]
+    [ConfigurationKeyName(OpenTelemetryEnvironmentVariables.ExporterOtlpProtocol)]
     public string OtlpProtocol { get; init; } = string.Empty;
 
     [Required]
-    [ConfigurationKeyName("OTEL_RESOURCE_ATTRIBUTES")]
+    [ConfigurationKeyName(OpenTelemetryEnvironmentVariables.ResourceAttributes)]
     public string ResourceAttributes { get; init; } = string.Empty;
 }

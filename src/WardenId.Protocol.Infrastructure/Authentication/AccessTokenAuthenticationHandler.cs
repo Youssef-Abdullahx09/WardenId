@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using WardenId.Protocol.Application;
 using WardenId.SharedKernel.Application;
+using WardenId.SharedKernel.Domain;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
 

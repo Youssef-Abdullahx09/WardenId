@@ -1,12 +1,17 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
+using WardenId.Audit.Application;
+using WardenId.SharedKernel.Domain;
 
 namespace WardenId.Audit.Infrastructure.Sealing;
 
 /// <summary>Key generation and signing shared by <see cref="Es256CheckpointSigner"/> and <see cref="Es256CheckpointKeyRotator"/>.</summary>
 internal static class CheckpointSigningKeyFactory
 {
+    /// <summary>Kids are the key id as 32 hex digits.</summary>
+    internal const string KidFormat = "N";
+
     /// <summary>A new active P-256 key; X and Y are the base64url public point as written in its JWK.</summary>
     public static (AuditCheckpointSigningKeyRecord Record, string X, string Y) Create(IDataProtector protector)
     {
@@ -17,13 +22,13 @@ internal static class CheckpointSigningKeyFactory
         var y = Base64UrlEncode(parameters.Q.Y!);
         var publicKeyJwk = JsonSerializer.Serialize(new
         {
-            kty = "EC",
-            crv = "P-256",
+            kty = JsonWebKeyValues.KeyTypes.Ec,
+            crv = JsonWebKeyValues.Curves.P256,
             x,
             y,
-            alg = "ES256",
-            use = "sig",
-            kid = id.ToString("N")
+            alg = JsonWebKeyValues.Algorithms.Es256,
+            use = JsonWebKeyValues.Uses.Signature,
+            kid = id.ToString(KidFormat)
         });
 
         var privateKeyPkcs8 = ecdsa.ExportPkcs8PrivateKey();
@@ -61,7 +66,7 @@ internal static class CheckpointSigningKeyFactory
         }
     }
 
-    public static string Kid(AuditCheckpointSigningKeyRecord key) => key.Id.ToString("N");
+    public static string Kid(AuditCheckpointSigningKeyRecord key) => key.Id.ToString(KidFormat);
 
     private static string Base64UrlEncode(byte[] input) =>
         Convert.ToBase64String(input).TrimEnd('=').Replace('+', '-').Replace('/', '_');

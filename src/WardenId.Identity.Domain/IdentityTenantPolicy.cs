@@ -15,7 +15,7 @@ public sealed class IdentityTenantPolicy : AggregateRoot, IAuditableAggregate
     // Policy values are configuration, not secrets: audited in plain text on admin.config.
     private static readonly IReadOnlySet<string> NoSensitiveProperties = new HashSet<string>();
 
-    public string AuditTargetTypeKey => "identity_policy";
+    public string AuditTargetTypeKey => AuditTargetTypeKeys.IdentityPolicy;
     public AuditableChannel AuditChannel => AuditableChannel.AdminConfig;
     public IReadOnlySet<string> AuditSensitivePropertyNames => NoSensitiveProperties;
 

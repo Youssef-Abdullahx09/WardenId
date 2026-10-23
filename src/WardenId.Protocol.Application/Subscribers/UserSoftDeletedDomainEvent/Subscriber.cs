@@ -9,7 +9,7 @@ namespace WardenId.Protocol.Application.Subscribers.UserSoftDeletedDomainEvent;
 public sealed class Subscriber(ISender sender) : ICapSubscriber<Message>
 {
     // Group is explicit: CAP silently drops one of two subscriptions sharing (topic, group).
-    [CapSubscriber(nameof(UserSoftDeletedDomainEvent), Group = "protocol." + nameof(UserSoftDeletedDomainEvent))]
+    [CapSubscriber(nameof(UserSoftDeletedDomainEvent), Group = SubscriberGroups.Prefix + nameof(UserSoftDeletedDomainEvent))]
     public async Task OnReceive(Message message)
     {
         // Every unended session of the user across tenants: Identity events carry no tenant and user ids are

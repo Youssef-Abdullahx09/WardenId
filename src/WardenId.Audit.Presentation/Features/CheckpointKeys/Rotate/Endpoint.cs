@@ -13,12 +13,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Audit")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Audit)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/audit/checkpoint-keys/rotate", async (
+        return app.MapPost(EndpointRoutes.CheckpointKeys.Rotate, async (
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
@@ -30,7 +30,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.CheckpointKeys.Rotate)
             .RequireAuthorization()
-            .WithTags("Audit - Verification")
+            .WithTags(EndpointTags.Verification)
             .WithSummary("Rotate the checkpoint signing key")
             .WithDescription(
                 "Creates a new ES256 checkpoint signing key and makes it the one new checkpoints are signed with. " +

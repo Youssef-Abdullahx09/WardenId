@@ -1,8 +1,10 @@
-﻿namespace WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Domain;
+
+namespace WardenId.SharedKernel.Presentation;
 
 public static class ErrorCodes
 {
-    public const string MetadataKey = "ErrorCode";
+    public const string MetadataKey = ErrorMetadataKeys.ErrorCode;
 
     public const string InvalidCredentials = "InvalidCredentials";
     public const string AccountLocked = "AccountLocked";

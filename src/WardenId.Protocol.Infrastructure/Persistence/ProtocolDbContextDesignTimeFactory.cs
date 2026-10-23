@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using WardenId.SharedKernel.Persistence;
 
@@ -20,7 +21,7 @@ internal sealed class ProtocolDbContextDesignTimeFactory : IDesignTimeDbContextF
 
         var options = new DbContextOptionsBuilder<ProtocolDbContext>()
             .UseNpgsql(connectionString, npgsql =>
-                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", ProtocolDbContext.Schema))
+                npgsql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, ProtocolDbContext.Schema))
             .Options;
 
         return new ProtocolDbContext(options);

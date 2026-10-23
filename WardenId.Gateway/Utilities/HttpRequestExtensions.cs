@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Net.Mime;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Net.Http.Headers;
 
 namespace WardenId.Gateway.Utilities;
 
@@ -15,7 +17,7 @@ internal static class HttpRequestExtensions
         object? body = null;
         
         // JSON body
-        if (request.ContentType?.Contains("application/json") == true)
+        if (request.ContentType?.Contains(MediaTypeNames.Application.Json) == true)
         {
             request.EnableBuffering();
 
@@ -54,6 +56,6 @@ internal static class HttpRequestExtensions
     }
 
     private static bool IsSensitiveHeader(string header) =>
-        header.Equals("Authorization", StringComparison.OrdinalIgnoreCase) ||
-        header.Equals("Cookie", StringComparison.OrdinalIgnoreCase);
+        header.Equals(HeaderNames.Authorization, StringComparison.OrdinalIgnoreCase) ||
+        header.Equals(HeaderNames.Cookie, StringComparison.OrdinalIgnoreCase);
 }

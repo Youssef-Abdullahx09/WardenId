@@ -13,13 +13,13 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Clients")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Clients)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
         return app.MapPut(
-                "/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/clients/{clientId:guid}/backchannel-logout-uri", async (
+                ClientManagementRoutes.BackchannelLogoutUri, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid clientId,
                 [FromBody] Request request,
@@ -35,7 +35,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Clients.SetBackchannelLogoutUri)
             .RequireAuthorization()
-            .WithTags("ClientManagement - Clients")
+            .WithTags(EndpointTags.Clients)
             .WithSummary("Set the back-channel logout URI")
             .WithDescription(
                 "Sets the URI the OP POSTs OIDC Back-Channel Logout tokens to (https, or http for loopback hosts only). " +

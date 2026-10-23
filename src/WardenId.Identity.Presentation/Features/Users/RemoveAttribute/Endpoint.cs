@@ -14,13 +14,13 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
         return app.MapDelete(
-                "/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/attributes/{key}", async (
+                IdentityRoutes.Users.Attribute, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromRoute] string key,
@@ -37,7 +37,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.RemoveAttribute)
             .RequireAuthorization()
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Remove a user attribute")
             .WithDescription("Removes the attribute with this key (URL-encoded, matched exactly). 404 when the user has no such attribute.")
             .Produces(StatusCodes.Status204NoContent)

@@ -13,13 +13,13 @@ internal sealed class IdentityEmailSender(
         string toEmail, string username, string rawToken, DateTimeOffset expiresAtUtc, CancellationToken cancellationToken) =>
         SendAsync(
             EmailTemplatePaths.EmailVerification, "Verify your email address",
-            toEmail, username, "{{VerificationCode}}", rawToken, expiresAtUtc, cancellationToken);
+            toEmail, username, EmailPlaceholderKeys.VerificationCode, rawToken, expiresAtUtc, cancellationToken);
 
     public Task SendPasswordResetAsync(
         string toEmail, string username, string rawToken, DateTimeOffset expiresAtUtc, CancellationToken cancellationToken) =>
         SendAsync(
             EmailTemplatePaths.PasswordReset, "Reset your password",
-            toEmail, username, "{{ResetCode}}", rawToken, expiresAtUtc, cancellationToken);
+            toEmail, username, EmailPlaceholderKeys.ResetCode, rawToken, expiresAtUtc, cancellationToken);
 
     private async Task SendAsync(
         string templatePath, string subject, string toEmail, string username,
@@ -35,9 +35,9 @@ internal sealed class IdentityEmailSender(
             template,
             Placeholders:
             [
-                new EmailPlaceholder("{{Username}}", username),
+                new EmailPlaceholder(EmailPlaceholderKeys.Username, username),
                 new EmailPlaceholder(codePlaceholderKey, rawToken),
-                new EmailPlaceholder("{{ExpiresAtUtc}}", expiresAtUtc.ToString("f", CultureInfo.InvariantCulture) + " UTC")
+                new EmailPlaceholder(EmailPlaceholderKeys.ExpiresAtUtc, expiresAtUtc.ToString("f", CultureInfo.InvariantCulture) + " UTC")
             ]);
 
         await emailService.SendAsync(message, cancellationToken);

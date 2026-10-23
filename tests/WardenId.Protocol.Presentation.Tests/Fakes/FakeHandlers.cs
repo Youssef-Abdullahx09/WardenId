@@ -26,6 +26,7 @@ using CompletedTotpEnrollment = WardenId.Identity.Integration.Command.Features.U
 using VerifySecondFactorCommand = WardenId.Identity.Integration.Command.Features.Users.VerifySecondFactor.Command;
 using AcceptTermsCommand = WardenId.Identity.Integration.Command.Features.Users.AcceptTerms.Command;
 using AccountFactor = WardenId.Identity.Integration.Command.Features.Users.GetAccount.AccountFactor;
+using AccountFactorType = WardenId.Identity.Integration.Command.Features.Users.GetAccount.AccountFactorType;
 using AccountView = WardenId.Identity.Integration.Command.Features.Users.GetAccount.AccountView;
 using BeginTotpReplacementCommand = WardenId.Identity.Integration.Command.Features.Users.BeginTotpReplacement.Command;
 using ChangeOwnPasswordCommand = WardenId.Identity.Integration.Command.Features.Users.ChangeOwnPassword.Command;
@@ -257,7 +258,7 @@ public sealed class GetAccountHandler(FakeDirectory directory) : IRequestHandler
         if (user is null) return Task.FromResult(Result.Fail<AccountView>(Fail.NotFound));
 
         IReadOnlyList<AccountFactor> factors = user.HasFactor
-            ? [new AccountFactor(Guid.NewGuid(), "Totp", FakeDirectory.FactorEnrolledAt, null)]
+            ? [new AccountFactor(Guid.NewGuid(), AccountFactorType.Totp, FakeDirectory.FactorEnrolledAt, null)]
             : [];
         return Task.FromResult(Result.Ok(new AccountView(
             user.Email, user.Username, user.TermsAcceptedAt, directory.TermsUrl, directory.MfaAvailable,

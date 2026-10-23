@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Clients")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Clients)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/clients/{clientId:guid}/secrets", async (
+        return app.MapPost(ClientManagementRoutes.Secrets, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid clientId,
                 [FromBody] Request request,
@@ -30,13 +30,13 @@ public sealed class Endpoint : IEndpoint
                 var result = await sender.Send(request.ToCommand(tenantId, clientId, currentUser.UserId), cancellationToken);
 
                 return result.IsSuccess ? Results.Created(
-                    $"/api/v1/admin/tenants/{tenantId}/clients/{clientId}", result.Value) : result.HandleApiFailure();
+                    ClientManagementRoutes.ClientLocation(tenantId, clientId), result.Value) : result.HandleApiFailure();
             })
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Clients.IssueSecret)
             .RequireAuthorization()
-            .WithTags("ClientManagement - Clients")
+            .WithTags(EndpointTags.Clients)
             .WithSummary("Issue a Client secret")
             .WithDescription("Issues a new client secret, rotating out the prior active secret with an overlap window if one exists. The plaintext secret is only ever returned here, once.")
             .ProducesValidationProblem()

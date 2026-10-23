@@ -7,7 +7,7 @@ public sealed class AuditSegmentConfiguration : IEntityTypeConfiguration<AuditSe
 {
     public void Configure(EntityTypeBuilder<AuditSegmentRecord> builder)
     {
-        builder.ToTable("segments");
+        builder.ToTable(AuditDbNames.Tables.Segments);
 
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();

@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Clients")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Clients)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/clients/{clientId:guid}", async (
+        return app.MapGet(ClientManagementRoutes.Client, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid clientId,
                 [FromServices] ISender sender,
@@ -33,7 +33,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Clients.Get)
             .RequireAuthorization()
-            .WithTags("ClientManagement - Clients")
+            .WithTags(EndpointTags.Clients)
             .WithSummary("Get a Client")
             .WithDescription("Returns full client detail, excluding secret hashed values.")
             .Produces<ClientDetail>(StatusCodes.Status200OK)

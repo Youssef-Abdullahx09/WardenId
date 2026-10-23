@@ -13,12 +13,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Grants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Grants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapDelete("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/grants", async (
+        return app.MapDelete(ProtocolRoutes.Admin.UserGrants, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromServices] ISender sender,
@@ -32,7 +32,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Grants.RevokeForUser)
             .RequireAuthorization()
-            .WithTags("Protocol - Grants")
+            .WithTags(EndpointTags.Grants)
             .WithSummary("Revoke all of a User's Grants")
             .WithDescription(
                 "Revokes every valid grant of the user in the tenant, offline_access ones included, with all their tokens. " +

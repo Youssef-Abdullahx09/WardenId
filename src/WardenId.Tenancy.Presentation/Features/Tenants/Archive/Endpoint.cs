@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Tenants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Tenants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/tenants/{tenantId:guid}/archive", async (
+        return app.MapPost(TenancyRoutes.Tenants.Archive, async (
                 [FromRoute] Guid tenantId,
                 [FromServices] ISender sender,
                 [FromServices] ICurrentUser currentUser,
@@ -33,7 +33,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Tenants.Archive)
             .RequireAuthorization()
-            .WithTags("Tenancy - Tenants")
+            .WithTags(EndpointTags.Tenants)
             .WithSummary("Archive a Tenant")
             .WithDescription("Permanently retires the tenant. Archived tenants can't be reactivated.")
             .Produces(StatusCodes.Status204NoContent)

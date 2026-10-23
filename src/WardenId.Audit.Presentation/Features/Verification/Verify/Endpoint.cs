@@ -15,12 +15,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Audit")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Audit)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/audit/channels/{channel}/verification", async (
+        return app.MapGet(EndpointRoutes.Verification.Verify, async (
                 [FromRoute] AuditChannel channel,
                 [FromQuery] Guid? tenantId,
                 [FromServices] ISender sender,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Verification.Verify)
             .RequireAuthorization()
-            .WithTags("Audit - Verification")
+            .WithTags(EndpointTags.Verification)
             .WithSummary("Run full chain verification for a channel/tenant scope")
             .WithDescription(
                 "Recomputes segment roots, header chain linkage, sequence density, and checkpoint signatures. " +

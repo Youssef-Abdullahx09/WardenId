@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Tenants")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Tenants)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/tenants/{tenantId:guid}/signing-keys/rotate", async (
+        return app.MapPost(TenancyRoutes.SigningKeys.Rotate, async (
                 [FromRoute] Guid tenantId,
                 [FromServices] ISender sender,
                 [FromServices] ICurrentUser currentUser,
@@ -33,7 +33,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.SigningKeys.Rotate)
             .RequireAuthorization()
-            .WithTags("Tenancy - Signing Keys")
+            .WithTags(EndpointTags.SigningKeys)
             .WithSummary("Rotate a Tenant's Signing Key")
             .WithDescription("Generates a new ES256 key that signs from now on. The previous key becomes Retiring: it stops signing but stays in JWKS so tokens it signed still verify until it is retired.")
             .Produces<Response>(StatusCodes.Status200OK)

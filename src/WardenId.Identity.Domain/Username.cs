@@ -9,7 +9,9 @@ public sealed class Username : ValueObject
     public const int MinLength = 3;
     public const int MaxLength = 64;
 
-    private static readonly Regex FormatRegex = new(@"^[a-zA-Z0-9._-]+$", RegexOptions.Compiled);
+    private const string FormatPattern = @"^[a-zA-Z0-9._-]+$";
+
+    private static readonly Regex FormatRegex = new(FormatPattern, RegexOptions.Compiled);
 
     public string Value { get; }
 

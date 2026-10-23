@@ -17,7 +17,7 @@ public static class AuthorizeReturnUrl
     {
         if (!IsPlainLocalPath(returnUrl)) return false;
 
-        var prefix = $"/tenants/{slug}/authorize";
+        var prefix = ProtocolPaths.Tenant(slug, ProtocolPaths.Endpoints.Authorize);
         if (!returnUrl.StartsWith(prefix, StringComparison.Ordinal)) return false;
 
         return returnUrl.Length == prefix.Length || returnUrl[prefix.Length] == '?';
@@ -31,7 +31,7 @@ public static class AuthorizeReturnUrl
     {
         if (!IsPlainLocalPath(returnUrl)) return false;
 
-        var prefix = $"/tenants/{slug}/account";
+        var prefix = ProtocolPaths.Tenant(slug, ProtocolPaths.Pages.Account);
         if (!returnUrl.StartsWith(prefix, StringComparison.Ordinal)) return false;
         if (returnUrl.Length == prefix.Length) return true;
         if (returnUrl[prefix.Length] != '/') return false;

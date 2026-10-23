@@ -30,18 +30,15 @@ namespace WardenId.Protocol.Presentation.Features.EndSession;
 /// </summary>
 public sealed class Endpoint : IEndpoint
 {
-    private const string ConfirmParameter = "confirm";
-    private const string CancelParameter = "cancel";
-
     /// <summary>The RP-Initiated Logout parameters carried to the confirmation page; everything else is dropped.</summary>
     internal static readonly IReadOnlyList<string> ForwardedParameters =
     [
         Parameters.IdTokenHint, Parameters.ClientId, Parameters.PostLogoutRedirectUri,
-        Parameters.State, Parameters.UiLocales, "logout_hint"
+        Parameters.State, Parameters.UiLocales, OidcValues.Parameters.LogoutHint
     ];
 
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app) =>
-        app.MapMethods(ProtocolRoutes.TenantIssuer + "/endsession", [HttpMethods.Get, HttpMethods.Post], async (
+        app.MapMethods(ProtocolRoutes.UnderTenantIssuer(ProtocolPaths.Endpoints.EndSession), [HttpMethods.Get, HttpMethods.Post], async (
                 HttpContext httpContext,
                 [FromServices] ITenantContext tenantContext,
                 [FromServices] IAntiforgery antiforgery,
@@ -62,8 +59,8 @@ public sealed class Endpoint : IEndpoint
                 // Only our confirmation page posts confirm/cancel. A link or cross-site form can't carry the
                 // antiforgery token, so it can neither force a logout nor bounce the user to the RP.
                 var isPost = HttpMethods.IsPost(httpContext.Request.Method);
-                var confirmed = isPost && request.GetParameter(ConfirmParameter) is not null;
-                var cancelled = isPost && request.GetParameter(CancelParameter) is not null;
+                var confirmed = isPost && request.GetParameter(TenantPages.FormFields.Confirm) is not null;
+                var cancelled = isPost && request.GetParameter(TenantPages.FormFields.Cancel) is not null;
                 if ((confirmed || cancelled) && !await antiforgery.IsRequestValidAsync(httpContext))
                     return Results.BadRequest();
 
@@ -98,12 +95,12 @@ public sealed class Endpoint : IEndpoint
 
                 // A6: OpenIddict redirects to the validated post_logout_redirect_uri (+ state), or to RedirectUri.
                 return Results.SignOut(
-                    new AuthenticationProperties { RedirectUri = $"/tenants/{slug}/signed-out" },
+                    new AuthenticationProperties { RedirectUri = ProtocolPaths.Tenant(slug, ProtocolPaths.Pages.SignedOut) },
                     [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
             })
             .AllowAnonymous()
             .DisableAntiforgery()
-            .WithTags("Protocol - EndSession")
+            .WithTags(EndpointTags.EndSession)
             .WithSummary("OIDC RP-Initiated Logout (end session) endpoint")
             .ExcludeFromDescription();
 
@@ -118,7 +115,7 @@ public sealed class Endpoint : IEndpoint
     }
 
     private static string ConfirmationLocation(OpenIddictRequest request, string slug) =>
-        QueryHelpers.AddQueryString($"/tenants/{slug}/logout", request.GetParameters()
+        QueryHelpers.AddQueryString(ProtocolPaths.Tenant(slug, ProtocolPaths.Pages.Logout), request.GetParameters()
             .Where(p => ForwardedParameters.Contains(p.Key))
             .Select(p => KeyValuePair.Create(p.Key, (string?)p.Value.ToString())));
 
@@ -127,7 +124,7 @@ public sealed class Endpoint : IEndpoint
     private static string CancelLocation(OpenIddictRequest request, string slug)
     {
         if (string.IsNullOrEmpty(request.PostLogoutRedirectUri))
-            return $"/tenants/{slug}/logout?cancelled=true";
+            return TenantPages.LogoutCancelled(slug);
 
         return string.IsNullOrEmpty(request.State)
             ? request.PostLogoutRedirectUri

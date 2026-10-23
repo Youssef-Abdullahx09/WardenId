@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Audit")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Audit)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/audit/checkpoint-keys", async (
+        return app.MapGet(EndpointRoutes.CheckpointKeys.List, async (
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
@@ -31,7 +31,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.CheckpointKeys.List)
             .RequireAuthorization()
-            .WithTags("Audit - Verification")
+            .WithTags(EndpointTags.Verification)
             .WithSummary("List checkpoint signing public keys")
             .WithDescription("Publishes every checkpoint signing key's public JWK (spec §6) — needed to verify checkpoint signatures independently.")
             .Produces<IReadOnlyList<CheckpointKeySummary>>(StatusCodes.Status200OK)

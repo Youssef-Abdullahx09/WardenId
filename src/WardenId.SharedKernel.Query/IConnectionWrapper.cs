@@ -13,7 +13,7 @@ public interface IConnectionWrapper
         int? commandTimeout = null, CommandType? commandType = null, CancellationToken cancellationToken = default);
 
     Task<IEnumerable<TReturn>> QueryAsync<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map,
-        object? param = null, IDbTransaction? transaction = null, bool buffered = true, string splitOn = "Id",
+        object? param = null, IDbTransaction? transaction = null, bool buffered = true, string splitOn = QueryDefaults.SplitOn,
         int? commandTimeout = null, CommandType? commandType = null, CancellationToken cancellationToken = default);
 
     Task<IEnumerable<TReturn>> QueryAsync<TFirst, TSecond, TThird, TReturn>(string sql,
@@ -21,7 +21,7 @@ public interface IConnectionWrapper
         object? param = null,
         IDbTransaction? transaction = null,
         bool buffered = true,
-        string splitOn = "Id",
+        string splitOn = QueryDefaults.SplitOn,
         int? commandTimeout = null,
         CommandType? commandType = null, CancellationToken cancellationToken = default);
 
@@ -30,7 +30,7 @@ public interface IConnectionWrapper
         object? param = null,
         IDbTransaction? transaction = null,
         bool buffered = true,
-        string splitOn = "Id",
+        string splitOn = QueryDefaults.SplitOn,
         int? commandTimeout = null,
         CommandType? commandType = null, CancellationToken cancellationToken = default);
 
@@ -39,7 +39,7 @@ public interface IConnectionWrapper
         object? param = null,
         IDbTransaction? transaction = null,
         bool buffered = true,
-        string splitOn = "Id",
+        string splitOn = QueryDefaults.SplitOn,
         int? commandTimeout = null,
         CommandType? commandType = null, CancellationToken cancellationToken = default);
 

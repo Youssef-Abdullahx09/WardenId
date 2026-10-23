@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using WardenId.Audit.Infrastructure.Sealing;
+using WardenId.SharedKernel.Persistence;
 
 namespace WardenId.Audit.Infrastructure.Persistence.Configurations;
 
@@ -8,12 +9,12 @@ public sealed class AuditCheckpointSigningKeyConfiguration : IEntityTypeConfigur
 {
     public void Configure(EntityTypeBuilder<AuditCheckpointSigningKeyRecord> builder)
     {
-        builder.ToTable("checkpoint_signing_keys");
+        builder.ToTable(AuditDbNames.Tables.CheckpointSigningKeys);
 
         builder.HasKey(k => k.Id);
         builder.Property(k => k.Id).ValueGeneratedNever();
 
-        builder.Property(k => k.PublicKeyJwk).HasColumnType("jsonb").IsRequired();
+        builder.Property(k => k.PublicKeyJwk).HasColumnType(PostgresConventions.ColumnTypes.Jsonb).IsRequired();
         builder.Property(k => k.EncryptedPrivateKey).IsRequired();
         builder.Property(k => k.CreatedAt).IsRequired();
 
@@ -22,7 +23,7 @@ public sealed class AuditCheckpointSigningKeyConfiguration : IEntityTypeConfigur
         // could race to create the first key concurrently.
         builder.HasIndex(k => k.IsActive)
             .IsUnique()
-            .HasFilter("\"IsActive\" = true")
-            .HasDatabaseName("IX_CheckpointSigningKeys_ActiveUnique");
+            .HasFilter(AuditDbNames.Filters.ActiveCheckpointSigningKey)
+            .HasDatabaseName(AuditDbNames.Indexes.ActiveCheckpointSigningKeyUnique);
     }
 }

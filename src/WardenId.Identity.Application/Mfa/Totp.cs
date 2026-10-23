@@ -17,6 +17,18 @@ public static class Totp
 
     private const string Base32Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
+    /// <summary>Parts of the Key URI format (otpauth://) that authenticator apps read.</summary>
+    private static class KeyUri
+    {
+        public const string Prefix = "otpauth://totp/";
+        public const string SecretParameter = "secret";
+        public const string IssuerParameter = "issuer";
+        public const string AlgorithmParameter = "algorithm";
+        public const string DigitsParameter = "digits";
+        public const string PeriodParameter = "period";
+        public const string Sha1Algorithm = "SHA1";
+    }
+
     /// <summary>A new random 160-bit shared secret.</summary>
     public static byte[] GenerateSecret() => RandomNumberGenerator.GetBytes(SecretLengthBytes);
 
@@ -99,8 +111,9 @@ public static class Totp
     /// parameter, which apps prefer, keeps the name as it is.
     /// </summary>
     public static string OtpAuthUri(string issuer, string accountName, string base32Secret) =>
-        $"otpauth://totp/{Uri.EscapeDataString(LabelPart(issuer))}:{Uri.EscapeDataString(LabelPart(accountName))}" +
-        $"?secret={base32Secret}&issuer={Uri.EscapeDataString(issuer)}&algorithm=SHA1&digits={Digits}&period={StepSeconds}";
+        $"{KeyUri.Prefix}{Uri.EscapeDataString(LabelPart(issuer))}:{Uri.EscapeDataString(LabelPart(accountName))}" +
+        $"?{KeyUri.SecretParameter}={base32Secret}&{KeyUri.IssuerParameter}={Uri.EscapeDataString(issuer)}" +
+        $"&{KeyUri.AlgorithmParameter}={KeyUri.Sha1Algorithm}&{KeyUri.DigitsParameter}={Digits}&{KeyUri.PeriodParameter}={StepSeconds}";
 
     private static string LabelPart(string value) =>
         string.Join(' ', value.Split(':', ' ').Where(part => part.Length > 0));

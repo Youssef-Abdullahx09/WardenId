@@ -29,7 +29,7 @@ public sealed record Actor
     }
 
     /// <summary>Pre-authentication events with no known subject — e.g. a failed login against an unknown username.</summary>
-    public static Actor Anonymous(ActorScope scope) => new(ActorType.Anonymous, "anonymous", scope, null);
+    public static Actor Anonymous(ActorScope scope) => new(ActorType.Anonymous, AuditFormats.Actors.AnonymousId, scope, null);
 
     /// <summary>
     /// Scope-qualified, unambiguous identifier for joins/indexing —
@@ -38,7 +38,7 @@ public sealed record Actor
     /// </summary>
     public string ToSerializedForm()
     {
-        var scopeSegment = Scope.IsPlatform ? "platform" : $"tenant:{Scope.TenantId}";
+        var scopeSegment = Scope.IsPlatform ? AuditFormats.Scopes.Platform : $"{AuditFormats.Scopes.Tenant}:{Scope.TenantId}";
         var typeSegment = Type.ToString().ToLowerInvariant();
         return $"{scopeSegment}:{typeSegment}:{Id}";
     }

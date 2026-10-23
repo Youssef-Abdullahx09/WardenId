@@ -15,12 +15,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Audit")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Audit)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/audit/channels/{channel}/consistency-proof", async (
+        return app.MapGet(EndpointRoutes.Proofs.Consistency, async (
                 [FromRoute] AuditChannel channel,
                 [FromQuery] Guid? tenantId,
                 [FromQuery] long earlierSize,
@@ -36,7 +36,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Proofs.Consistency)
             .RequireAuthorization()
-            .WithTags("Audit - Proofs")
+            .WithTags(EndpointTags.Proofs)
             .WithSummary("Get a consistency proof between two checkpoints")
             .WithDescription(
                 "Proves the checkpoint at earlierSize is a strict prefix of the checkpoint at laterSize, for the given channel/tenant scope.")

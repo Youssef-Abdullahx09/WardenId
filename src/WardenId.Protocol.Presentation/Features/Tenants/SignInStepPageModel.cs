@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Features.Authorize;
 using WardenId.Protocol.Application.Features.Authorize.SignIn;
 using WardenId.Protocol.Application.Features.Policies;
@@ -35,17 +36,17 @@ public abstract class SignInStepPageModel(ISender sender, ITenantLifetimes tenan
 
     /// <summary>The login page, keeping the authorize request, to start again.</summary>
     public string StartOverUrl => ContinueUrl is null
-        ? $"/tenants/{Slug}/login"
-        : $"/tenants/{Slug}/login?ReturnUrl={Uri.EscapeDataString(ContinueUrl)}";
+        ? TenantPages.Login(Slug)
+        : TenantPages.Login(Slug, ContinueUrl);
 
     /// <summary>The account page, linked once the user is signed in.</summary>
-    public string AccountUrl => $"/tenants/{Slug}/account";
+    public string AccountUrl => TenantPages.Account(Slug);
 
     public static string StepPath(string slug, SignInStep step) => step switch
     {
-        SignInStep.SecondFactor => $"/tenants/{slug}/login/code",
-        SignInStep.AcceptTerms => $"/tenants/{slug}/login/terms",
-        _ => $"/tenants/{slug}/login/enroll-totp"
+        SignInStep.SecondFactor => ProtocolPaths.Tenant(slug, ProtocolPaths.Pages.LoginCode),
+        SignInStep.AcceptTerms => ProtocolPaths.Tenant(slug, ProtocolPaths.Pages.LoginTerms),
+        _ => ProtocolPaths.Tenant(slug, ProtocolPaths.Pages.LoginEnrollTotp)
     };
 
     protected async Task<Guid?> ResolveTenantAsync(string slug, CancellationToken cancellationToken)
@@ -81,7 +82,7 @@ public abstract class SignInStepPageModel(ISender sender, ITenantLifetimes tenan
         if (ticket?.NextStep is not { } next)
         {
             PendingSignIn.Clear(HttpContext);
-            return (null, LocalRedirect($"/tenants/{slug}/login"));
+            return (null, LocalRedirect(TenantPages.Login(slug)));
         }
 
         if (next != step) return (null, LocalRedirect(StepPath(slug, next)));

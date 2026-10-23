@@ -6,7 +6,7 @@ namespace WardenId.Identity.Domain;
 
 public sealed class User : AggregateRoot, IAuditableAggregate
 {
-    public string AuditTargetTypeKey => "user";
+    public string AuditTargetTypeKey => AuditTargetTypeKeys.User;
     public AuditableChannel AuditChannel => AuditableChannel.AdminDirectory;
 
     // Credential/MFA secrets live on child entities the generic interceptor never diffs

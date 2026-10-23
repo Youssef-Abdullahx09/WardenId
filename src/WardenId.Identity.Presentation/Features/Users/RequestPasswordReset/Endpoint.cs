@@ -13,12 +13,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/tenants/{tenantId:guid}/auth/password-reset/request", async (
+        return app.MapPost(IdentityRoutes.UserAuth.RequestPasswordReset, async (
                 [FromRoute] Guid tenantId,
                 [FromBody] Request request,
                 [FromServices] ISender sender,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .WithApiVersionSet(apiVersionSet)
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.RequestPasswordReset)
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Request a password reset")
             .WithDescription("Always returns 202 regardless of whether the email matches an account, to avoid user enumeration.")
             .Produces(StatusCodes.Status202Accepted);

@@ -14,6 +14,6 @@ public sealed class ClientSecretConfiguration : IEntityTypeConfiguration<ClientS
         builder.Property(s => s.Label).HasMaxLength(200).IsRequired();
         builder.Property(s => s.ExpiresAt);
 
-        builder.HasIndex("ClientId").HasDatabaseName("IX_ClientSecrets_ClientId");
+        builder.HasIndex(SchemaConsts.ClientIdForeignKey).HasDatabaseName(SchemaConsts.Indexes.ClientSecretsClientId);
     }
 }

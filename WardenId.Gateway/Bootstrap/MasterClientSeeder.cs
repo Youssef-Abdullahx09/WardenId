@@ -35,7 +35,7 @@ public static class MasterClientSeeder
             string.IsNullOrWhiteSpace(options.DisplayName))
         {
             throw new InvalidOperationException(
-                $"Configuration section '{ConfigurationKeys.MasterTenant.Section}:Client' is present but " +
+                $"Configuration section '{ConfigurationKeys.MasterTenant.Section}:{nameof(MasterTenantClientOptions.Client)}' is present but " +
                 $"'{nameof(MasterTenantClientOptions.Slug)}', '{nameof(MasterClientSeedOptions.ClientId)}' and " +
                 $"'{nameof(MasterClientSeedOptions.DisplayName)}' are required.");
         }
@@ -64,7 +64,7 @@ public static class MasterClientSeeder
 
         using var scope = app.Services.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("WardenId.Gateway.MasterClientSeed");
+            .CreateLogger(SeederIdentifiers.LoggerCategories.MasterClient);
 
         var tenantRepository = scope.ServiceProvider.GetRequiredService<ITenantRepository>();
         var slug = Slug.FromTrustedSource(root.Slug);
@@ -112,7 +112,7 @@ public static class MasterClientSeeder
         if (clientType == ClientType.Confidential)
         {
             var secretResult = client.AddSecret(
-                ClientSecret.Create(ClientSecretHasher.Hash(options.Secret!), "seeded", expiresAt: null));
+                ClientSecret.Create(ClientSecretHasher.Hash(options.Secret!), SeederIdentifiers.ClientSecretLabel, expiresAt: null));
             if (secretResult.IsFailed)
             {
                 throw new InvalidOperationException(
@@ -126,7 +126,7 @@ public static class MasterClientSeeder
         // No request, so no AuditContextMiddleware: AuditCaptureInterceptor fails closed without an
         // ambient audit context, and a Client is audited. Same System actor pattern as MasterAdminSeeder.
         var auditContextAccessor = scope.ServiceProvider.GetRequiredService<IAuditContextAccessor>();
-        var systemActor = Actor.Create(ActorType.System, "master-client-seeder", ActorScope.Platform()).Value;
+        var systemActor = Actor.Create(ActorType.System, SeederIdentifiers.SystemActorIds.MasterClient, ActorScope.Platform()).Value;
         using (auditContextAccessor.BeginScope(
                    new AuditAmbientContext(systemActor, tenantId, Correlation.None(), ClientContext.Unknown())))
         {

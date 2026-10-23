@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Features.UserInfo;
 using WardenId.SharedKernel.Application;
 using WardenId.SharedKernel.Application.Abstractions;
@@ -26,7 +27,7 @@ public sealed class Endpoint : IEndpoint
     private const string InvalidToken = "The access token is not valid.";
 
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app) =>
-        app.MapMethods(ProtocolRoutes.TenantIssuer + "/userinfo", [HttpMethods.Get, HttpMethods.Post], async (
+        app.MapMethods(ProtocolRoutes.UnderTenantIssuer(ProtocolPaths.Endpoints.UserInfo), [HttpMethods.Get, HttpMethods.Post], async (
                 HttpContext httpContext,
                 [FromServices] ISender sender,
                 [FromServices] ITenantContext tenantContext,
@@ -51,13 +52,13 @@ public sealed class Endpoint : IEndpoint
                     return OpenIddictResults.Challenge(Errors.InvalidToken, InvalidToken);
 
                 var result = await sender.Send(new UserInfoQuery(tenantId, userId, principal.GetScopes()), cancellationToken);
-                if (result.IsFailed)
-                    return OpenIddictResults.Challenge(Errors.InvalidToken, InvalidToken);
-
-                return Results.Ok(ToResponse(result.Value));
+                
+                return result.IsFailed ? 
+                    OpenIddictResults.Challenge(Errors.InvalidToken, InvalidToken) 
+                    : Results.Ok(ToResponse(result.Value));
             })
             .AllowAnonymous()
-            .WithTags("Protocol - UserInfo")
+            .WithTags(EndpointTags.UserInfo)
             .WithSummary("OIDC UserInfo endpoint")
             .ExcludeFromDescription();
 

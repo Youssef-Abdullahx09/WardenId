@@ -13,7 +13,7 @@ namespace WardenId.Audit.Domain;
 /// </summary>
 public sealed class AuditCreationSource : Enumeration<AuditCreationSource>
 {
-    private static readonly Regex KeyFormat = new(@"^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
+    private static readonly Regex KeyFormat = new(AuditFormats.KeyPatterns.SnakeCase, RegexOptions.Compiled);
 
     public string Key { get; }
 

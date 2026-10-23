@@ -11,12 +11,12 @@ else
 {
     <h1 class="auth-title">Sign out</h1>
     <p class="auth-lede">Do you want to sign out? You will be signed out of every application that uses this sign-in on this device.</p>
-    <form method="post" action="/tenants/@Model.Slug/endsession" asp-antiforgery="true">
+    <form method="post" action="@ProtocolPaths.Tenant(Model.Slug, ProtocolPaths.Endpoints.EndSession)" asp-antiforgery="true">
         @foreach (var parameter in Model.ForwardedParameters)
         {
             <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
         }
-        <button class="button" type="submit" name="confirm" value="true">Sign out</button>
-        <button class="button button-secondary" type="submit" name="cancel" value="true">Cancel</button>
+        <button class="button" type="submit" name="@TenantPages.FormFields.Confirm" value="@XmlConvert.ToString(true)">Sign out</button>
+        <button class="button button-secondary" type="submit" name="@TenantPages.FormFields.Cancel" value="@XmlConvert.ToString(true)">Cancel</button>
     </form>
 }

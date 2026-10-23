@@ -1,5 +1,6 @@
 using FluentResults;
 using MediatR;
+using WardenId.Identity.Integration.Command.Features.Users.GetAccount;
 
 namespace WardenId.Protocol.Application.Features.Account.Get;
 
@@ -22,4 +23,4 @@ public sealed record AccountSummary(
     public bool HasMfa => Factors.Count > 0;
 }
 
-public sealed record AccountFactorSummary(string Type, DateTimeOffset EnrolledAtUtc, DateTimeOffset? LastUsedAtUtc);
+public sealed record AccountFactorSummary(AccountFactorType Type, DateTimeOffset EnrolledAtUtc, DateTimeOffset? LastUsedAtUtc);

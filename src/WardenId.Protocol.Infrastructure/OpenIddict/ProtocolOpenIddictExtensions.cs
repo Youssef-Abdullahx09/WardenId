@@ -45,12 +45,12 @@ public static class ProtocolOpenIddictExtensions
             .AddServer(options =>
             {
                 // Relative: resolved per request against BaseUri = tenant issuer (ResolveTenantFromPath).
-                options.SetAuthorizationEndpointUris("authorize")
-                       .SetTokenEndpointUris("token")
-                       .SetIntrospectionEndpointUris("introspect")
-                       .SetRevocationEndpointUris("revoke")
-                       .SetUserInfoEndpointUris("userinfo")
-                       .SetEndSessionEndpointUris("endsession");
+                options.SetAuthorizationEndpointUris(ProtocolPaths.Endpoints.Authorize)
+                       .SetTokenEndpointUris(ProtocolPaths.Endpoints.Token)
+                       .SetIntrospectionEndpointUris(ProtocolPaths.Endpoints.Introspect)
+                       .SetRevocationEndpointUris(ProtocolPaths.Endpoints.Revoke)
+                       .SetUserInfoEndpointUris(ProtocolPaths.Endpoints.UserInfo)
+                       .SetEndSessionEndpointUris(ProtocolPaths.Endpoints.EndSession);
                 options.AllowAuthorizationCodeFlow()
                        .AllowClientCredentialsFlow()
                        .AllowRefreshTokenFlow();

@@ -14,13 +14,13 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
         return app.MapDelete(
-                "/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/mfa-factors/{factorId:guid}",
+                IdentityRoutes.Users.MfaFactor,
                 async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
@@ -38,7 +38,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.RevokeMfaFactor)
             .RequireAuthorization()
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Revoke an MFA factor")
             .WithDescription("Revokes an enrolled MFA factor. When the MFA policy is Required or RequiredForAdmins, the user's last enabled factor can't be revoked (400); WardenId has no roles, so RequiredForAdmins applies to every user.")
             .Produces(StatusCodes.Status204NoContent)

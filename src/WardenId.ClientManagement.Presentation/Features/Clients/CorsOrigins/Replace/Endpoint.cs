@@ -13,13 +13,13 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Clients")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Clients)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
         return app.MapPut(
-                "/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/clients/{clientId:guid}/cors-origins", async (
+                ClientManagementRoutes.CorsOrigins, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid clientId,
                 [FromBody] Request request,
@@ -35,7 +35,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Clients.ReplaceCorsOrigins)
             .RequireAuthorization()
-            .WithTags("ClientManagement - Clients")
+            .WithTags(EndpointTags.Clients)
             .WithSummary("Replace CORS origins")
             .WithDescription("Replaces the client's entire CORS origin set with the given collection.")
             .Produces(StatusCodes.Status204NoContent)

@@ -1,3 +1,5 @@
+using WardenId.SharedKernel.Domain;
+
 namespace WardenId.Protocol.Application.Tests;
 
 public class TenantSlugFormatTests

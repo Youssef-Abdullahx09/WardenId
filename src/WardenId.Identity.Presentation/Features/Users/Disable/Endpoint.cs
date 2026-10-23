@@ -13,12 +13,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Users")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Users)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapPost("/api/v{version:apiVersion}/admin/tenants/{tenantId:guid}/users/{userId:guid}/disable", async (
+        return app.MapPost(IdentityRoutes.Users.Disable, async (
                 [FromRoute] Guid tenantId,
                 [FromRoute] Guid userId,
                 [FromBody] Request request,
@@ -34,7 +34,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Users.Disable)
             .RequireAuthorization()
-            .WithTags("Identity - Users")
+            .WithTags(EndpointTags.Users)
             .WithSummary("Disable a user")
             .WithDescription("Disables a user account, requiring a reason.")
             .Produces(StatusCodes.Status204NoContent)

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using WardenId.Protocol.Application;
 using WardenId.Protocol.Domain;
 using WardenId.SharedKernel.Application;
 using WardenId.SharedKernel.Application.Abstractions;
@@ -45,7 +46,7 @@ public sealed class Endpoint : IEndpoint
             : "The user can no longer sign in.";
 
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app) =>
-        app.MapPost(ProtocolRoutes.TenantIssuer + "/token", async (
+        app.MapPost(ProtocolRoutes.UnderTenantIssuer(ProtocolPaths.Endpoints.Token), async (
                 HttpContext httpContext,
                 [FromServices] ISender sender,
                 [FromServices] ITenantContext tenantContext,
@@ -129,7 +130,7 @@ public sealed class Endpoint : IEndpoint
                     authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             })
             .AllowAnonymous()
-            .WithTags("Protocol - Token")
+            .WithTags(EndpointTags.Token)
             .WithSummary("OAuth 2.0 token endpoint (authorization_code, refresh_token, client_credentials)")
             .ExcludeFromDescription();
 }

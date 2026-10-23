@@ -8,8 +8,9 @@ public sealed class Email : ValueObject
 {
     public const int MaxLength = 254;
 
-    private static readonly Regex FormatRegex =
-        new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
+    private const string FormatPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+
+    private static readonly Regex FormatRegex = new(FormatPattern, RegexOptions.Compiled);
 
     public string Value { get; }
 

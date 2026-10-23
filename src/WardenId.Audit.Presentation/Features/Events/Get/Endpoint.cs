@@ -14,12 +14,12 @@ public sealed class Endpoint : IEndpoint
 {
     public IEndpointConventionBuilder MapEndpoint(IEndpointRouteBuilder app)
     {
-        var apiVersionSet = app.NewApiVersionSet("Audit")
+        var apiVersionSet = app.NewApiVersionSet(ApiVersionSets.Audit)
             .HasApiVersion(new ApiVersion(1))
             .ReportApiVersions()
             .Build();
 
-        return app.MapGet("/api/v{version:apiVersion}/audit/events/{eventId:guid}", async (
+        return app.MapGet(EndpointRoutes.Events.Get, async (
                 [FromRoute] Guid eventId,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
@@ -32,7 +32,7 @@ public sealed class Endpoint : IEndpoint
             .MapToApiVersion(new ApiVersion(1))
             .WithName(EndpointNames.Events.Get)
             .RequireAuthorization()
-            .WithTags("Audit - Events")
+            .WithTags(EndpointTags.Events)
             .WithSummary("Get an audit event")
             .WithDescription(
                 "Returns one audit event with its decoded payload: actor, targets, outcome, client, authentication " +

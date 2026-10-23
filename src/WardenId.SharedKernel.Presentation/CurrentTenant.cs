@@ -7,7 +7,7 @@ namespace WardenId.SharedKernel.Presentation;
 public sealed class CurrentTenant(
     IHttpContextAccessor httpContextAccessor) : ICurrentTenant
 {
-    public string Slug => (httpContextAccessor.HttpContext?.Request.RouteValues["slug"] as string)!;
+    public string Slug => (httpContextAccessor.HttpContext?.Request.RouteValues[RouteParameters.Slug] as string)!;
 
     public Guid TenantId
     {

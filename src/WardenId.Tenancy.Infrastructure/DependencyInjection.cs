@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WardenId.SharedKernel.Persistence;
@@ -16,7 +17,7 @@ public static class DependencyInjection
     {
         services.AddDataProtection()
             .PersistKeysToDbContext<TenancyDbContext>()
-            .SetApplicationName("WardenId");
+            .SetApplicationName(DataProtectionSettings.ApplicationName);
 
         services.AddScoped<ISigningKeyGenerator, Es256SigningKeyGenerator>();
         services.AddTenancyPersistence(configuration);
@@ -32,7 +33,7 @@ public static class DependencyInjection
                 configuration.GetConnectionString(AppConfigurationConstants.DbConnectionStringKey) ??
                 throw new InvalidOperationException(AppConfigurationConstants.NotFoundConnectionStringMessage),
                 postgresSql =>
-                    postgresSql.MigrationsHistoryTable("__EFMigrationsHistory", TenancyDbContext.Schema));
+                    postgresSql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, TenancyDbContext.Schema));
             options.AddSharedInterceptors(serviceProvider);
         });
 
