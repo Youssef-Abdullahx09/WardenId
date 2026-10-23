@@ -3,8 +3,9 @@ using Microsoft.Extensions.Options;
 using OpenIddict.Server;
 using OpenIddict.Server.AspNetCore;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Utilities;
 using WardenId.SharedKernel.Application.Abstractions;
-using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Domain.Utilities;
 using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace WardenId.Protocol.Infrastructure.OpenIddict.Handlers;

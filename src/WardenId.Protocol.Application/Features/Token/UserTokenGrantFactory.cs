@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.Extensions.Options;
 using WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication;
 using WardenId.Protocol.Application.Features.Policies;
+using WardenId.Protocol.Application.Utilities;
 using WardenId.Protocol.Domain;
 using GetForAuthenticationQuery = WardenId.ClientManagement.Integration.Command.Features.Clients.GetForAuthentication.Query;
 using GetForSignInQuery = WardenId.Identity.Integration.Command.Features.Users.GetForSignIn.Query;

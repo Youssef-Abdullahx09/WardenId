@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Utilities;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Infrastructure.Persistence;
+using WardenId.Tenancy.Infrastructure.Utilities;
 
 namespace WardenId.Tenancy.Infrastructure;
 

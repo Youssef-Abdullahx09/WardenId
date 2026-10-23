@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using WardenId.ClientManagement.Presentation.Utilities;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
 
 namespace WardenId.ClientManagement.Presentation.Features.Clients.PostLogoutRedirectUris.Replace;
 

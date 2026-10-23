@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Presentation.Cors;
+using WardenId.Protocol.Presentation.Utilities;
 
 namespace WardenId.Protocol.Presentation;
 

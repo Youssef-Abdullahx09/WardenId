@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Application.Features.BackchannelLogout;
 using WardenId.Protocol.Infrastructure.Sessions;
+using WardenId.Protocol.Infrastructure.Utilities;
 
 namespace WardenId.Protocol.Infrastructure.BackchannelLogout;
 

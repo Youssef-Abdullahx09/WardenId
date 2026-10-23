@@ -1,6 +1,7 @@
 using FluentResults;
 using MediatR;
 using WardenId.Identity.Application.Abstractions;
+using WardenId.Identity.Application.Utilities;
 
 namespace WardenId.Identity.Application.Features.Users.VerifyEmail;
 

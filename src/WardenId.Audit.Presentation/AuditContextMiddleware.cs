@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.JsonWebTokens;
 using WardenId.Audit.Application;
 using WardenId.Audit.Domain;
-using WardenId.SharedKernel.Application;
+using WardenId.SharedKernel.Application.Utilities;
 using WardenId.SharedKernel.Presentation;
 
 namespace WardenId.Audit.Presentation;

@@ -1,7 +1,7 @@
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
-using WardenId.SharedKernel.Application;
 using WardenId.SharedKernel.Application.Abstractions;
+using WardenId.SharedKernel.Application.Utilities;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
 

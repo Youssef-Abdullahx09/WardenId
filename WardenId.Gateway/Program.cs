@@ -5,7 +5,7 @@ using WardenId.Gateway.DependencyInjection;
 using WardenId.Gateway.Health;
 using WardenId.Gateway.Utilities;
 using WardenId.SharedKernel.Infrastructure;
-using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 

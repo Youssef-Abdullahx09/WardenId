@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
-using WardenId.SharedKernel.Application;
+using WardenId.SharedKernel.Application.Utilities;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace WardenId.Protocol.Presentation.Tests;

@@ -1,5 +1,7 @@
 @page "/tenants/{slug}/logout"
 @model LogoutModel
+@using WardenId.Protocol.Presentation.Utilities
+@using WardenId.Protocol.Application.Utilities
 @{ ViewData["Title"] = "Sign out"; }
 
 @if (Model.Cancelled)

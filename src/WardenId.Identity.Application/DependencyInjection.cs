@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using WardenId.Identity.Application.Abstractions;
+using WardenId.Identity.Application.Utilities;
 
 namespace WardenId.Identity.Application;
 

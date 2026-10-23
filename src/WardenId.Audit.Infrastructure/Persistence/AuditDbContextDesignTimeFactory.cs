@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
-using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.Audit.Infrastructure.Persistence;
 

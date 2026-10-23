@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Application.Features.BackchannelLogout;
+using WardenId.Protocol.Application.Utilities;
 using GetActiveForSigningQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetActiveForSigning.Query;
 
 namespace WardenId.Protocol.Infrastructure.BackchannelLogout;

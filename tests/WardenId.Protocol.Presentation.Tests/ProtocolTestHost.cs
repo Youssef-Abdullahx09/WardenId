@@ -21,7 +21,7 @@ using WardenId.Protocol.Infrastructure.Persistence;
 using WardenId.Protocol.Infrastructure.Sessions;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Presentation;
-using ConfigurationKeys = WardenId.Protocol.Infrastructure.ConfigurationKeys;
+using ConfigurationKeys = WardenId.Protocol.Infrastructure.Utilities.ConfigurationKeys;
 
 namespace WardenId.Protocol.Presentation.Tests;
 

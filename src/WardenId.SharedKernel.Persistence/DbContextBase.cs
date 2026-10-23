@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.SharedKernel.Persistence;
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Net.Http.Headers;
+using WardenId.Protocol.Presentation.Utilities;
 
 namespace WardenId.Protocol.Presentation;
 

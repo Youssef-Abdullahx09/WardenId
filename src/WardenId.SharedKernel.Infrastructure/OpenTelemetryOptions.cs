@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Configuration;
+using WardenId.SharedKernel.Infrastructure.Utilities;
 
 namespace WardenId.SharedKernel.Infrastructure;
 

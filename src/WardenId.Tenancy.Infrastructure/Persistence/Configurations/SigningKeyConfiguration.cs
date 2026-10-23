@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Utilities;
 using WardenId.Tenancy.Domain;
 
 namespace WardenId.Tenancy.Infrastructure.Persistence.Configurations;

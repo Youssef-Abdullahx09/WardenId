@@ -1,4 +1,6 @@
 @model ReturnToApplication
+@using WardenId.Protocol.Presentation.Utilities
+@using WardenId.Protocol.Application.Utilities
 <form method="post" action="@ProtocolPaths.Tenant(Model.Slug, ProtocolPaths.Endpoints.Authorize)" asp-antiforgery="true">
     @foreach (var parameter in Model.Parameters)
     {

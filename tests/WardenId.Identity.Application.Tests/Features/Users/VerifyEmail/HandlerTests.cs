@@ -1,4 +1,5 @@
 using WardenId.Identity.Application.Features.Users.VerifyEmail;
+using WardenId.Identity.Application.Utilities;
 
 namespace WardenId.Identity.Application.Tests.Features.Users.VerifyEmail;
 

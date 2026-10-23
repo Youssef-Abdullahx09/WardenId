@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using WardenId.Audit.Application.Features.Events.Get;
+using WardenId.Audit.Presentation.Utilities;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
 
 namespace WardenId.Audit.Presentation.Features.Events.Get;
 

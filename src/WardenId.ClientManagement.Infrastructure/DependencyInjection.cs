@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WardenId.ClientManagement.Application.Abstractions;
 using WardenId.ClientManagement.Infrastructure.Persistence;
 using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.ClientManagement.Infrastructure;
 

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using WardenId.Audit.Application.Abstractions;
 using WardenId.Audit.Domain;
 using WardenId.Audit.Domain.Sealing;
+using WardenId.Audit.Domain.Utilities;
 using WardenId.Audit.Infrastructure.Persistence;
 
 namespace WardenId.Audit.Infrastructure.Sealing;

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using WardenId.Protocol.Application.Utilities;
 
 namespace WardenId.Protocol.Application.Features.Authorize;
 

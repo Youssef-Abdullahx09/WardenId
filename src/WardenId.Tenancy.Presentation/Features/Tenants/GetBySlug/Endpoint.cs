@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
 using WardenId.Tenancy.Application.Features.Tenants.Get;
+using WardenId.Tenancy.Presentation.Utilities;
 using Query = WardenId.Tenancy.Application.Features.Tenants.GetBySlug.Query;
 
 namespace WardenId.Tenancy.Presentation.Features.Tenants.GetBySlug;

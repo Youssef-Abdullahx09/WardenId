@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.WebUtilities;
 using WardenId.Protocol.Application.Features.Authorize;
+using WardenId.Protocol.Presentation.Utilities;
 
 namespace WardenId.Protocol.Presentation.Features.Tenants;
 

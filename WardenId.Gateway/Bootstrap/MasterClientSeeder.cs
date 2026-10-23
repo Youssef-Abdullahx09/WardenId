@@ -1,13 +1,13 @@
-using WardenId.Audit.Application;
-using WardenId.Audit.Domain;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
+using WardenId.Audit.Application;
+using WardenId.Audit.Domain;
 using WardenId.ClientManagement.Application;
 using WardenId.ClientManagement.Application.Abstractions;
 using WardenId.ClientManagement.Domain;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Domain;
-using WardenId.Tenancy.Infrastructure;
+using WardenId.Tenancy.Infrastructure.Utilities;
 
 namespace WardenId.Gateway.Bootstrap;
 

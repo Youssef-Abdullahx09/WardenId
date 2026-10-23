@@ -1,7 +1,7 @@
 using FluentResults;
 using MediatR;
 using WardenId.Protocol.Domain;
-using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Domain.Utilities;
 using WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance;
 using ResolveForIssuanceQuery = WardenId.Tenancy.Integration.Command.Features.Tenants.ResolveForIssuance.Query;
 

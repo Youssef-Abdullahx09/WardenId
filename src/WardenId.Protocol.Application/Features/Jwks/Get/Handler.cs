@@ -1,7 +1,7 @@
 using System.Text.Json;
 using FluentResults;
 using MediatR;
-using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Domain.Utilities;
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
 
 namespace WardenId.Protocol.Application.Features.Jwks.Get;

@@ -1,5 +1,6 @@
 using System.Data;
 using Dapper;
+using WardenId.SharedKernel.Query.Utilities;
 
 namespace WardenId.SharedKernel.Query;
 

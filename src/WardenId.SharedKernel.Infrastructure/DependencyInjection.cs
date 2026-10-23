@@ -8,6 +8,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using WardenId.SharedKernel.Application.Abstractions;
+using WardenId.SharedKernel.Infrastructure.Utilities;
 
 namespace WardenId.SharedKernel.Infrastructure;
 

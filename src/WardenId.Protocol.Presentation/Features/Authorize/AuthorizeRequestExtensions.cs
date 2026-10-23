@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using OpenIddict.Abstractions;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Utilities;
+using WardenId.Protocol.Presentation.Utilities;
 
 namespace WardenId.Protocol.Presentation.Features.Authorize;
 

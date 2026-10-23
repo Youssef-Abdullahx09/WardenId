@@ -1,4 +1,5 @@
 using System.Text;
+using WardenId.Audit.Domain.Utilities;
 
 namespace WardenId.Audit.Domain;
 

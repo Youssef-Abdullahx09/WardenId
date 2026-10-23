@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.IdentityModel.JsonWebTokens;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
-using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Utilities;
 using WardenId.Protocol.Domain.Sessions;
 
 namespace WardenId.Protocol.Presentation.Tests;

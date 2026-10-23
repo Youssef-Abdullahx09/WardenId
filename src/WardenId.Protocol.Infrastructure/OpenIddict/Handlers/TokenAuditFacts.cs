@@ -3,6 +3,7 @@ using System.Security.Claims;
 using OpenIddict.Abstractions;
 using WardenId.Audit.Integration.Command.Features.Events.Record;
 using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Utilities;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace WardenId.Protocol.Infrastructure.OpenIddict.Handlers;

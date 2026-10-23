@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
-using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Features.Jwks.Get;
-using JwksQuery = WardenId.Protocol.Application.Features.Jwks.Get.Query;
+using WardenId.Protocol.Application.Utilities;
+using WardenId.Protocol.Presentation.Utilities;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
+using JwksQuery = WardenId.Protocol.Application.Features.Jwks.Get.Query;
 
 namespace WardenId.Protocol.Presentation.Features.Jwks.Get;
 

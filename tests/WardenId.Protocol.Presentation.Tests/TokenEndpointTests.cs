@@ -7,8 +7,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Server;
-using WardenId.Protocol.Application;
-using WardenId.SharedKernel.Application;
+using WardenId.Protocol.Application.Utilities;
+using WardenId.SharedKernel.Application.Utilities;
 
 namespace WardenId.Protocol.Presentation.Tests;
 

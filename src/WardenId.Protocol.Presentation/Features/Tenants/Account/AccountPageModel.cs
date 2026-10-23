@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WardenId.Protocol.Application.Features.Account.Get;
 using WardenId.Protocol.Application.Features.Authorize;
+using WardenId.Protocol.Presentation.Utilities;
 using GetAccountQuery = WardenId.Protocol.Application.Features.Account.Get.Query;
 using ResolveTenantQuery = WardenId.Protocol.Application.Features.Authorize.ResolveTenant.Query;
 

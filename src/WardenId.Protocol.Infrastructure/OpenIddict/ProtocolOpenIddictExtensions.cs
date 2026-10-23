@@ -5,9 +5,11 @@ using OpenIddict.Server;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Abstractions;
 using WardenId.Protocol.Application.Features.Grants;
+using WardenId.Protocol.Application.Utilities;
 using WardenId.Protocol.Infrastructure.Grants;
 using WardenId.Protocol.Infrastructure.OpenIddict.Handlers;
 using WardenId.Protocol.Infrastructure.OpenIddict.Stores;
+using WardenId.Protocol.Infrastructure.Utilities;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace WardenId.Protocol.Infrastructure.OpenIddict;
@@ -22,7 +24,7 @@ public static class ProtocolOpenIddictExtensions
     public static void AddProtocolOpenIddict(this IServiceCollection services, IConfiguration configuration)
     {
         var tokenOptions = configuration
-            .GetSection(WardenId.Protocol.Application.ConfigurationKeys.ProtocolToken.Section)
+            .GetSection(WardenId.Protocol.Application.Utilities.ConfigurationKeys.ProtocolToken.Section)
             .Get<ProtocolTokenOptions>() ?? new ProtocolTokenOptions();
 
         services.AddHttpContextAccessor();
@@ -114,7 +116,7 @@ public static class ProtocolOpenIddictExtensions
                     .EnableTokenEndpointPassthrough()
                     .EnableUserInfoEndpointPassthrough()
                     .EnableEndSessionEndpointPassthrough();
-                if (configuration.GetValue<bool>(ConfigurationKeys.ProtocolOpenIddict.DisableTransportSecurityRequirement))
+                if (configuration.GetValue<bool>(Utilities.ConfigurationKeys.ProtocolOpenIddict.DisableTransportSecurityRequirement))
                     aspNetCore.DisableTransportSecurityRequirement();
             });
     }

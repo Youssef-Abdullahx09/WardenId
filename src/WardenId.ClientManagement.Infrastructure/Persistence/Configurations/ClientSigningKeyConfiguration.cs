@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using WardenId.ClientManagement.Domain;
-using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.ClientManagement.Infrastructure.Persistence.Configurations;
 

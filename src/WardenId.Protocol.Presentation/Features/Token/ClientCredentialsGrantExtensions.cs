@@ -1,9 +1,9 @@
 using System.Security.Claims;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
-using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Features.Token.ClientCredentials;
-using WardenId.SharedKernel.Application;
+using WardenId.Protocol.Application.Utilities;
+using WardenId.SharedKernel.Application.Utilities;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace WardenId.Protocol.Presentation.Features.Token;

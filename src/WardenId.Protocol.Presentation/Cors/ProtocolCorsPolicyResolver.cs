@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Utilities;
 using ListAllowedOriginsQuery = WardenId.Protocol.Application.Features.Cors.ListAllowedOrigins.Query;
 
 namespace WardenId.Protocol.Presentation.Cors;

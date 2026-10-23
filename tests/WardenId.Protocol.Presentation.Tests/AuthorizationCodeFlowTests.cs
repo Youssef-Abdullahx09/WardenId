@@ -3,8 +3,8 @@ using System.Text.Json;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using WardenId.Identity.Integration.Command.Features.Users.Authenticate;
-using WardenId.Protocol.Application;
-using WardenId.SharedKernel.Application;
+using WardenId.Protocol.Application.Utilities;
+using WardenId.SharedKernel.Application.Utilities;
 
 namespace WardenId.Protocol.Presentation.Tests;
 

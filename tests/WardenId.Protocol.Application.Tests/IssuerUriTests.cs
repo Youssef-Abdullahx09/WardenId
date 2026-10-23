@@ -1,3 +1,5 @@
+using WardenId.Protocol.Application.Utilities;
+
 namespace WardenId.Protocol.Application.Tests;
 
 public class IssuerUriTests

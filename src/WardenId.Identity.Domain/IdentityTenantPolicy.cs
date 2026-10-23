@@ -1,6 +1,7 @@
 using FluentResults;
 using WardenId.Identity.Domain.Events;
 using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.Identity.Domain;
 

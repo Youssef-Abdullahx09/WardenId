@@ -4,7 +4,8 @@ using FluentResults;
 using MediatR;
 using WardenId.Audit.Application.Abstractions;
 using WardenId.Audit.Domain;
-using WardenId.SharedKernel.Domain;
+using WardenId.Audit.Domain.Utilities;
+using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.Audit.Application.Features.Verification.Verify;
 

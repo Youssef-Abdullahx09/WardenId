@@ -1,5 +1,6 @@
 using System.Text;
 using FluentResults;
+using WardenId.Audit.Domain.Utilities;
 
 namespace WardenId.Audit.Domain;
 

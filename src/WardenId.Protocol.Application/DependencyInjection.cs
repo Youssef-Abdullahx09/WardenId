@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using WardenId.Protocol.Application.Auditing;
 using WardenId.Protocol.Application.Features.Policies;
 using WardenId.Protocol.Application.Features.Token;
+using WardenId.Protocol.Application.Utilities;
 
 namespace WardenId.Protocol.Application;
 

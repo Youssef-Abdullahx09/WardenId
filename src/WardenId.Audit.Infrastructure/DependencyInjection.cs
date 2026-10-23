@@ -10,9 +10,11 @@ using WardenId.Audit.Infrastructure.Exporting;
 using WardenId.Audit.Infrastructure.Persistence;
 using WardenId.Audit.Infrastructure.Retention;
 using WardenId.Audit.Infrastructure.Sealing;
+using WardenId.Audit.Infrastructure.Utilities;
 using WardenId.Audit.Infrastructure.Witnessing;
 using WardenId.SharedKernel.Application.Abstractions;
 using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.Audit.Infrastructure;
 

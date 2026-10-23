@@ -2,8 +2,8 @@ using System.Data;
 using Microsoft.EntityFrameworkCore;
 using WardenId.Audit.Domain;
 using WardenId.Audit.Infrastructure.Persistence;
-using WardenId.SharedKernel.Persistence;
 using WardenId.SharedKernel.Persistence.Audit;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.Audit.Infrastructure.Sealing;
 

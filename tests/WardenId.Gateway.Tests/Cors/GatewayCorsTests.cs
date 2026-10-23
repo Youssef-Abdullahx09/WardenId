@@ -8,8 +8,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WardenId.Gateway.Cors;
-using WardenId.Protocol.Presentation;
 using WardenId.Protocol.Presentation.Cors;
+using WardenId.Protocol.Presentation.Utilities;
 using ListAllowedOriginsQuery = WardenId.Protocol.Application.Features.Cors.ListAllowedOrigins.Query;
 
 namespace WardenId.Gateway.Tests.Cors;

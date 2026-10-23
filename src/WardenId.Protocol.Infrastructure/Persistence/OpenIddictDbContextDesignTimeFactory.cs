@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using WardenId.Protocol.Infrastructure.OpenIddict;
-using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.Protocol.Infrastructure.Persistence;
 

@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using WardenId.SharedKernel.Application;
+using WardenId.SharedKernel.Application.Utilities;
+using WardenId.SharedKernel.Presentation.Utilities;
 
 namespace WardenId.SharedKernel.Presentation;
 

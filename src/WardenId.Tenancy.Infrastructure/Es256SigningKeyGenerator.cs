@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
-using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Domain.Utilities;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Domain;
 

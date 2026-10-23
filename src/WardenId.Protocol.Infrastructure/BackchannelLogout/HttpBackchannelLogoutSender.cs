@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Features.BackchannelLogout;
+using WardenId.Protocol.Application.Utilities;
 
 namespace WardenId.Protocol.Infrastructure.BackchannelLogout;
 

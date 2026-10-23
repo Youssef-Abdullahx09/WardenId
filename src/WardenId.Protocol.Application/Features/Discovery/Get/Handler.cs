@@ -1,7 +1,8 @@
 using FluentResults;
 using MediatR;
 using Microsoft.Extensions.Options;
-using WardenId.SharedKernel.Domain;
+using WardenId.Protocol.Application.Utilities;
+using WardenId.SharedKernel.Domain.Utilities;
 using GetPublicKeysQuery = WardenId.Tenancy.Integration.Command.Features.SigningKeys.GetPublicKeys.Query;
 
 namespace WardenId.Protocol.Application.Features.Discovery.Get;

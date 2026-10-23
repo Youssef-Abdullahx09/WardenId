@@ -1,4 +1,5 @@
 using WardenId.Identity.Integration.Command.Features.Users.GetForSignIn;
+using WardenId.Protocol.Application.Utilities;
 
 namespace WardenId.Protocol.Application;
 

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.SharedKernel.Persistence.Audit;
 

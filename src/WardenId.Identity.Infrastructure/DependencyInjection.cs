@@ -6,6 +6,7 @@ using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Domain;
 using WardenId.Identity.Infrastructure.Persistence;
 using WardenId.SharedKernel.Persistence;
+using WardenId.SharedKernel.Persistence.Utilities;
 
 namespace WardenId.Identity.Infrastructure;
 

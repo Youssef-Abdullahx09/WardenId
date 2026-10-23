@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using WardenId.Audit.Application;
-using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.Audit.Infrastructure.Sealing;
 

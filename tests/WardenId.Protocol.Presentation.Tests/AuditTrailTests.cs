@@ -2,7 +2,7 @@ using System.Net;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using WardenId.Audit.Integration.Command.Features.Events.Record;
-using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Utilities;
 using static WardenId.Protocol.Presentation.Tests.TokenFlow;
 using RecordAuditEventCommand = WardenId.Audit.Integration.Command.Features.Events.Record.Command;
 

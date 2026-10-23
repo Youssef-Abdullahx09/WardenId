@@ -1,6 +1,7 @@
 using FluentResults;
 using WardenId.Identity.Application.Abstractions;
 using WardenId.Identity.Application.Features.Users.Register;
+using WardenId.Identity.Application.Utilities;
 using WardenId.Identity.Domain;
 
 namespace WardenId.Identity.Application.Features.Users;

@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using Npgsql;
+using WardenId.SharedKernel.Query.Utilities;
 
 namespace WardenId.SharedKernel.Query;
 

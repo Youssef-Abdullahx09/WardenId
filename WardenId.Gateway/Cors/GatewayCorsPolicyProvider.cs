@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Options;
 using WardenId.Protocol.Presentation.Cors;
-using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
 
 namespace WardenId.Gateway.Cors;
 

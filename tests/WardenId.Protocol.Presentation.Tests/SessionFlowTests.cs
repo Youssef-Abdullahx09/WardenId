@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.IdentityModel.JsonWebTokens;
 using OpenIddict.EntityFrameworkCore.Models;
-using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Utilities;
 using WardenId.Protocol.Domain.Sessions;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using EndSessionCommand = WardenId.Protocol.Application.Features.Sessions.End.Command;

@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
-using WardenId.Protocol.Application;
 using WardenId.Protocol.Application.Features.Discovery.Get;
-using DiscoveryQuery = WardenId.Protocol.Application.Features.Discovery.Get.Query;
+using WardenId.Protocol.Application.Utilities;
+using WardenId.Protocol.Presentation.Utilities;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
+using DiscoveryQuery = WardenId.Protocol.Application.Features.Discovery.Get.Query;
 
 namespace WardenId.Protocol.Presentation.Features.Discovery.Get;
 

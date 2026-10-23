@@ -6,7 +6,7 @@ using WardenId.Identity.Application.Features.Users.Register;
 using WardenId.Identity.Domain;
 using WardenId.Tenancy.Application.Abstractions;
 using WardenId.Tenancy.Domain;
-using WardenId.Tenancy.Infrastructure;
+using WardenId.Tenancy.Infrastructure.Utilities;
 
 namespace WardenId.Gateway.Bootstrap;
 

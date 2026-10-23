@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using WardenId.Protocol.Application;
-using WardenId.SharedKernel.Domain;
+using WardenId.Protocol.Application.Utilities;
+using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.Protocol.Presentation;
 

@@ -10,7 +10,7 @@ using WardenId.Identity.Infrastructure.Persistence;
 using WardenId.Protocol.Infrastructure.OpenIddict;
 using WardenId.Protocol.Infrastructure.Persistence;
 using WardenId.Tenancy.Infrastructure.Persistence;
-using RabbitMqKeys = WardenId.SharedKernel.Infrastructure.ConfigurationKeys.RabbitMq;
+using RabbitMqKeys = WardenId.SharedKernel.Infrastructure.Utilities.ConfigurationKeys.RabbitMq;
 
 namespace WardenId.Gateway.Health;
 

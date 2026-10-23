@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using WardenId.Protocol.Application.Features.Sessions.ListForUser;
-using ListForUserQuery = WardenId.Protocol.Application.Features.Sessions.ListForUser.Query;
+using WardenId.Protocol.Presentation.Utilities;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
+using ListForUserQuery = WardenId.Protocol.Application.Features.Sessions.ListForUser.Query;
 
 namespace WardenId.Protocol.Presentation.Features.Sessions.ListForUser;
 

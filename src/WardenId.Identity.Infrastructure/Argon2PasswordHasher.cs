@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Isopoh.Cryptography.Argon2;
 using WardenId.Identity.Domain;
+using WardenId.Identity.Domain.Utilities;
 
 namespace WardenId.Identity.Infrastructure;
 

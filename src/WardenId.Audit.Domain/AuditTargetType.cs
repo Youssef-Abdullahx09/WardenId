@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
+using WardenId.Audit.Domain.Utilities;
 using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.Audit.Domain;
 

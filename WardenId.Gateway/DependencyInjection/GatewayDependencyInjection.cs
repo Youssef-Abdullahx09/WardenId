@@ -7,6 +7,7 @@ using WardenId.Gateway.Authentication;
 using WardenId.Gateway.Cors;
 using WardenId.Gateway.Utilities;
 using WardenId.SharedKernel.Presentation;
+using WardenId.SharedKernel.Presentation.Utilities;
 
 namespace WardenId.Gateway.DependencyInjection;
 

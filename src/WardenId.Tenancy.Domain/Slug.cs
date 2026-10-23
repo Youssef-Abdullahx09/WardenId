@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using FluentResults;
 using WardenId.SharedKernel.Domain;
+using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.Tenancy.Domain;
 

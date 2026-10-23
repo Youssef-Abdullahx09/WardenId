@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
-using WardenId.Protocol.Application;
+using WardenId.Protocol.Application.Utilities;
 using WardenId.SharedKernel.Application.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
