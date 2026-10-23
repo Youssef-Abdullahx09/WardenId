@@ -81,7 +81,7 @@ public class HandlerTests
     public async Task Handle_ReturnsNotFound_ForSoftDeletedClient()
     {
         var client = ClientBuilder.Confidential(TenantId);
-        client.MarkAsDeleted(Guid.Empty);
+        client.Delete();
         await using var db = await ClientBuilder.SeedAsync(client);
 
         var result = await new Handler(db).Handle(new Query(TenantId, client.ClientId.Value), CancellationToken.None);

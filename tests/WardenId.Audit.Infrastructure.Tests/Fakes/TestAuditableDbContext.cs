@@ -19,7 +19,7 @@ internal sealed class TestAuditableDbContext(DbContextOptions<TestAuditableDbCon
         modelBuilder.Entity<ParentAggregate>(builder =>
         {
             builder.Ignore(a => a.DomainEvents);
-            builder.HasMany(a => a.Keys).WithOne().OnDelete(DeleteBehavior.Cascade);
+            builder.HasMany(a => a.Keys).WithOne().IsRequired().OnDelete(DeleteBehavior.Cascade);
             builder.Navigation(a => a.Keys).UsePropertyAccessMode(PropertyAccessMode.Field);
             builder.HasMany(a => a.Notes).WithOne().HasForeignKey("NoteOwnerId").OnDelete(DeleteBehavior.Cascade);
             builder.Navigation(a => a.Notes).UsePropertyAccessMode(PropertyAccessMode.Field);

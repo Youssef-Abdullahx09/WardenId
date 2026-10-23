@@ -18,7 +18,7 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("Tenancy")
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -51,6 +51,16 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("Actor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ActorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<byte[]>("LeafHash")
                         .IsRequired()
                         .HasColumnType("bytea");
@@ -58,18 +68,37 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<byte[]>("Payload")
                         .HasColumnType("bytea");
 
                     b.Property<long?>("Sequence")
                         .HasColumnType("bigint");
 
+                    b.PrimitiveCollection<string[]>("Targets")
+                        .HasColumnType("text[]");
+
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id", "Channel");
 
+                    b.HasIndex("Targets");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Targets"), "gin");
+
+                    b.HasIndex("Actor", "OccurredAt");
+
+                    b.HasIndex("ActorId", "OccurredAt");
+
                     b.HasIndex("Channel", "Sequence");
+
+                    b.HasIndex("EventType", "OccurredAt");
+
+                    b.HasIndex("Outcome", "OccurredAt");
 
                     b.HasIndex("TenantId", "OccurredAt");
 
@@ -95,27 +124,9 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<byte[]>("EncryptedPrivateKey")
                         .IsRequired()
                         .HasColumnType("bytea");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("PublicKeyJwk")
                         .IsRequired()
@@ -140,8 +151,6 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.HasIndex("TenantId")
                         .IsUnique()
                         .HasDatabaseName("IX_TenantSigningKeys_TenantId_ActiveUnique")
@@ -158,28 +167,10 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -205,8 +196,6 @@ namespace WardenId.Tenancy.Infrastructure.Persistence
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("Slug")
                         .IsUnique();

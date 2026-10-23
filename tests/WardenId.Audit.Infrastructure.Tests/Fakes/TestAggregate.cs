@@ -2,10 +2,13 @@ using WardenId.SharedKernel.Domain;
 
 namespace WardenId.Audit.Infrastructure.Tests.Fakes;
 
-internal sealed class TestAggregate : AggregateRoot, IAuditableAggregate
+internal sealed class TestAggregate : AggregateRoot, IAuditableAggregate, ICreationTracked, ISoftDeletable
 {
     public string Name { get; private set; }
     public string Secret { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTimeOffset? DeletedAt { get; private set; }
 
     private TestAggregate(string name, string secret)
     {
@@ -17,6 +20,12 @@ internal sealed class TestAggregate : AggregateRoot, IAuditableAggregate
 
     public void Rename(string name) => Name = name;
     public void SetSecret(string secret) => Secret = secret;
+
+    public void Delete()
+    {
+        IsDeleted = true;
+        DeletedAt = DateTimeOffset.UtcNow;
+    }
 
     public string AuditTargetTypeKey => "tenant";
     public AuditableChannel AuditChannel => AuditableChannel.AdminDirectory;

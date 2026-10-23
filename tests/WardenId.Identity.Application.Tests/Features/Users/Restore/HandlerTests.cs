@@ -8,7 +8,6 @@ public class HandlerTests
     {
         var user = TestUsers.CreatePendingVerification(tenantId);
         user.SoftDelete();
-        user.MarkAsDeleted(Guid.NewGuid());
         var repository = new FakeUserRepository();
         await repository.CreateAsync(user, user.Id, CancellationToken.None);
         return (repository, user);

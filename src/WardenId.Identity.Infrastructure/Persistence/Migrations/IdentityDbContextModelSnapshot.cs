@@ -31,29 +31,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ConsumedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTimeOffset>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
@@ -64,8 +43,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.HasIndex("UserId");
 
                     b.ToTable("EmailVerificationTokens", "Identity");
@@ -74,27 +51,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("WardenId.Identity.Domain.IdentityTenantPolicy", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
                         .HasColumnType("uuid");
 
                     b.Property<TimeSpan?>("LockoutDuration")
@@ -137,8 +93,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.HasIndex("TenantId")
                         .IsUnique();
 
@@ -150,21 +104,9 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("CredentialData")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
 
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean");
@@ -177,17 +119,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
                     b.Property<long?>("LastAcceptedTimeStep")
                         .HasColumnType("bigint");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("LastUsedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -205,8 +138,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("UserId");
 
@@ -226,30 +157,9 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<int>("AlgorithmVersion")
                         .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Hash")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("SetAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -258,8 +168,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -277,30 +185,9 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Hash")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("SetAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -309,8 +196,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("UserId");
 
@@ -325,29 +210,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ConsumedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTimeOffset>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
@@ -357,8 +221,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("UserId");
 
@@ -374,27 +236,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTimeOffset?>("UsedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -409,8 +250,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.HasIndex("UserId");
 
                     b.ToTable("RecoveryCodes", "Identity");
@@ -424,14 +263,8 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
+                    b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -440,12 +273,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<string[]>("PendingActions")
                         .IsRequired()
@@ -494,31 +321,10 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -533,8 +339,6 @@ namespace WardenId.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("UserId");
 

@@ -3,41 +3,4 @@ namespace WardenId.SharedKernel.Domain;
 public abstract class Entity : IEntity
 {
     public Guid Id { get; private set; } = Guid.CreateVersion7();
-    
-    public Guid CreatedById { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    
-    public Guid? LastModificationById { get; private set; }
-    public DateTimeOffset? LastModificationAt { get; private set; }
-    
-    public Guid? DeletedById { get; private set; }
-    public DateTime? DeletedAt { get; private set; }
-    public bool IsDeleted { get; private set; }
-
-    public void MarkAsCreated(Guid userId)
-    {
-        CreatedById = userId;
-        CreatedAt = DateTime.UtcNow;
-    }
-
-    public void MarkAsModified(Guid userId)
-    {
-        LastModificationById = userId;
-        LastModificationAt = DateTime.UtcNow;
-    }
-
-    public void MarkAsDeleted(Guid userId)
-    {
-        IsDeleted = true;
-        DeletedById = userId;
-        DeletedAt = DateTime.UtcNow;
-    }
-
-    /// <summary>Undoes <see cref="MarkAsDeleted"/>. The save that follows stamps the modification.</summary>
-    public void MarkAsRestored()
-    {
-        IsDeleted = false;
-        DeletedById = null;
-        DeletedAt = null;
-    }
 }

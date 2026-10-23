@@ -8,10 +8,10 @@ public static class ModelBuilderExtensions
     public static void ApplyIndexOnEntityIsDeleted(this ModelBuilder builder)
     {
         var entityTypes = builder.Model.GetEntityTypes()
-            .Where(x => typeof(IEntity).IsAssignableFrom(x.ClrType));
+            .Where(x => typeof(ISoftDeletable).IsAssignableFrom(x.ClrType));
 
         foreach (var entityType in entityTypes)
-            builder.Entity(entityType.ClrType).HasIndex(nameof(IEntity.IsDeleted));
+            builder.Entity(entityType.ClrType).HasIndex(nameof(ISoftDeletable.IsDeleted));
     }
 
     // Every Id is assigned client-side (Entity.Id = Guid.CreateVersion7()) before the entity
@@ -29,4 +29,4 @@ public static class ModelBuilderExtensions
         foreach (var entityType in entityTypes)
             builder.Entity(entityType.ClrType).Property(nameof(IEntity.Id)).ValueGeneratedNever();
     }
-}
+}

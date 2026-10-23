@@ -13,7 +13,6 @@ public class HandlerTests
         for (var i = 0; i < 3; i++)
         {
             var user = TestUsers.CreatePendingVerification(tenantId, $"someone{i}@example.com", $"someone{i}");
-            user.MarkAsCreated(Guid.NewGuid());
             seedContext.Users.Add(user);
         }
         await seedContext.SaveChangesAsync(CancellationToken.None);
@@ -107,9 +106,7 @@ public class HandlerTests
 
         using var seedContext = TestIdentityDbContext.CreateNew(databaseName);
         var deleted = TestUsers.CreatePendingVerification(tenantId, "deleted@example.com", "deleted");
-        deleted.MarkAsCreated(Guid.NewGuid());
         deleted.SoftDelete();
-        deleted.MarkAsDeleted(Guid.NewGuid());
         seedContext.Users.Add(deleted);
         await seedContext.SaveChangesAsync(CancellationToken.None);
 
@@ -197,7 +194,6 @@ public class HandlerTests
         foreach (var (email, username) in new[] { ("alice@example.com", "Alice.Smith"), ("bob@corp.test", "bobby"), ("carol@example.com", "c_ross") })
         {
             var user = TestUsers.CreatePendingVerification(tenantId, email, username);
-            user.MarkAsCreated(Guid.NewGuid());
             seedContext.Users.Add(user);
             seedContext.Entry(user).Property(u => u.CreatedAt).CurrentValue = createdAt;
             createdAt = createdAt.AddMinutes(1);

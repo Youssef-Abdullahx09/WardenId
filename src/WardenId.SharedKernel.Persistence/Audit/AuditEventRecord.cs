@@ -2,8 +2,8 @@ namespace WardenId.SharedKernel.Persistence.Audit;
 
 /// <summary>
 /// The persisted shape of one audit row — audit.events. Deliberately a bare POCO, not an
-/// Entity/AggregateRoot: no CreatedById/LastModificationById/IsDeleted (spec §11 — the actor
-/// is already inside Payload, and audit rows are never soft-deleted or updated except by the
+/// Entity/AggregateRoot: no client-side Guid v7 Id, domain events or soft delete (spec §11 — the
+/// actor is already inside Payload, and audit rows are never soft-deleted or updated except by the
 /// retention path nulling Payload). Deliberately primitive-typed rather than using
 /// WardenId.Audit.Domain's rich types (AuditChannel, etc.) — this project has zero dependency
 /// on Audit.Domain, so every module can map this same type without inverting the dependency

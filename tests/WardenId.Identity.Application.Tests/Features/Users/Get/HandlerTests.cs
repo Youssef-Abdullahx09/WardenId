@@ -10,7 +10,6 @@ public class HandlerTests
         var databaseName = Guid.NewGuid().ToString();
         var tenantId = Guid.NewGuid();
         var user = TestUsers.CreatePendingVerification(tenantId, "someone@example.com", "someone");
-        user.MarkAsCreated(Guid.NewGuid());
         var acceptedAt = new DateTimeOffset(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
         user.AcceptTerms(acceptedAt);
 
@@ -40,7 +39,6 @@ public class HandlerTests
         var databaseName = Guid.NewGuid().ToString();
         var tenantId = Guid.NewGuid();
         var user = TestUsers.CreatePendingVerification(tenantId, "someone@example.com", "someone");
-        user.MarkAsCreated(Guid.NewGuid());
         user.SetAttribute("department", "engineering", UserAttributeValueType.String);
         var factor = user.AddEnabledTotp(recoveryCodes: [RecoveryCode.Create("hash-1"), RecoveryCode.Create("hash-2")]);
         user.ConsumeRecoveryCode("hash-1", TestMfa.Now);
@@ -113,7 +111,7 @@ public class HandlerTests
         var databaseName = Guid.NewGuid().ToString();
         var tenantId = Guid.NewGuid();
         var user = TestUsers.CreatePendingVerification(tenantId);
-        user.MarkAsDeleted(Guid.NewGuid());
+        user.SoftDelete();
 
         using (var seedContext = TestIdentityDbContext.CreateNew(databaseName))
         {

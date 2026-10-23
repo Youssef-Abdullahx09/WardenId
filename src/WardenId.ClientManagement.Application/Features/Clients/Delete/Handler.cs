@@ -14,7 +14,9 @@ public sealed class Handler(
         var clientResult = await repository.GetByIdAsync(request.TenantId, request.ClientId, cancellationToken);
         if (clientResult.IsFailed) return Result.Fail(clientResult.Errors);
 
-        await repository.DeleteAsync(clientResult.Value, request.ActorId, cancellationToken);
+        var client = clientResult.Value;
+        client.Delete();
+        await repository.DeleteAsync(client, request.ActorId, cancellationToken);
 
         return Result.Ok();
     }

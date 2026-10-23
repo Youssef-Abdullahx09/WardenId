@@ -171,7 +171,7 @@ public sealed class AdminConfigCapturePostgresTests(PostgresFixture postgres)
         await using (var db = Clients(connectionString))
         {
             var loaded = await db.Clients.Include(c => c.Secrets).SingleAsync();
-            db.Clients.Remove(loaded);
+            loaded.Delete();
             await db.SaveChangesAsync(AdminId, CancellationToken.None);
         }
 
@@ -204,5 +204,40 @@ public sealed class AdminConfigCapturePostgresTests(PostgresFixture postgres)
 
         var (_, deleted) = events[2];
         Assert.Equal(AuditEventType.AdminEntityDelete, deleted.EventType);
+    }
+
+    [SkippableFact]
+    public async Task ClientDelete_DeletesItsSecretAndSigningKeyRows()
+    {
+        Skip.If(postgres.SkipReason is not null, postgres.SkipReason);
+        var connectionString = await MigratedDatabaseAsync();
+
+        var tenantId = Guid.NewGuid();
+        var client = Client.Create(
+            tenantId, ClientType.Confidential, "Machine", GrantType.ClientCredentials,
+            ClientAuthenticationMethod.PrivateKeyJwt, isFirstParty: false, consentRequired: false).Value;
+        Assert.True(client.AddSecret(ClientSecret.Create(SecretHash, "initial", expiresAt: null)).IsSuccess);
+        Assert.True(client.AddSigningKey(ClientSigningKey.Create("kid-1", "{}", "ES256", expiresAt: null)).IsSuccess);
+        using var scope = BeginAdminScope(tenantId);
+
+        await using (var db = Clients(connectionString))
+        {
+            db.Clients.Add(client);
+            await db.SaveChangesAsync(AdminId, CancellationToken.None);
+        }
+
+        await using (var db = Clients(connectionString))
+        {
+            var loaded = await db.Clients.Include(c => c.Secrets).Include(c => c.SigningKeys).SingleAsync();
+            loaded.Delete();
+            await db.SaveChangesAsync(AdminId, CancellationToken.None);
+        }
+
+        await using (var db = Clients(connectionString))
+        {
+            Assert.True((await db.Clients.SingleAsync()).IsDeleted);
+            Assert.Equal(0, await db.Set<ClientSecret>().CountAsync());
+            Assert.Equal(0, await db.Set<ClientSigningKey>().CountAsync());
+        }
     }
 }

@@ -5,7 +5,7 @@ using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.Identity.Domain;
 
-public sealed class User : AggregateRoot, IAuditableAggregate
+public sealed class User : AggregateRoot, IAuditableAggregate, ICreationTracked, ISoftDeletable
 {
     public string AuditTargetTypeKey => AuditTargetTypeKeys.User;
     public AuditableChannel AuditChannel => AuditableChannel.AdminDirectory;
@@ -32,6 +32,9 @@ public sealed class User : AggregateRoot, IAuditableAggregate
     public UserStatus Status { get; private set; }
     public PasswordCredential? Credential { get; private set; }
     public LoginLockoutState Lockout { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTimeOffset? DeletedAt { get; private set; }
 
     /// <summary>When the user last accepted the tenant's terms of service (see <see cref="AcceptTerms"/>), or null if never.</summary>
     public DateTimeOffset? TermsAcceptedAtUtc { get; private set; }
@@ -222,6 +225,8 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         if (Status == UserStatus.SoftDeleted) return Result.Fail(UserErrors.InvalidStatusTransition());
 
         Status = UserStatus.SoftDeleted;
+        IsDeleted = true;
+        DeletedAt = DateTimeOffset.UtcNow;
         RaiseDomainEvent(new UserSoftDeletedDomainEvent());
         return Result.Ok();
     }
@@ -235,6 +240,8 @@ public sealed class User : AggregateRoot, IAuditableAggregate
         if (Status != UserStatus.SoftDeleted) return Result.Fail(UserErrors.InvalidStatusTransition());
 
         Status = UserStatus.Disabled;
+        IsDeleted = false;
+        DeletedAt = null;
         RaiseDomainEvent(new UserRestoredDomainEvent());
         return Result.Ok();
     }

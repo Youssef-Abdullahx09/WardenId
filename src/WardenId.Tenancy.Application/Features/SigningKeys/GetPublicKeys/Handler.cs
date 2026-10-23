@@ -23,7 +23,7 @@ public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query
         var tenant = await dbContext.Tenants
             .AsNoTracking()
             .Include(t => t.SigningKeys)
-            .Where(t => t.Slug == slug && !t.IsDeleted)
+            .Where(t => t.Slug == slug)
             .Where(t => t.Status == Status.Active || t.Status == Status.Suspended)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -32,7 +32,7 @@ public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query
         // Retiring keys stay published so tokens signed before a rotation still verify;
         // Retired keys are withdrawn.
         var jwks = tenant.SigningKeys
-            .Where(k => !k.IsDeleted && k.IsPublished)
+            .Where(k => k.IsPublished)
             .Select(k => k.PublicKeyJwk)
             .ToList();
 

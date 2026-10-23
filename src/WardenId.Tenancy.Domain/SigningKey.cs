@@ -3,7 +3,7 @@ using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.Tenancy.Domain;
 
-public sealed class SigningKey : Entity
+public sealed class SigningKey : Entity, ICreationTracked
 {
     // EF Core materialization only
     private SigningKey() { }
@@ -30,6 +30,7 @@ public sealed class SigningKey : Entity
     public DateTimeOffset ActivatedAt { get; private set; }
     public DateTimeOffset? RetiringSince { get; private set; }
     public DateTimeOffset? RetiredAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     /// <summary>Signs new tokens. Exactly one per tenant (partial unique index on Status).</summary>
     public bool IsActive => Status == SigningKeyStatus.Active;
@@ -56,4 +57,4 @@ public sealed class SigningKey : Entity
         Status = SigningKeyStatus.Retired;
         RetiredAt = DateTimeOffset.UtcNow;
     }
-}
+}

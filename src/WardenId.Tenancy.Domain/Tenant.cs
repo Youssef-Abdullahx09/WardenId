@@ -5,7 +5,7 @@ using WardenId.Tenancy.Domain.Events;
 
 namespace WardenId.Tenancy.Domain;
 
-public sealed class Tenant : AggregateRoot, IAuditableAggregate
+public sealed class Tenant : AggregateRoot, IAuditableAggregate, ICreationTracked
 {
     // Tenant settings are platform configuration, so admin.config rather than admin.directory (users).
     // Signing keys are diffed too (a rotation or retirement changes only them); their key material is
@@ -37,6 +37,7 @@ public sealed class Tenant : AggregateRoot, IAuditableAggregate
     public Status Status { get; private set; }
     public DateTimeOffset? SuspendedAtUtc { get; private set; }
     public string? SuspendedReason { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
     public uint Version { get; private set; }
 
     private readonly List<SigningKey> _signingKeys = new();
@@ -101,7 +102,7 @@ public sealed class Tenant : AggregateRoot, IAuditableAggregate
         if (!newKey.IsActive || _signingKeys.Any(k => k.SigningKeyId == newKey.SigningKeyId))
             return Result.Fail(TenantErrors.SigningKeyNotNew());
 
-        var previous = _signingKeys.FirstOrDefault(k => k.IsActive && !k.IsDeleted);
+        var previous = _signingKeys.FirstOrDefault(k => k.IsActive);
         previous?.BeginRetiring();
 
         _signingKeys.Add(newKey);
@@ -120,7 +121,7 @@ public sealed class Tenant : AggregateRoot, IAuditableAggregate
     {
         if (Status == Status.Archived) return Result.Fail(TenantErrors.TenantInvalidTransition(Status));
 
-        var key = _signingKeys.FirstOrDefault(k => k.SigningKeyId == signingKeyId && !k.IsDeleted);
+        var key = _signingKeys.FirstOrDefault(k => k.SigningKeyId == signingKeyId);
         if (key is null) return Result.Fail(TenantErrors.SigningKeyNotFound);
 
         switch (key.Status)
@@ -144,7 +145,7 @@ public sealed class Tenant : AggregateRoot, IAuditableAggregate
     {
         if (Status != Status.Provisioning) return Result.Fail(TenantErrors.TenantInvalidTransition(Status));
 
-        if (!_signingKeys.Any(k => k.IsActive && !k.IsDeleted)) return Result.Fail(TenantErrors.TenantNoActiveSigningKey());
+        if (!_signingKeys.Any(k => k.IsActive)) return Result.Fail(TenantErrors.TenantNoActiveSigningKey());
 
         Status = Status.Active;
         RaiseDomainEvent(new TenantActivatedDomainEvent());
@@ -184,4 +185,4 @@ public sealed class Tenant : AggregateRoot, IAuditableAggregate
         RaiseDomainEvent(new TenantArchivedDomainEvent());
         return Result.Ok();
     }
-}
+}

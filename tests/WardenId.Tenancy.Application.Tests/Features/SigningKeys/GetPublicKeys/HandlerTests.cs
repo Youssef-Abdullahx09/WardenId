@@ -44,18 +44,6 @@ public class HandlerTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsNotFound_WhenTenantIsSoftDeleted()
-    {
-        var (tenant, _) = TenantBuilder.Create("acme", Status.Active);
-        tenant.MarkAsDeleted(Guid.Empty);
-        await using var db = await SeedAsync(tenant);
-
-        var result = await new Handler(db).Handle(new Query("acme"), CancellationToken.None);
-
-        AssertNotFound(result);
-    }
-
-    [Fact]
     public async Task Handle_ReturnsNotFound_WhenSlugIsUnknown()
     {
         var (tenant, _) = TenantBuilder.Create("acme", Status.Active);
@@ -75,19 +63,6 @@ public class HandlerTests
         var result = await new Handler(db).Handle(new Query("ACME"), CancellationToken.None);
 
         AssertNotFound(result);
-    }
-
-    [Fact]
-    public async Task Handle_ExcludesSoftDeletedKeys()
-    {
-        var (tenant, key) = TenantBuilder.Create("acme", Status.Active);
-        key.MarkAsDeleted(Guid.Empty);
-        await using var db = await SeedAsync(tenant);
-
-        var result = await new Handler(db).Handle(new Query("acme"), CancellationToken.None);
-
-        Assert.True(result.IsSuccess);
-        Assert.Empty(result.Value.PublicKeyJwks);
     }
 
     [Fact]

@@ -91,13 +91,16 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.AssignedScopeIds)
             .HasColumnName(nameof(Client.AssignedScopeIds));
 
+        // Required, so a secret or key dropped from the client (Client.Delete) is deleted, not orphaned.
         builder.HasMany(c => c.Secrets)
             .WithOne()
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(c => c.Secrets).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(c => c.SigningKeys)
             .WithOne()
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(c => c.SigningKeys).UsePropertyAccessMode(PropertyAccessMode.Field);
 

@@ -20,7 +20,7 @@ public sealed class TenancyDbContext(
         modelBuilder.HasDefaultSchema(Schema);
 
         // Module configurations must be registered before base.OnModelCreating so the
-        // SharedKernel IsActive/IsDeleted index conventions see this module's entity types.
+        // SharedKernel Id convention sees this module's entity types.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TenancyDbContext).Assembly);
 
         // AuditEventConfiguration lives in SharedKernel.Persistence, a different assembly —

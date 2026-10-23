@@ -9,12 +9,11 @@ public abstract class AggregateRoot : Entity, IAggregateRoot
         DomainEvents.Add(@event);
     }
 
-    public List<DomainEvent> GetDomainEvents()
+    public List<DomainEvent> GetDomainEvents(Guid actorId)
     {
         DomainEvents.ForEach(@event =>
         {
-            var userId = LastModificationById ?? CreatedById;
-            @event.SetUserId(userId);
+            @event.SetUserId(actorId);
             @event.SetAggregateId(Id);
         });
         return DomainEvents;
@@ -24,4 +23,4 @@ public abstract class AggregateRoot : Entity, IAggregateRoot
     {
         DomainEvents.Clear();
     }
-}
+}

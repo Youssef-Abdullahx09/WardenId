@@ -90,25 +90,17 @@ public sealed class UserRepository(
         User user,
         Guid userId,
         CancellationToken cancellationToken = default)
-    {
-        dbContext.Users.Remove(user);
-        return SaveAsync(userId, cancellationToken);
-    }
+        => SaveAsync(userId, cancellationToken);
 
     // The unique (TenantId, Email) and (TenantId, Username) indexes include soft-deleted rows,
     // so no other user can have taken this user's email or username in the meantime.
-    // The child rows (credential, MFA factors, ...) were soft-deleted with the user by the
-    // cascade, and are undeleted with it. Children the user dropped earlier are not among them:
-    // IdentityDbContext deletes those rows outright.
+    // User.SoftDelete leaves the child rows (credential, MFA factors, ...) as they are, so they
+    // come back with the user; children the user dropped earlier were deleted outright.
     public Task<Result> RestoreAsync(
         User user,
         Guid userId,
-        CancellationToken cancellationToken = default)
-    {
-        user.MarkAsRestored();
-        foreach (var child in ChildrenOf(user).Where(c => c.IsDeleted)) child.MarkAsRestored();
-        return SaveAsync(userId, cancellationToken);
-    }
+        CancellationToken cancellationToken = default) =>
+        SaveAsync(userId, cancellationToken);
 
     // Users, MfaFactors and RecoveryCodes carry an xmin concurrency token (UserConfiguration and siblings): an
     // UPDATE or DELETE of a row someone else changed since it was loaded matches no row and EF throws. The
@@ -127,15 +119,6 @@ public sealed class UserRepository(
             return Result.Fail(UserErrors.ConcurrencyConflict());
         }
     }
-
-    private static IEnumerable<Entity> ChildrenOf(User user) =>
-        new Entity?[] { user.Credential }.OfType<Entity>()
-            .Concat(user.MfaFactors)
-            .Concat(user.RecoveryCodes)
-            .Concat(user.Attributes)
-            .Concat(user.PasswordHistory)
-            .Concat(user.EmailVerificationTokens)
-            .Concat(user.PasswordResetTokens);
 
     private IQueryable<User> Query() =>
         dbContext.Users

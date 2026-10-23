@@ -18,7 +18,7 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("ClientManagement")
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -58,14 +58,8 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
+                    b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -90,12 +84,6 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsFirstParty")
                         .HasColumnType("boolean");
 
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
-
                     b.Property<bool>("RequirePkce")
                         .HasColumnType("boolean");
 
@@ -119,19 +107,7 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("ClientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
+                    b.Property<Guid>("ClientId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("ExpiresAt")
@@ -141,26 +117,15 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ClientId")
                         .HasDatabaseName("IX_ClientSecrets_ClientId");
-
-                    b.HasIndex("IsDeleted");
 
                     b.ToTable("ClientSecrets", "ClientManagement");
                 });
@@ -175,37 +140,16 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<Guid?>("ClientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
+                    b.Property<Guid>("ClientId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Kid")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("PublicKeyJwk")
                         .IsRequired()
@@ -215,8 +159,6 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ClientId")
                         .HasDatabaseName("IX_ClientSigningKeys_ClientId");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("Kid")
                         .IsUnique()
@@ -234,6 +176,16 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("Actor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ActorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<byte[]>("LeafHash")
                         .IsRequired()
                         .HasColumnType("bytea");
@@ -241,18 +193,37 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<byte[]>("Payload")
                         .HasColumnType("bytea");
 
                     b.Property<long?>("Sequence")
                         .HasColumnType("bigint");
 
+                    b.PrimitiveCollection<string[]>("Targets")
+                        .HasColumnType("text[]");
+
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id", "Channel");
 
+                    b.HasIndex("Targets");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Targets"), "gin");
+
+                    b.HasIndex("Actor", "OccurredAt");
+
+                    b.HasIndex("ActorId", "OccurredAt");
+
                     b.HasIndex("Channel", "Sequence");
+
+                    b.HasIndex("EventType", "OccurredAt");
+
+                    b.HasIndex("Outcome", "OccurredAt");
 
                     b.HasIndex("TenantId", "OccurredAt");
 
@@ -357,7 +328,8 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.ClientManagement.Domain.Client", null)
                         .WithMany("Secrets")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.ClientManagement.Domain.ClientSigningKey", b =>
@@ -365,7 +337,8 @@ namespace WardenId.ClientManagement.Infrastructure.Persistence.Migrations
                     b.HasOne("WardenId.ClientManagement.Domain.Client", null)
                         .WithMany("SigningKeys")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WardenId.ClientManagement.Domain.Client", b =>

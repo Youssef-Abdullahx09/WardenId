@@ -61,7 +61,10 @@ Never suffix type names with `Dto` — name records for what they represent (`Te
 
 ### Domain model conventions
 
-- Aggregates derive from `SharedKernel.Domain.AggregateRoot` (→ `Entity`, → `Id`/audit fields `CreatedById`/`LastModificationById`/`DeletedById`/`IsDeleted`, all set by EF interceptor logic, not manually). `Id` is a `Guid.CreateVersion7()` set at construction — never `[Key]`/DB-generated.
+- Aggregates derive from `SharedKernel.Domain.AggregateRoot` (→ `Entity`, which carries only `Id`). `Id` is a `Guid.CreateVersion7()` set at construction — never `[Key]`/DB-generated. Rows carry no who/when audit columns: the Audit module's log records the actor and diff of every `IAuditableAggregate` change, and a domain event's actor (`DomainEvent.UserId`) is the `userId` passed to `IDbContext.SaveChangesAsync`.
+  - `ICreationTracked` (opt-in, for entities listed or sorted by creation: Tenant, SigningKey, Client, User): the entity declares `CreatedAt { get; private set; }` and `DbContextBase` stamps it on insert.
+  - `ISoftDeletable` (opt-in: User, Client): the entity declares `IsDeleted`/`DeletedAt` and its own domain method sets them (`User.SoftDelete`/`Restore`, `Client.Delete`). Removing one from its `DbSet` throws. Queries filter `!IsDeleted` explicitly.
+- Lifecycle: deactivation is domain state (`Status`/`Enabled`), reversible, raising an event — never `IsDeleted`. Soft delete only where a row must outlive its removal (restore, or keeping an email/`client_id` taken). Everything else is hard-deleted when removed (children dropped from an aggregate, consumed tokens, pruned sessions). Keys and secrets expire or retire rather than being deleted one by one; a client's secrets and signing keys go only with `Client.Delete`.
 - Aggregates raise `DomainEvent`s via `RaiseDomainEvent`; private constructors + static `Create(...)` factories returning `Result<T>` are the norm (see `Tenant.Create`, `Slug.Create`).
 - Value objects derive from `SharedKernel.Domain.ValueObject` and implement `GetEqualityComponents()`.
 - Enums (domain and Integration.Command contracts alike) give every member an explicit value starting at 1 — never implicit numbering, never 0 (`default(T)` must not be a valid member). `[Flags]` enums use powers of two from 1.

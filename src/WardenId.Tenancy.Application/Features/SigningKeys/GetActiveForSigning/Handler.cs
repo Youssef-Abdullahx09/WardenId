@@ -13,12 +13,12 @@ public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query
     {
         var tenant = await dbContext.Tenants
             .Include(t => t.SigningKeys)
-            .Where(t => t.Id == request.TenantId && !t.IsDeleted)
+            .Where(t => t.Id == request.TenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (tenant is null) return Result.Fail(TenantErrors.NotFound);
 
-        var activeKey = tenant.SigningKeys.FirstOrDefault(k => k.IsActive && !k.IsDeleted);
+        var activeKey = tenant.SigningKeys.FirstOrDefault(k => k.IsActive);
         if (activeKey is null) return Result.Fail(TenantErrors.NoActiveSigningKeyForSigning());
 
         return Result.Ok(new ActiveSigningKey(

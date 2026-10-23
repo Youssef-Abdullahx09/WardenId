@@ -21,7 +21,7 @@ public sealed class Handler(ITenancyDbContext dbContext) : IRequestHandler<Query
 
         var tenant = await dbContext.Tenants
             .AsNoTracking()
-            .Where(t => t.Slug == slug && !t.IsDeleted)
+            .Where(t => t.Slug == slug)
             .Where(t => t.Status == Status.Active || t.Status == Status.Suspended)
             .FirstOrDefaultAsync(cancellationToken);
 

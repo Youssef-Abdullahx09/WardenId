@@ -18,7 +18,7 @@ namespace WardenId.Protocol.Infrastructure.Persistence.ProtocolMigrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("Protocol")
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -31,18 +31,6 @@ namespace WardenId.Protocol.Infrastructure.Persistence.ProtocolMigrations
                     b.Property<DateTimeOffset>("AuthTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("EndReason")
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
@@ -53,15 +41,6 @@ namespace WardenId.Protocol.Infrastructure.Persistence.ProtocolMigrations
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid");
 
@@ -69,8 +48,6 @@ namespace WardenId.Protocol.Infrastructure.Persistence.ProtocolMigrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("TenantId");
 
@@ -90,29 +67,8 @@ namespace WardenId.Protocol.Infrastructure.Persistence.ProtocolMigrations
                     b.Property<TimeSpan?>("AuthorizationCodeLifetime")
                         .HasColumnType("interval");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<TimeSpan?>("IdTokenLifetime")
                         .HasColumnType("interval");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LastModificationAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModificationById")
-                        .HasColumnType("uuid");
 
                     b.Property<TimeSpan?>("RefreshTokenAbsoluteLifetime")
                         .HasColumnType("interval");
@@ -130,8 +86,6 @@ namespace WardenId.Protocol.Infrastructure.Persistence.ProtocolMigrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("TenantId")
                         .IsUnique();

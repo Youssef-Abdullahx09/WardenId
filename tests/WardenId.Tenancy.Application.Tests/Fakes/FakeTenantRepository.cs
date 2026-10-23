@@ -17,7 +17,7 @@ public sealed class FakeTenantRepository(TestTenancyDbContext db) : ITenantRepos
     public async Task<Result<Tenant>> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         var tenant = await db.Tenants.Include(t => t.SigningKeys)
-            .FirstOrDefaultAsync(t => t.Id == tenantId && !t.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
         return tenant is null ? Result.Fail(TenantErrors.NotFound) : tenant;
     }
 
@@ -31,10 +31,10 @@ public sealed class FakeTenantRepository(TestTenancyDbContext db) : ITenantRepos
     public async Task<Result<Tenant>> GetBySlugAsync(Slug slug, CancellationToken cancellationToken = default)
     {
         var tenant = await db.Tenants.Include(t => t.SigningKeys)
-            .FirstOrDefaultAsync(t => t.Slug == slug && !t.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Slug == slug, cancellationToken);
         return tenant is null ? Result.Fail(TenantErrors.NotFound) : tenant;
     }
 
     public Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default) =>
-        db.Tenants.AnyAsync(t => t.Slug == slug && !t.IsDeleted, cancellationToken);
+        db.Tenants.AnyAsync(t => t.Slug == slug, cancellationToken);
 }

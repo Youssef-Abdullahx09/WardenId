@@ -61,12 +61,13 @@ public sealed class DomainEventsInterceptor(
     private static IEnumerable<DomainEvent> GetDomainEvents(
         DbContext dbContext)
     {
+        var actorId = (dbContext as DbContextBase)?.SavingActorId ?? Guid.Empty;
         var entities = dbContext.ChangeTracker
             .Entries<AggregateRoot>()
             .Where(entry => entry.Entity.DomainEvents.Count > 0)
             .ToList();
  
-        return entities.SelectMany(entry => entry.Entity.GetDomainEvents());
+        return entities.SelectMany(entry => entry.Entity.GetDomainEvents(actorId));
     }
  
     private static void ClearDomainEvents(
@@ -79,4 +80,4 @@ public sealed class DomainEventsInterceptor(
  
         entries.ForEach(entity => entity.Entity.ClearDomainEvents());
     }
-}
+}

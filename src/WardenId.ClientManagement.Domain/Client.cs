@@ -5,7 +5,7 @@ using WardenId.SharedKernel.Domain.Utilities;
 
 namespace WardenId.ClientManagement.Domain;
 
-public sealed class Client : AggregateRoot, IAuditableAggregate
+public sealed class Client : AggregateRoot, IAuditableAggregate, ICreationTracked, ISoftDeletable
 {
     // Client settings are configuration, so admin.config. Every child collection is diffed; secret hashes
     // and public keys are redacted. The audit target is the public client_id, the id the protocol's own
@@ -76,6 +76,9 @@ public sealed class Client : AggregateRoot, IAuditableAggregate
     public ClientAuthenticationMethod ClientAuthenticationMethod { get; private set; }
     public bool ConsentRequired { get; private set; }
     public BackchannelLogoutUri? BackchannelLogoutUri { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTimeOffset? DeletedAt { get; private set; }
 
     private readonly List<RedirectUri> _redirectUris = new();
     public IReadOnlyCollection<RedirectUri> RedirectUris => _redirectUris.AsReadOnly();
@@ -254,6 +257,20 @@ public sealed class Client : AggregateRoot, IAuditableAggregate
     }
 
     public void Enable() => Enabled = true;
+
+    /// <summary>
+    /// Soft delete: the row stays so its client_id is never handed out again. Its secrets and signing
+    /// keys have no further use and go (their rows are deleted).
+    /// </summary>
+    public void Delete()
+    {
+        if (IsDeleted) return;
+
+        IsDeleted = true;
+        DeletedAt = DateTimeOffset.UtcNow;
+        _secrets.Clear();
+        _signingKeys.Clear();
+    }
 
     public void UpdateTokenLifetimeOverrides(TokenLifetimeOverrides? overrides) => TokenLifetimeOverrides = overrides;
 

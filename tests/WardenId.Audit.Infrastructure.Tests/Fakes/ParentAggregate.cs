@@ -39,6 +39,7 @@ internal sealed class ParentAggregate : AggregateRoot, IAuditableAggregate
         return key;
     }
 
+    public void RemoveKey(Guid keyId) => _keys.RemoveAll(k => k.Id == keyId);
     public void AddNote(string name) => _notes.Add(ChildKey.Create(name, "n/a"));
     public void AddTag(string value) => _tags.Add(new Tag(value));
     public void RemoveTag(string value) => _tags.RemoveAll(t => t.Value == value);

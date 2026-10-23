@@ -64,7 +64,7 @@ public class HandlerTests
     public async Task Handle_Fails_ForSoftDeletedClient()
     {
         var client = ClientBuilder.Confidential(TenantId);
-        client.MarkAsDeleted(Guid.Empty);
+        client.Delete();
         AssertInvalid(await VerifyAsync(client, ClientBuilder.Secret));
     }
 

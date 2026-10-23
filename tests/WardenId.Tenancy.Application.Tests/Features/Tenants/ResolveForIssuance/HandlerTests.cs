@@ -40,14 +40,6 @@ public class HandlerTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsNotFound_ForSoftDeletedTenant()
-    {
-        var (tenant, _) = TenantBuilder.Create("acme", Status.Active);
-        tenant.MarkAsDeleted(Guid.Empty);
-        AssertNotFound(await ResolveAsync(tenant, "acme"));
-    }
-
-    [Fact]
     public async Task Handle_ReturnsNotFound_ForUnknownSlug()
     {
         var (tenant, _) = TenantBuilder.Create("acme", Status.Active);

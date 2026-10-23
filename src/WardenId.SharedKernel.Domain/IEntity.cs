@@ -1,6 +1,6 @@
 namespace WardenId.SharedKernel.Domain;
 
-public interface IEntity : IAudit
+public interface IEntity
 {
     Guid Id { get; }
 }

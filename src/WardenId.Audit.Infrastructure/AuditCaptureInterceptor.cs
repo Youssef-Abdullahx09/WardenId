@@ -24,11 +24,11 @@ namespace WardenId.Audit.Infrastructure;
 /// child holding secrets (a user's credentials, MFA factors) never lands in the log by accident.
 /// A save that changes only opted-in children still produces an update event for the aggregate.
 ///
-/// EntityState.Deleted never reaches here: DbContextBase.CheckAndUpdateEntities converts a
-/// hard delete into IsDeleted=true + EntityState.Modified before this interceptor runs, so a
-/// soft-delete surfaces as an ordinary property diff — this interceptor promotes it to a
-/// distinct "delete" event type by checking specifically for IsDeleted flipping false→true,
-/// rather than adding a fourth EntityState case that can't actually occur.
+/// An audited aggregate is never removed from its DbSet: one that can be deleted is an ISoftDeletable,
+/// whose domain method sets IsDeleted (DbContextBase throws on its removal). So a soft delete surfaces
+/// as an ordinary property diff — this interceptor promotes it to a distinct "delete" event type by
+/// checking specifically for IsDeleted flipping false→true, rather than adding a fourth EntityState
+/// case that can't actually occur.
 /// </summary>
 public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAccessor) : SaveChangesInterceptor
 {
@@ -221,7 +221,7 @@ public sealed class AuditCaptureInterceptor(IAuditContextAccessor auditContextAc
         if (state == EntityState.Added) return AuditEventType.AdminEntityCreate;
 
         var becameDeleted = changes.Any(c =>
-            c.PropertyName == nameof(IAudit.IsDeleted) &&
+            c.PropertyName == nameof(ISoftDeletable.IsDeleted) &&
             c.OldValue is AuditValue.Plain { DisplayValue: var oldValue } && oldValue == bool.FalseString &&
             c.NewValue is AuditValue.Plain { DisplayValue: var newValue } && newValue == bool.TrueString);
 

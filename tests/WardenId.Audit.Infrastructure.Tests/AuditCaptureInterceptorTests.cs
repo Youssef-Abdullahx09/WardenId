@@ -114,7 +114,7 @@ public class AuditCaptureInterceptorTests
         db.TestAggregates.Add(aggregate);
         await db.SaveChangesAsync(ActorUserId, CancellationToken.None);
 
-        db.TestAggregates.Remove(aggregate);
+        aggregate.Delete();
         await db.SaveChangesAsync(ActorUserId, CancellationToken.None);
 
         var deleteEvent = CanonicalAuditEventSerializer.Deserialize(

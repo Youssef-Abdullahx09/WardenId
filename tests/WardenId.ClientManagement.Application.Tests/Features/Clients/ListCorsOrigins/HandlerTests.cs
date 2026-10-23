@@ -32,7 +32,7 @@ public class HandlerTests
         var disabled = WithOrigins(ClientBuilder.Public(TenantId), "https://disabled.example");
         disabled.Disable();
         var deleted = WithOrigins(ClientBuilder.Public(TenantId), "https://deleted.example");
-        deleted.MarkAsDeleted(Guid.Empty);
+        deleted.Delete();
         await using var db = await ClientBuilder.SeedAsync(
             WithOrigins(ClientBuilder.Public(Guid.NewGuid()), "https://other-tenant.example"),
             disabled,

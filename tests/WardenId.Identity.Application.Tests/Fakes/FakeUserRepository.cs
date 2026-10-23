@@ -85,7 +85,6 @@ public sealed class FakeUserRepository : IUserRepository
         LastActorId = userId;
         RestoreCallCount++;
         if (TrySimulateConflict(out var conflict)) return Task.FromResult(conflict);
-        user.MarkAsRestored();
         _usersById[user.Id] = user;
         return Task.FromResult(Result.Ok());
     }

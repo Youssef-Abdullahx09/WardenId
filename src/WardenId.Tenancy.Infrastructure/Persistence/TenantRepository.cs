@@ -21,8 +21,7 @@ public sealed class TenantRepository(
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await dbContext.Tenants.Include(t => t.SigningKeys).Where(x => x.Id == tenantId
-                                                        && !x.IsDeleted)
+        var tenant = await dbContext.Tenants.Include(t => t.SigningKeys).Where(x => x.Id == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
         return tenant is null ? Result.Fail(TenantErrors.NotFound) : tenant;
@@ -40,8 +39,7 @@ public sealed class TenantRepository(
         Slug slug,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await dbContext.Tenants.Include(t => t.SigningKeys).Where(x => x.Slug == slug
-                                                        && !x.IsDeleted)
+        var tenant = await dbContext.Tenants.Include(t => t.SigningKeys).Where(x => x.Slug == slug)
             .FirstOrDefaultAsync(cancellationToken);
         
         return tenant is null  ? Result.Fail(TenantErrors.NotFound) : tenant;
@@ -51,8 +49,7 @@ public sealed class TenantRepository(
         Slug slug,
         CancellationToken cancellationToken = default)
     {
-        return await dbContext.Tenants.Where(x => x.Slug == slug
-                                                  && !x.IsDeleted)
+        return await dbContext.Tenants.Where(x => x.Slug == slug)
             .AnyAsync(cancellationToken);
     }
-}
+}

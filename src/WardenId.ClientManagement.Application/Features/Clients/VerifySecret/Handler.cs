@@ -36,7 +36,7 @@ public sealed class Handler(IClientManagementDbContext dbContext) : IRequestHand
 
         var now = DateTimeOffset.UtcNow;
         var liveHashes = client.Secrets
-            .Where(s => !s.IsDeleted && !s.IsExpired(now))
+            .Where(s => !s.IsExpired(now))
             .Select(s => s.HashedValue);
 
         return ClientSecretHasher.Matches(request.PresentedSecret, liveHashes)

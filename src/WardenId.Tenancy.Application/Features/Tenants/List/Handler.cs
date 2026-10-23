@@ -13,7 +13,7 @@ public sealed class Handler(ITenancyDbContext dbContext)
         Query request,
         CancellationToken cancellationToken)
     {
-        var query = dbContext.Tenants.Where(t => !t.IsDeleted);
+        var query = dbContext.Tenants.AsQueryable();
 
         if (request.Status is not null)
             query = query.Where(t => t.Status == request.Status);

@@ -159,6 +159,7 @@ public sealed class UserRepositoryTests(PostgresFixture database)
             user.RecordFailedLogin(maxFailedAttempts: 5, TimeSpan.FromMinutes(15));
             await repository.UpdateAsync(user, Actor);
         });
+        var childRows = await CountChildRowsAsync(userId);
 
         await InRequestAsync(async repository =>
         {
@@ -173,9 +174,10 @@ public sealed class UserRepositoryTests(PostgresFixture database)
             return (await repository.GetByIdIncludingDeletedAsync(_tenantId, userId)).Value;
         });
         Assert.True(deleted.IsDeleted);
+        Assert.NotNull(deleted.DeletedAt);
         Assert.Equal(UserStatus.SoftDeleted, deleted.Status);
         AssertKeptEverything(deleted);
-        Assert.Equal(0, await CountChildRowsAsync(userId, isDeleted: false));
+        Assert.Equal(childRows, await CountChildRowsAsync(userId));
 
         await InRequestAsync(async repository =>
         {
@@ -186,9 +188,10 @@ public sealed class UserRepositoryTests(PostgresFixture database)
 
         var restored = await InRequestAsync(repository => LoadAsync(repository, userId));
         Assert.False(restored.IsDeleted);
+        Assert.Null(restored.DeletedAt);
         Assert.Equal(UserStatus.Disabled, restored.Status);
         AssertKeptEverything(restored);
-        Assert.Equal(0, await CountChildRowsAsync(userId, isDeleted: true));
+        Assert.Equal(childRows, await CountChildRowsAsync(userId));
     }
 
     [SkippableFact]
@@ -244,12 +247,13 @@ public sealed class UserRepositoryTests(PostgresFixture database)
             return (user.Email, user.Username);
         });
 
-    private async Task<long> CountChildRowsAsync(Guid userId, bool isDeleted)
+    // The user's soft delete leaves its child rows alone, so they're all there to come back on a restore.
+    private async Task<long> CountChildRowsAsync(Guid userId)
     {
         string[] tables = ["PasswordCredentials", "MfaFactors", "RecoveryCodes", "UserAttributes", "PasswordHistoryEntries", "EmailVerificationTokens", "PasswordResetTokens"];
         var count = 0L;
         foreach (var table in tables)
-            count += await database.CountAsync($"""SELECT count(*) FROM "Identity"."{table}" WHERE "UserId" = $1 AND "IsDeleted" = $2""", userId, isDeleted);
+            count += await database.CountAsync($"""SELECT count(*) FROM "Identity"."{table}" WHERE "UserId" = $1""", userId);
         return count;
     }
 

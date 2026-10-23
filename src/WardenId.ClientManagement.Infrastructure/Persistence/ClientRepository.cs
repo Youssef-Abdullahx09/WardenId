@@ -44,7 +44,6 @@ public sealed class ClientRepository(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        dbContext.Clients.Remove(client);
         await dbContext.SaveChangesAsync(userId, cancellationToken);
     }
 }

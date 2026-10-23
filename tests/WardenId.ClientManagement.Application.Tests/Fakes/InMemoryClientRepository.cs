@@ -37,7 +37,6 @@ public sealed class InMemoryClientRepository(TestClientManagementDbContext dbCon
     public async Task DeleteAsync(Client client, Guid userId, CancellationToken cancellationToken = default)
     {
         LastActorId = userId;
-        dbContext.Clients.Remove(client);
         await dbContext.SaveChangesAsync(userId, cancellationToken);
     }
 }
