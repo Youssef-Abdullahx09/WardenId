@@ -4,8 +4,12 @@ using Npgsql;
 using WardenId.Audit.Query;
 using WardenId.SharedKernel.FileOperation;
 using WardenId.SharedKernel.Query;
+using WardenId.SharedKernel.Query.Contracts;
 using GetQuery = WardenId.Audit.Query.Contracts.Features.AuditEvents.Get.Query;
 using ListQuery = WardenId.Audit.Query.Contracts.Features.AuditEvents.List.Query;
+using ReadAuditChannel = WardenId.Audit.Query.Contracts.Features.AuditEvents.AuditChannel;
+using ReadAuditResult = WardenId.Audit.Query.Contracts.Features.AuditEvents.AuditResult;
+using SortOption = WardenId.Audit.Query.Contracts.Features.AuditEvents.List.SortOption;
 
 namespace WardenId.Audit.Infrastructure.Tests;
 
@@ -15,10 +19,13 @@ public sealed class AuditEventsQueryPostgresTests(PostgresFixture postgres)
 {
     private static readonly Guid Acme = Guid.Parse("55555555-5555-5555-5555-555555555555");
     private static readonly DateTimeOffset Start = DateTimeOffset.Parse("2026-10-16T08:00:00Z");
-    private static readonly ListQuery All = new(null, null, null, null, null, null, null, null, 1, 25);
+    private static readonly ListQuery All = new(1, 25, SortDirection.Desc);
 
-    /// <summary>Five rows a minute apart; Sequence = minute, so results read as sequences.</summary>
-    private async Task<(AuditEventsQuery Query, NpgsqlConnection Connection)?> SeedAsync()
+    /// <summary>
+    /// Five rows a minute apart; Sequence = minute, so results read as sequences. <paramref name="withUnsealed"/> adds a
+    /// sixth, newest row that has no sequence yet.
+    /// </summary>
+    private async Task<(AuditEventsQuery Query, NpgsqlConnection Connection)?> SeedAsync(bool withUnsealed = false)
     {
         if (postgres.SkipReason is not null) return null;
         var connectionString = await postgres.CreateDatabaseAsync();
@@ -42,6 +49,17 @@ public sealed class AuditEventsQueryPostgresTests(PostgresFixture postgres)
                 ActorId = minute == 4 ? "sealer" : $"admin-{minute % 2}",
                 Targets = minute switch { 3 => ["tenant:t-1", "user:u-1"], 4 => null, _ => [$"tenant:t-{minute}"] },
                 Outcome = minute == 2 ? nameof(AuditResult.Failure) : nameof(AuditResult.Success),
+            });
+        }
+        if (withUnsealed)
+        {
+            db.AuditEvents.Add(new AuditEventRecord
+            {
+                Id = Guid.CreateVersion7(),
+                Channel = nameof(AuditChannel.AdminConfig),
+                OccurredAt = Start.AddMinutes(10),
+                Payload = [1],
+                LeafHash = [1],
             });
         }
         await db.SaveChangesAsync();
@@ -79,7 +97,7 @@ public sealed class AuditEventsQueryPostgresTests(PostgresFixture postgres)
         var (query, connection) = seeded.Value;
         await using var _ = connection;
 
-        var byChannel = await query.List(All with { Channel = nameof(AuditChannel.TokenOps) }, CancellationToken.None);
+        var byChannel = await query.List(All with { Channel = ReadAuditChannel.TokenOps }, CancellationToken.None);
         var byTenant = await query.List(All with { TenantId = Acme }, CancellationToken.None);
 
         Assert.Equal(2, byChannel.Value.RecordsTotal);
@@ -107,11 +125,58 @@ public sealed class AuditEventsQueryPostgresTests(PostgresFixture postgres)
         Assert.Equal(new long[] { 3L, 1L }, await Sequences(query, All with { Target = "tenant:t-1" }));
         Assert.Equal(new long[] { 3L }, await Sequences(query, All with { Target = "user:u-1" }));
         Assert.Empty(await Sequences(query, All with { Target = "user:nobody" }));
-        Assert.Equal(new long[] { 2L }, await Sequences(query, All with { Outcome = nameof(AuditResult.Failure) }));
+        Assert.Equal(new long[] { 2L }, await Sequences(query, All with { Outcome = ReadAuditResult.Failure }));
         Assert.Equal(2, (await query.List(
-            All with { EventType = "admin.entity.update", Outcome = nameof(AuditResult.Success) },
+            All with { EventType = "admin.entity.update", Outcome = ReadAuditResult.Success },
             CancellationToken.None)).Value.RecordsTotal);
         Assert.Equal(new long[] { 3L }, await Sequences(query, All with { Actor = "admin-1", Target = "user:u-1" }));
+    }
+
+    [SkippableFact]
+    public async Task List_TrimsTextFiltersAndTreatsBlankOnesAsAbsent()
+    {
+        var seeded = await SeedAsync();
+        Skip.If(seeded is null, postgres.SkipReason);
+        var (query, connection) = seeded.Value;
+        await using var _ = connection;
+
+        Assert.Equal(new long[] { 1L, 0L }, await Sequences(query, All with { EventType = " admin.tenant.suspend " }));
+        Assert.Equal(new long[] { 3L, 1L }, await Sequences(query, All with { Target = "\ttenant:t-1 " }));
+        Assert.Equal(5, (await query.List(All with { EventType = " ", Actor = "", Target = "  " }, CancellationToken.None))
+            .Value.RecordsTotal);
+    }
+
+    [SkippableTheory]
+    [InlineData(SortOption.OccurredAt, SortDirection.Desc, new[] { 4L, 3L, 2L, 1L, 0L })]
+    [InlineData(SortOption.OccurredAt, SortDirection.Asc, new[] { 0L, 1L, 2L, 3L, 4L })]
+    [InlineData(SortOption.Sequence, SortDirection.Asc, new[] { 0L, 1L, 2L, 3L, 4L })]
+    [InlineData(SortOption.Sequence, SortDirection.Desc, new[] { 4L, 3L, 2L, 1L, 0L })]
+    public async Task List_OrdersBySortOption(SortOption sortOption, SortDirection sortDirection, long[] expectedSequences)
+    {
+        var seeded = await SeedAsync();
+        Skip.If(seeded is null, postgres.SkipReason);
+        var (query, connection) = seeded.Value;
+        await using var _ = connection;
+
+        Assert.Equal(expectedSequences, await Sequences(query, new ListQuery(1, 25, sortDirection) { SortOption = sortOption }));
+    }
+
+    [SkippableTheory]
+    [InlineData(SortDirection.Asc)]
+    [InlineData(SortDirection.Desc)]
+    public async Task List_SortsUnsealedEventsLast_BySequence(SortDirection sortDirection)
+    {
+        var seeded = await SeedAsync(withUnsealed: true);
+        Skip.If(seeded is null, postgres.SkipReason);
+        var (query, connection) = seeded.Value;
+        await using var _ = connection;
+
+        var rows = (await query.List(new ListQuery(1, 25, sortDirection) { SortOption = SortOption.Sequence }, CancellationToken.None))
+            .Value.Data.ToArray();
+
+        Assert.Equal(6, rows.Length);
+        Assert.Null(rows[^1].Sequence);
+        Assert.All(rows[..^1], r => Assert.NotNull(r.Sequence));
     }
 
     [SkippableFact]
@@ -125,14 +190,14 @@ public sealed class AuditEventsQueryPostgresTests(PostgresFixture postgres)
         var rows = (await query.List(All, CancellationToken.None)).Value.Data.ToArray();
 
         var row = rows.Single(r => r.Sequence == 3);
-        Assert.Equal(nameof(AuditChannel.TokenOps), row.Channel);
+        Assert.Equal(ReadAuditChannel.TokenOps, row.Channel);
         Assert.Null(row.TenantId);
         Assert.Equal(Start.AddMinutes(3).UtcDateTime, row.OccurredAt);
         Assert.Equal([1], row.Payload);
         Assert.Equal("admin.entity.update", row.EventType);
         Assert.Equal($"tenant:{Acme}:adminuser:admin-1", row.Actor);
         Assert.Equal(["tenant:t-1", "user:u-1"], row.Targets);
-        Assert.Equal(nameof(AuditResult.Success), row.Outcome);
+        Assert.Equal(ReadAuditResult.Success, row.Outcome);
 
         var purged = rows.Single(r => r.Sequence == 4);
         Assert.Null(purged.Payload);
@@ -155,7 +220,7 @@ public sealed class AuditEventsQueryPostgresTests(PostgresFixture postgres)
         Assert.NotNull(found.Value);
         Assert.Equal(first.Id, found.Value.Id);
         Assert.Equal(first.Sequence, found.Value.Sequence);
-        Assert.Equal(first.Channel, found.Value.Channel);
+        Assert.Equal(first.Channel.ToString(), found.Value.Channel);
         Assert.Equal(first.Targets, found.Value.Targets);
         Assert.True(missing.IsSuccess);
         Assert.Null(missing.Value);
@@ -183,7 +248,7 @@ public sealed class AuditEventsQueryPostgresTests(PostgresFixture postgres)
         var row = Assert.Single((await query.List(All with { Actor = "admin-1", Target = "user:u-1" }, CancellationToken.None)).Value.Data);
         Assert.Equal(auditEvent.Id, row.Id);
         Assert.Equal(["tenant:t-1", "user:u-1"], row.Targets);
-        Assert.Equal(nameof(AuditResult.Failure), row.Outcome);
+        Assert.Equal(ReadAuditResult.Failure, row.Outcome);
         Assert.Equal(CanonicalAuditEventSerializer.Serialize(auditEvent), row.Payload);
     }
 }

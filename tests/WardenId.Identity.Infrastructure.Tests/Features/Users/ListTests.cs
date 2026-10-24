@@ -1,4 +1,7 @@
 using WardenId.Identity.Application.Features.Users.List;
+using WardenId.Identity.Query.Contracts.Features.Users.List;
+using WardenId.SharedKernel.Query.Contracts;
+using UserStatus = WardenId.Identity.Query.Contracts.Features.Users.UserStatus;
 using ListQuery = WardenId.Identity.Application.Features.Users.List.Query;
 
 namespace WardenId.Identity.Infrastructure.Tests.Features.Users;
@@ -31,7 +34,7 @@ public sealed class ListTests(PostgresFixture database)
         Skip.If(database.SkipReason is not null, database.SkipReason);
         await SeedAsync();
 
-        var result = await ListAsync(search, sort: null);
+        var result = await ListAsync(Query() with { Search = search });
 
         Assert.True(result.IsSuccess);
         Assert.Equal(expectedEmails.Length, result.Value.RecordsTotal);
@@ -39,22 +42,22 @@ public sealed class ListTests(PostgresFixture database)
     }
 
     [SkippableTheory]
-    [InlineData(null, new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
-    [InlineData("createdAt", new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
-    [InlineData("email", new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
-    [InlineData("-email", new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
-    [InlineData("Username", new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
-    [InlineData("-username", new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
-    [InlineData("firstName", new[] { "alice@example.com", "carol@example.com", "bob@corp.test" })]
-    [InlineData("-firstName", new[] { "carol@example.com", "alice@example.com", "bob@corp.test" })]
-    [InlineData("lastName", new[] { "bob@corp.test", "alice@example.com", "carol@example.com" })]
-    [InlineData("-lastName", new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
-    public async Task Sort_OrdersTheResults_WithoutTheSortedNameLast(string? sort, string[] expectedEmails)
+    [InlineData(SortOption.CreatedAt, SortDirection.Desc, new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
+    [InlineData(SortOption.CreatedAt, SortDirection.Asc, new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
+    [InlineData(SortOption.Email, SortDirection.Asc, new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
+    [InlineData(SortOption.Email, SortDirection.Desc, new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
+    [InlineData(SortOption.Username, SortDirection.Asc, new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
+    [InlineData(SortOption.Username, SortDirection.Desc, new[] { "carol@example.com", "bob@corp.test", "alice@example.com" })]
+    [InlineData(SortOption.FirstName, SortDirection.Asc, new[] { "alice@example.com", "carol@example.com", "bob@corp.test" })]
+    [InlineData(SortOption.FirstName, SortDirection.Desc, new[] { "carol@example.com", "alice@example.com", "bob@corp.test" })]
+    [InlineData(SortOption.LastName, SortDirection.Asc, new[] { "bob@corp.test", "alice@example.com", "carol@example.com" })]
+    [InlineData(SortOption.LastName, SortDirection.Desc, new[] { "alice@example.com", "bob@corp.test", "carol@example.com" })]
+    public async Task Sort_OrdersTheResults_WithoutTheSortedNameLast(SortOption sortOption, SortDirection sortDirection, string[] expectedEmails)
     {
         Skip.If(database.SkipReason is not null, database.SkipReason);
         await SeedAsync();
 
-        var result = await ListAsync(search: null, sort);
+        var result = await ListAsync(Query(sortDirection) with { SortOption = sortOption });
 
         Assert.True(result.IsSuccess);
         Assert.Equal(expectedEmails, result.Value.Data.Select(u => u.Email));
@@ -66,19 +69,24 @@ public sealed class ListTests(PostgresFixture database)
         Skip.If(database.SkipReason is not null, database.SkipReason);
         await SeedAsync();
 
-        var result = await new Handler(database.CreateUsersQuery()).Handle(
-            new ListQuery(_tenantId, PageNumber: 2, PageSize: 1, UserStatus.PendingVerification, Search: "a", Sort: "-email"),
-            CancellationToken.None);
+        var result = await ListAsync(new ListQuery(_tenantId, PageNumber: 2, PageSize: 1, SortDirection.Desc)
+        {
+            Status = UserStatus.PendingVerification,
+            Search = "a",
+            SortOption = SortOption.Email
+        });
 
-        // "a" matches Alice by her email and Bob by his last name (Ackroyd); -email puts Bob on page 1.
+        // "a" matches Alice by her email and Bob by his last name (Ackroyd); email descending puts Bob on page 1.
         Assert.True(result.IsSuccess);
         Assert.Equal(2, result.Value.RecordsTotal);
         Assert.Equal("alice@example.com", Assert.Single(result.Value.Data).Email);
     }
 
-    private async Task<FluentResults.Result<SharedKernel.Query.Contracts.PaginationListResponse<UserListItem>>> ListAsync(string? search, string? sort)
+    private ListQuery Query(SortDirection sortDirection = SortDirection.Desc) => new(_tenantId, 1, 10, sortDirection);
+
+    private async Task<FluentResults.Result<PaginationListResponse<Item>>> ListAsync(ListQuery query)
     {
-        return await new Handler(database.CreateUsersQuery()).Handle(new ListQuery(_tenantId, 1, 10, null, search, sort), CancellationToken.None);
+        return await new Handler(database.CreateUsersQuery()).Handle(query, CancellationToken.None);
     }
 
     /// <summary>

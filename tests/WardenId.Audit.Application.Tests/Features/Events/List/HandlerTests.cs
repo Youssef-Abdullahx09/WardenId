@@ -1,5 +1,8 @@
 using WardenId.Audit.Application.Features.Events.List;
 using WardenId.SharedKernel.Query.Contracts;
+using ReadAuditChannel = WardenId.Audit.Query.Contracts.Features.AuditEvents.AuditChannel;
+using ReadAuditResult = WardenId.Audit.Query.Contracts.Features.AuditEvents.AuditResult;
+using SortOption = WardenId.Audit.Query.Contracts.Features.AuditEvents.List.SortOption;
 using AuditEventRow = WardenId.Audit.Query.Contracts.Features.AuditEvents.List.Item;
 using AuditEventsListQuery = WardenId.Audit.Query.Contracts.Features.AuditEvents.List.Query;
 
@@ -31,11 +34,11 @@ public class HandlerTests
     private static readonly DateTime OccurredAt = new(2026, 10, 16, 8, 0, 0, DateTimeKind.Utc);
 
     private static AuditEventRow Row(byte[]? payload, Guid? id = null, string? eventType = null, string? actor = null,
-        string[]? targets = null, string? outcome = null) =>
+        string[]? targets = null, ReadAuditResult? outcome = null) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
-            Channel = nameof(AuditChannel.AdminConfig),
+            Channel = ReadAuditChannel.AdminConfig,
             TenantId = TenantId,
             Sequence = 7,
             OccurredAt = OccurredAt,
@@ -49,8 +52,8 @@ public class HandlerTests
     private static FakeAuditEventsQuery QueryReturning(params AuditEventRow[] rows) =>
         new() { ListResponse = Result.Ok(new PaginationListResponse<AuditEventRow>(rows.Length, rows)) };
 
-    private static Query Page(int pageNumber = 1, int pageSize = 25) =>
-        new(pageNumber, pageSize, null, null, null, null, null, null, null, null);
+    private static Query Page(int pageNumber = 1, int pageSize = 25, SortDirection sortDirection = SortDirection.Desc) =>
+        new(pageNumber, pageSize, sortDirection);
 
     [Fact]
     public async Task Handle_SummarizesEachEventFromItsPayload()
@@ -66,12 +69,12 @@ public class HandlerTests
         Assert.True(item.PayloadAvailable);
         Assert.Equal(AuditEventType.AdminTenantSuspend.Key, item.EventType);
         Assert.Equal(AuditSeverity.Warning, item.Severity);
-        Assert.Equal(AuditResult.Failure, item.Result);
+        Assert.Equal(ReadAuditResult.Failure, item.Result);
         Assert.Equal(AuditOutcomeReason.PolicyDenied.Key, item.OutcomeReason);
         Assert.Equal(auditEvent.Actor.ToSerializedForm(), item.Actor);
         Assert.Equal([$"{AuditTargetType.Tenant.Key}:tenant-1"], item.Targets);
         Assert.Equal(7, item.Sequence);
-        Assert.Equal(AuditChannel.AdminConfig, item.Channel);
+        Assert.Equal(ReadAuditChannel.AdminConfig, item.Channel);
         Assert.Equal(new DateTimeOffset(OccurredAt), item.OccurredAt);
         Assert.Equal(TimeSpan.Zero, item.OccurredAt.Offset);
     }
@@ -89,7 +92,7 @@ public class HandlerTests
         Assert.False(item.PayloadAvailable);
         Assert.Null(item.EventType);
         Assert.Empty(item.Targets);
-        Assert.Equal(AuditChannel.AdminConfig, item.Channel);
+        Assert.Equal(ReadAuditChannel.AdminConfig, item.Channel);
     }
 
     [Fact]
@@ -99,7 +102,7 @@ public class HandlerTests
             eventType: "admin.tenant.suspend",
             actor: "platform:adminuser:admin-1",
             targets: ["tenant:tenant-1"],
-            outcome: nameof(AuditResult.Failure)));
+            outcome: ReadAuditResult.Failure));
 
         var result = await new Handler(search).Handle(Page(), CancellationToken.None);
 
@@ -108,40 +111,93 @@ public class HandlerTests
         Assert.Equal("admin.tenant.suspend", item.EventType);
         Assert.Equal("platform:adminuser:admin-1", item.Actor);
         Assert.Equal(["tenant:tenant-1"], item.Targets);
-        Assert.Equal(AuditResult.Failure, item.Result);
+        Assert.Equal(ReadAuditResult.Failure, item.Result);
         Assert.Null(item.Severity);
         Assert.Null(item.OutcomeReason);
     }
 
     [Fact]
-    public async Task Handle_PassesTheFilterOn()
+    public async Task Handle_PassesTheFilterThroughAsIs()
     {
         var search = new FakeAuditEventsQuery();
         var from = DateTimeOffset.Parse("2026-10-01T00:00:00Z");
         var to = DateTimeOffset.Parse("2026-10-16T00:00:00Z");
 
         await new Handler(search).Handle(
-            new Query(1, 25, AuditChannel.TokenOps, TenantId, from, to,
-                " admin.tenant.suspend ", "admin-1", "tenant:tenant-1", AuditResult.Failure),
+            Page(1, 25) with
+            {
+                Channel = ReadAuditChannel.TokenOps,
+                TenantId = TenantId,
+                From = from,
+                To = to,
+                EventType = " admin.tenant.suspend ",
+                Actor = "admin-1",
+                Target = "",
+                Outcome = ReadAuditResult.Failure
+            },
             CancellationToken.None);
 
+        // Trimming and blank-as-absent are the query layer's job.
         Assert.Equal(
-            new AuditEventsListQuery(nameof(AuditChannel.TokenOps), TenantId, from, to,
-                "admin.tenant.suspend", "admin-1", "tenant:tenant-1", nameof(AuditResult.Failure), 1, 25),
+            new AuditEventsListQuery(1, 25, SortDirection.Desc)
+            {
+                Channel = ReadAuditChannel.TokenOps,
+                TenantId = TenantId,
+                From = from,
+                To = to,
+                EventType = " admin.tenant.suspend ",
+                Actor = "admin-1",
+                Target = "",
+                Outcome = ReadAuditResult.Failure,
+                SortOption = SortOption.OccurredAt
+            },
             Assert.Single(search.ListCalls));
     }
 
     [Fact]
-    public async Task Handle_TreatsBlankTextFiltersAsAbsent()
+    public async Task Handle_DefaultsToNewestFirst()
     {
         var search = new FakeAuditEventsQuery();
 
-        await new Handler(search).Handle(
-            new Query(2, 10, null, null, null, null, " ", "", null, null), CancellationToken.None);
+        await new Handler(search).Handle(Page(), CancellationToken.None);
 
-        Assert.Equal(
-            new AuditEventsListQuery(null, null, null, null, null, null, null, null, 2, 10),
-            Assert.Single(search.ListCalls));
+        var call = Assert.Single(search.ListCalls);
+        Assert.Equal(SortOption.OccurredAt, call.SortOption);
+        Assert.Equal(SortDirection.Desc, call.SortDirection);
+    }
+
+    [Theory]
+    [InlineData(SortOption.OccurredAt, SortDirection.Desc)]
+    [InlineData(SortOption.OccurredAt, SortDirection.Asc)]
+    [InlineData(SortOption.Sequence, SortDirection.Asc)]
+    [InlineData(SortOption.Sequence, SortDirection.Desc)]
+    public async Task Handle_PassesTheSort(SortOption sortOption, SortDirection sortDirection)
+    {
+        var search = new FakeAuditEventsQuery();
+
+        await new Handler(search).Handle(Page(sortDirection: sortDirection) with { SortOption = sortOption }, CancellationToken.None);
+
+        var call = Assert.Single(search.ListCalls);
+        Assert.Equal(sortOption, call.SortOption);
+        Assert.Equal(sortDirection, call.SortDirection);
+    }
+
+    [Theory]
+    [InlineData((SortOption)0, SortDirection.Asc)]
+    [InlineData((SortOption)99, SortDirection.Asc)]
+    [InlineData(SortOption.Sequence, (SortDirection)0)]
+    [InlineData(SortOption.Sequence, (SortDirection)3)]
+    public async Task Handle_FailsValidation_WhenTheSortIsUndefined(SortOption sortOption, SortDirection sortDirection)
+    {
+        var search = new FakeAuditEventsQuery();
+
+        var result = await new Handler(search).Handle(
+            Page(sortDirection: sortDirection) with { SortOption = sortOption },
+            CancellationToken.None);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(AuditErrorCodes.Validation, result.Errors[0].Metadata[AuditErrorCodes.MetadataKey]);
+        Assert.Empty(search.ListCalls);
     }
 
     [Theory]
@@ -160,8 +216,7 @@ public class HandlerTests
     public async Task Handle_RejectsAnInvertedTimeRange()
     {
         var result = await new Handler(new FakeAuditEventsQuery()).Handle(
-            new Query(1, 25, null, null, DateTimeOffset.Parse("2026-10-16T00:00:00Z"), DateTimeOffset.Parse("2026-10-01T00:00:00Z"),
-                null, null, null, null),
+            Page() with { From = DateTimeOffset.Parse("2026-10-16T00:00:00Z"), To = DateTimeOffset.Parse("2026-10-01T00:00:00Z") },
             CancellationToken.None);
 
         Assert.True(result.IsFailed);

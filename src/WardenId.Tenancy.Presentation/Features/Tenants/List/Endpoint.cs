@@ -8,10 +8,8 @@ using Microsoft.AspNetCore.Routing;
 using WardenId.SharedKernel.Presentation;
 using WardenId.SharedKernel.Presentation.Utilities;
 using WardenId.SharedKernel.Query.Contracts;
-using WardenId.Tenancy.Application.Features.Tenants.List;
-using WardenId.Tenancy.Domain;
 using WardenId.Tenancy.Presentation.Utilities;
-using ListQuery = WardenId.Tenancy.Application.Features.Tenants.List.Query;
+using WardenId.Tenancy.Query.Contracts.Features.Tenants.List;
 
 namespace WardenId.Tenancy.Presentation.Features.Tenants.List;
 
@@ -25,13 +23,11 @@ public sealed class Endpoint : IEndpoint
             .Build();
 
         return app.MapGet(TenancyRoutes.Tenants.Collection, async (
-                [FromQuery] int pageNumber,
-                [FromQuery] int pageSize,
-                [FromQuery] Status? status,
+                [AsParameters] Request request,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var result = await sender.Send(new ListQuery(pageNumber, pageSize, status), cancellationToken);
+                var result = await sender.Send(request.ToQuery(), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
             })
@@ -41,8 +37,12 @@ public sealed class Endpoint : IEndpoint
             .RequireAuthorization()
             .WithTags(EndpointTags.Tenants)
             .WithSummary("List Tenants")
-            .WithDescription("Lists tenants, newest first, paginated and optionally filtered by status.")
-            .Produces<PaginationListResponse<TenantListItem>>(StatusCodes.Status200OK)
+            .WithDescription(
+                "Lists tenants, paginated and optionally filtered by `status`. `sortOption` is `CreatedAt`, `Slug` " +
+                "or `DisplayName` and `sortDirection` is `Asc` or `Desc`; the default is `CreatedAt` `Desc` " +
+                "(newest first). `pageNumber` defaults to 1 and `pageSize` to 10.")
+            .Produces<PaginationListResponse<Item>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 }

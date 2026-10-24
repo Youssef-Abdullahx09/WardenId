@@ -25,6 +25,7 @@ public sealed class ClientsQuery(
     private const string ListCorsOriginsSql = "/Features/Clients/ListCorsOrigins/Query.sql";
     private const string VerifySecretSql = "/Features/Clients/VerifySecret/Query.sql";
     private const string OffsetParameter = "Offset";
+    private const string DescendingParameter = "Descending";
 
     public async Task<Result<Get.Item?>> Get(
         Get.Query query,
@@ -67,18 +68,27 @@ public sealed class ClientsQuery(
         queryParameters.Add(nameof(query.TenantId), query.TenantId);
         // Typed explicitly: an untyped NULL leaves Postgres unable to infer "@Enabled IS NULL".
         queryParameters.Add(nameof(query.Enabled), query.Enabled, DbType.Boolean);
-        queryParameters.Add(nameof(query.ClientType), query.ClientType, DbType.String);
+        // Persisted by member name; Dapper would otherwise send the enum as its number.
+        queryParameters.Add(nameof(query.ClientType), query.ClientType?.ToString(), DbType.String);
+        queryParameters.Add(nameof(query.SortOption), query.SortOption.ToString(), DbType.String);
+        queryParameters.Add(DescendingParameter, query.SortDirection == SortDirection.Desc);
         queryParameters.Add(nameof(query.PageSize), query.PageSize);
         queryParameters.Add(OffsetParameter, (query.PageNumber - 1) * query.PageSize);
 
-        await using var grid = await connectionWrapper.QueryMultipleAsync(
+        long recordsTotal = 0;
+
+        var clients = await connectionWrapper.QueryAsync<List.Item, long, List.Item>(
             readingFileResult.Value,
+            (item, count) =>
+            {
+                recordsTotal = count;
+                return item;
+            },
+            splitOn: nameof(PaginationListResponse<List.Item>.RecordsTotal),
             param: queryParameters,
             cancellationToken: cancellationToken);
-        var total = await grid.ReadSingleAsync<long>();
-        var clients = (await grid.ReadAsync<List.Item>()).ToList();
 
-        return new PaginationListResponse<List.Item>(total, clients);
+        return new PaginationListResponse<List.Item>(recordsTotal, clients.ToList());
     }
 
     public async Task<Result<GetForAuthentication.Item?>> GetForAuthentication(

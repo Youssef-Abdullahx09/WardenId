@@ -5,8 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using WardenId.Identity.Application.Features.Users.List;
-using WardenId.Identity.Domain;
+using WardenId.Identity.Query.Contracts.Features.Users.List;
 using WardenId.Identity.Presentation.Utilities;
 using WardenId.SharedKernel.Presentation;
 using WardenId.SharedKernel.Presentation.Utilities;
@@ -25,15 +24,10 @@ public sealed class Endpoint : IEndpoint
 
         return app.MapGet(IdentityRoutes.Users.Collection, async (
                 [FromRoute] Guid tenantId,
-                [FromQuery] int pageNumber,
-                [FromQuery] int pageSize,
-                [FromQuery] UserStatus? status,
-                [FromQuery] string? search,
-                [FromQuery] string? sort,
+                [AsParameters] Request request,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var request = new Request(pageNumber, pageSize, status, search, sort);
                 var result = await sender.Send(request.ToQuery(tenantId), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
@@ -47,9 +41,10 @@ public sealed class Endpoint : IEndpoint
             .WithDescription(
                 "Lists users for the given tenant, paginated and optionally filtered by status. `search` matches " +
                 "the start of the email, username, first name, last name or full name (\"first last\"), ignoring case. " +
-                "`sort` is `createdAt`, `email`, `username`, `firstName` or `lastName`, prefixed with `-` for " +
-                "descending (users without the sorted name come last); the default is `-createdAt` (newest first).")
-            .Produces<PaginationListResponse<UserListItem>>(StatusCodes.Status200OK)
+                "`sortOption` is `CreatedAt`, `Email`, `Username`, `FirstName` or `LastName` and `sortDirection` " +
+                "is `Asc` or `Desc` (users without the sorted name come last); the default is `CreatedAt` `Desc` " +
+                "(newest first). `pageNumber` defaults to 1 and `pageSize` to 10.")
+            .Produces<PaginationListResponse<Item>>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }

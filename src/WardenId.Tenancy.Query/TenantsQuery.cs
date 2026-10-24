@@ -17,6 +17,7 @@ public sealed class TenantsQuery(
     private const string ListSql = "/Features/Tenants/List/Query.sql";
     private const string ResolveForIssuanceSql = "/Features/Tenants/ResolveForIssuance/Query.sql";
     private const string OffsetParameter = "Offset";
+    private const string DescendingParameter = "Descending";
 
     public async Task<Result<Contracts.Features.Tenants.Get.Item?>> Get(
         Contracts.Features.Tenants.Get.Query query,
@@ -49,18 +50,28 @@ public sealed class TenantsQuery(
 
         var queryParameters = new DynamicParameters();
         // Typed explicitly: an untyped NULL leaves Postgres unable to infer "@Status IS NULL".
-        queryParameters.Add(nameof(query.Status), query.Status, DbType.String);
+        // Persisted by member name; Dapper would otherwise send the enum as its number.
+        queryParameters.Add(nameof(query.Status), query.Status?.ToString(), DbType.String);
+        queryParameters.Add(nameof(query.SortOption), query.SortOption.ToString(), DbType.String);
+        queryParameters.Add(DescendingParameter, query.SortDirection == SortDirection.Desc);
         queryParameters.Add(nameof(query.PageSize), query.PageSize);
         queryParameters.Add(OffsetParameter, (query.PageNumber - 1) * query.PageSize);
 
-        await using var grid = await connectionWrapper.QueryMultipleAsync(
-            readingFileResult.Value,
-            param: queryParameters,
-            cancellationToken: cancellationToken);
-        var total = await grid.ReadSingleAsync<long>();
-        var tenants = (await grid.ReadAsync<Contracts.Features.Tenants.List.Item>()).ToList();
+        long recordsTotal = 0;
 
-        return new PaginationListResponse<Contracts.Features.Tenants.List.Item>(total, tenants);
+        var tenants = await connectionWrapper
+            .QueryAsync<Contracts.Features.Tenants.List.Item, long, Contracts.Features.Tenants.List.Item>(
+                readingFileResult.Value,
+                (item, count) =>
+                {
+                    recordsTotal = count;
+                    return item;
+                },
+                splitOn: nameof(PaginationListResponse<Contracts.Features.Tenants.List.Item>.RecordsTotal),
+                param: queryParameters,
+                cancellationToken: cancellationToken);
+
+        return new PaginationListResponse<Contracts.Features.Tenants.List.Item>(recordsTotal, tenants.ToList());
     }
 
     public async Task<Result<Contracts.Features.Tenants.ResolveForIssuance.Item?>> ResolveForIssuance(

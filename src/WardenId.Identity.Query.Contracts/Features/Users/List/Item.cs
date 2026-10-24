@@ -9,8 +9,8 @@ public sealed class Item
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
 
-    /// <summary>The <c>UserStatus</c> member name, as persisted.</summary>
-    public string Status { get; init; } = "";
+    /// <summary>Persisted as the member name; Dapper parses it.</summary>
+    public UserStatus Status { get; init; }
 
     public DateTime CreatedAt { get; init; }
 }

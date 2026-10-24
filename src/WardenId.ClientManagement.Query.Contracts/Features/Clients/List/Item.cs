@@ -7,8 +7,8 @@ public sealed class Item
     public string ClientId { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
 
-    /// <summary>The <c>ClientType</c> member name, as persisted.</summary>
-    public string ClientType { get; init; } = string.Empty;
+    /// <summary>Persisted as the member name; Dapper parses it.</summary>
+    public ClientType ClientType { get; init; }
 
     public bool Enabled { get; init; }
     public bool IsFirstParty { get; init; }

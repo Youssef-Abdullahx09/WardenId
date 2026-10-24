@@ -12,8 +12,9 @@ public sealed class Item
     public DateTime ExpiresAt { get; init; }
     public DateTime? EndedAt { get; init; }
 
-    /// <summary>The <c>EndReason</c> member name, as persisted.</summary>
-    public string? EndReason { get; init; }
+    /// <summary>Persisted as the member name; Dapper parses it. Null while the session is live.</summary>
+    public EndReason? EndReason { get; init; }
 
+    /// <summary>Public client_ids that received an authorization under the session.</summary>
     public string[] ClientIds { get; init; } = [];
 }

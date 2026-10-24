@@ -2,40 +2,30 @@ using FluentResults;
 using MediatR;
 using WardenId.ClientManagement.Domain;
 using WardenId.ClientManagement.Query.Contracts;
+using WardenId.ClientManagement.Query.Contracts.Features.Clients.List;
 using WardenId.SharedKernel.Query.Contracts;
-using ClientsQuery = WardenId.ClientManagement.Query.Contracts.Features.Clients.List.Query;
+using ClientsListQuery = WardenId.ClientManagement.Query.Contracts.Features.Clients.List.Query;
 
 namespace WardenId.ClientManagement.Application.Features.Clients.List;
 
 /// <summary>Read side: a tenant's clients come from the Dapper query layer (ClientManagement.Query), not the aggregate.</summary>
-public sealed class Handler(
-    IClientsQuery clientsQuery) : IRequestHandler<Query, Result<PaginationListResponse<ClientListItem>>>
+public sealed class Handler(IClientsQuery clientsQuery) : IRequestHandler<Query, Result<PaginationListResponse<Item>>>
 {
-    public async Task<Result<PaginationListResponse<ClientListItem>>> Handle(
-        Query request,
-        CancellationToken cancellationToken)
+    public async Task<Result<PaginationListResponse<Item>>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var result = await clientsQuery.List(
-            new ClientsQuery(
-                request.TenantId,
-                request.Enabled,
-                request.ClientType?.ToString(),
-                request.PageNumber,
-                request.PageSize),
+        // Minimal-API enum binding also accepts numbers, so an undefined member can get this far.
+        if (!Enum.IsDefined(request.SortOption) || !Enum.IsDefined(request.SortDirection))
+            return Result.Fail(ClientErrors.Validation(
+                $"SortOption must be one of {string.Join(", ", Enum.GetNames<SortOption>())} " +
+                $"and SortDirection one of {string.Join(", ", Enum.GetNames<SortDirection>())}."));
+
+        return await clientsQuery.List(
+            new ClientsListQuery(request.TenantId, request.PageNumber, request.PageSize, request.SortDirection)
+            {
+                Enabled = request.Enabled,
+                ClientType = request.ClientType,
+                SortOption = request.SortOption
+            },
             cancellationToken);
-        if (result.IsFailed) return Result.Fail(result.Errors);
-
-        var items = result.Value.Data
-            .Select(c => new ClientListItem(
-                c.Id,
-                c.ClientId,
-                c.DisplayName,
-                ClientRows.ParseEnum<ClientType>(c.ClientType),
-                c.Enabled,
-                c.IsFirstParty,
-                ClientRows.AsUtc(c.CreatedAt)))
-            .ToList();
-
-        return Result.Ok(new PaginationListResponse<ClientListItem>(result.Value.RecordsTotal, items));
     }
 }

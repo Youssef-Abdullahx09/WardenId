@@ -9,8 +9,8 @@ public sealed class Item
 {
     public Guid Id { get; init; }
 
-    /// <summary>The <c>AuditChannel</c> member name, as persisted.</summary>
-    public string Channel { get; init; } = "";
+    /// <summary>Persisted as the member name; Dapper parses it.</summary>
+    public AuditChannel Channel { get; init; }
 
     public Guid? TenantId { get; init; }
     public long? Sequence { get; init; }
@@ -20,6 +20,6 @@ public sealed class Item
     public string? Actor { get; init; }
     public string[] Targets { get; init; } = [];
 
-    /// <summary>The <c>AuditResult</c> member name, as persisted.</summary>
-    public string? Outcome { get; init; }
+    /// <summary>Persisted as the member name; Dapper parses it.</summary>
+    public AuditResult? Outcome { get; init; }
 }

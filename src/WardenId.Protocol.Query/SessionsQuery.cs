@@ -16,6 +16,7 @@ public sealed class SessionsQuery(
     private const string ListSql = "/Features/Sessions/List/Query.sql";
     private const string GetLiveSql = "/Features/Sessions/GetLive/Query.sql";
     private const string OffsetParameter = "Offset";
+    private const string DescendingParameter = "Descending";
 
     public async Task<Result<List<Contracts.Features.Sessions.ListForUser.Item>>> ListForUser(
         Contracts.Features.Sessions.ListForUser.Query query,
@@ -53,20 +54,34 @@ public sealed class SessionsQuery(
         queryParameters.Add(nameof(query.TenantId), query.TenantId);
         // Typed explicitly: an untyped NULL leaves Postgres unable to infer "@UserId IS NULL".
         queryParameters.Add(nameof(query.UserId), query.UserId, DbType.Guid);
-        queryParameters.Add(nameof(query.ClientId), query.ClientId, DbType.String);
+        // A blank client_id filters nothing.
+        queryParameters.Add(
+            nameof(query.ClientId),
+            string.IsNullOrWhiteSpace(query.ClientId) ? null : query.ClientId,
+            DbType.String);
         queryParameters.Add(nameof(query.IncludeEnded), query.IncludeEnded);
         queryParameters.Add(nameof(query.Now), query.Now);
+        // Matched by member name in Query.sql; Dapper would otherwise send the enum as its number.
+        queryParameters.Add(nameof(query.SortOption), query.SortOption.ToString(), DbType.String);
+        queryParameters.Add(DescendingParameter, query.SortDirection == SortDirection.Desc);
         queryParameters.Add(nameof(query.PageSize), query.PageSize);
         queryParameters.Add(OffsetParameter, (query.PageNumber - 1) * query.PageSize);
 
-        await using var grid = await connectionWrapper.QueryMultipleAsync(
-            readingFileResult.Value,
-            param: queryParameters,
-            cancellationToken: cancellationToken);
-        var total = await grid.ReadSingleAsync<long>();
-        var sessions = (await grid.ReadAsync<Contracts.Features.Sessions.List.Item>()).ToList();
+        long recordsTotal = 0;
 
-        return new PaginationListResponse<Contracts.Features.Sessions.List.Item>(total, sessions);
+        var sessions = await connectionWrapper
+            .QueryAsync<Contracts.Features.Sessions.List.Item, long, Contracts.Features.Sessions.List.Item>(
+                readingFileResult.Value,
+                (item, count) =>
+                {
+                    recordsTotal = count;
+                    return item;
+                },
+                splitOn: nameof(PaginationListResponse<Contracts.Features.Sessions.List.Item>.RecordsTotal),
+                param: queryParameters,
+                cancellationToken: cancellationToken);
+
+        return new PaginationListResponse<Contracts.Features.Sessions.List.Item>(recordsTotal, sessions.ToList());
     }
 
     public async Task<Result<Contracts.Features.Sessions.GetLive.Item?>> GetLive(

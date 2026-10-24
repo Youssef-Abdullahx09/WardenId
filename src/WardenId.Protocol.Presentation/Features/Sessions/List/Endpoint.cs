@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using WardenId.Protocol.Application.Features.Sessions.List;
 using WardenId.Protocol.Presentation.Utilities;
+using WardenId.Protocol.Query.Contracts.Features.Sessions.List;
 using WardenId.SharedKernel.Presentation;
 using WardenId.SharedKernel.Presentation.Utilities;
 using WardenId.SharedKernel.Query.Contracts;
@@ -23,15 +23,10 @@ public sealed class Endpoint : IEndpoint
 
         return app.MapGet(ProtocolRoutes.Admin.Sessions, async (
                 [FromRoute] Guid tenantId,
-                [FromQuery] int pageNumber,
-                [FromQuery] int pageSize,
-                [FromQuery] Guid? userId,
-                [FromQuery] string? clientId,
-                [FromQuery] bool? includeEnded,
+                [AsParameters] Request request,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var request = new Request(pageNumber, pageSize, userId, clientId, includeEnded);
                 var result = await sender.Send(request.ToQuery(tenantId), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
@@ -43,10 +38,13 @@ public sealed class Endpoint : IEndpoint
             .WithTags(EndpointTags.Sessions)
             .WithSummary("List Sessions")
             .WithDescription(
-                "Pages through the tenant's login sessions, newest sign-in first, optionally filtered by user and by a client " +
-                "(public client_id) that took part. Live sessions only unless includeEnded=true, which adds ended and expired ones " +
-                "with their end time and reason. Ended sessions are pruned after ProtocolSession:PruneMinimumAge.")
-            .Produces<PaginationListResponse<SessionListItem>>()
+                "Pages through the tenant's login sessions, optionally filtered by `userId` and by a `clientId` (public " +
+                "client_id) that took part; a blank `clientId` filters nothing. Live sessions only unless " +
+                "`includeEnded=true` (default false), which adds ended and expired ones with their end time and reason. " +
+                "`sortOption` is `AuthTime` or `ExpiresAt` and `sortDirection` is `Asc` or `Desc`; the default is " +
+                "`AuthTime` `Desc` (newest sign-in first). `pageNumber` defaults to 1 and `pageSize` to 10 (at most 100). " +
+                "Ended sessions are pruned after ProtocolSession:PruneMinimumAge.")
+            .Produces<PaginationListResponse<Item>>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }

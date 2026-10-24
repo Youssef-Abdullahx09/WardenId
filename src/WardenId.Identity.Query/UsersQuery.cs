@@ -57,24 +57,34 @@ public sealed class UsersQuery(
         queryParameters.Add(nameof(query.TenantId), query.TenantId);
         queryParameters.Add(nameof(query.IncludeDeleted), query.IncludeDeleted);
         // Typed explicitly: an untyped NULL leaves Postgres unable to infer "@Status IS NULL".
-        queryParameters.Add(nameof(query.Status), query.Status, DbType.String);
+        // Persisted by member name; Dapper would otherwise send the enum as its number.
+        queryParameters.Add(nameof(query.Status), query.Status?.ToString(), DbType.String);
+        // Emails are stored lowercased and the username and names are lowered in SQL, so the prefix is lowered here.
+        var search = query.Search?.Trim();
         queryParameters.Add(
             SearchPatternParameter,
-            query.SearchPrefix is null ? null : LikePrefixPattern(query.SearchPrefix),
+            string.IsNullOrEmpty(search) ? null : LikePrefixPattern(search.ToLowerInvariant()),
             DbType.String);
-        queryParameters.Add(nameof(query.SortField), query.SortField.ToString(), DbType.String);
+        queryParameters.Add(nameof(query.SortOption), query.SortOption.ToString(), DbType.String);
         queryParameters.Add(DescendingParameter, query.SortDirection == SortDirection.Desc);
         queryParameters.Add(nameof(query.PageSize), query.PageSize);
         queryParameters.Add(OffsetParameter, (query.PageNumber - 1) * query.PageSize);
 
-        await using var grid = await connectionWrapper.QueryMultipleAsync(
-            readingFileResult.Value,
-            param: queryParameters,
-            cancellationToken: cancellationToken);
-        var total = await grid.ReadSingleAsync<long>();
-        var users = (await grid.ReadAsync<Contracts.Features.Users.List.Item>()).ToList();
+        long recordsTotal = 0;
 
-        return new PaginationListResponse<Contracts.Features.Users.List.Item>(total, users);
+        var users = await connectionWrapper
+            .QueryAsync<Contracts.Features.Users.List.Item, long, Contracts.Features.Users.List.Item>(
+                readingFileResult.Value,
+                (item, count) =>
+                {
+                    recordsTotal = count;
+                    return item;
+                },
+                splitOn: nameof(PaginationListResponse<Contracts.Features.Users.List.Item>.RecordsTotal),
+                param: queryParameters,
+                cancellationToken: cancellationToken);
+
+        return new PaginationListResponse<Contracts.Features.Users.List.Item>(recordsTotal, users.ToList());
     }
 
     public async Task<Result<Contracts.Features.Users.GetAccount.Item?>> GetAccount(

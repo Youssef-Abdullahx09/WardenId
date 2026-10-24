@@ -1,34 +1,30 @@
 using FluentResults;
 using MediatR;
 using WardenId.SharedKernel.Query.Contracts;
-using WardenId.Tenancy.Application.Utilities;
+using WardenId.Tenancy.Domain;
 using WardenId.Tenancy.Query.Contracts;
+using WardenId.Tenancy.Query.Contracts.Features.Tenants.List;
 using TenantsListQuery = WardenId.Tenancy.Query.Contracts.Features.Tenants.List.Query;
 
 namespace WardenId.Tenancy.Application.Features.Tenants.List;
 
 /// <summary>Read side: tenants come from the Dapper query layer (Tenancy.Query), not the aggregate.</summary>
-public sealed class Handler(ITenantsQuery tenantsQuery)
-    : IRequestHandler<Query, Result<PaginationListResponse<TenantListItem>>>
+public sealed class Handler(ITenantsQuery tenantsQuery) : IRequestHandler<Query, Result<PaginationListResponse<Item>>>
 {
-    public async Task<Result<PaginationListResponse<TenantListItem>>> Handle(
-        Query request,
-        CancellationToken cancellationToken)
+    public async Task<Result<PaginationListResponse<Item>>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var result = await tenantsQuery.List(
-            new TenantsListQuery(request.PageNumber, request.PageSize, request.Status?.ToString()),
+        // Minimal-API enum binding also accepts numbers, so an undefined member can get this far.
+        if (!Enum.IsDefined(request.SortOption) || !Enum.IsDefined(request.SortDirection))
+            return Result.Fail(TenantErrors.Validation(
+                $"SortOption must be one of {string.Join(", ", Enum.GetNames<SortOption>())} " +
+                $"and SortDirection one of {string.Join(", ", Enum.GetNames<SortDirection>())}."));
+
+        return await tenantsQuery.List(
+            new TenantsListQuery(request.PageNumber, request.PageSize, request.SortDirection)
+            {
+                Status = request.Status,
+                SortOption = request.SortOption
+            },
             cancellationToken);
-        if (result.IsFailed) return Result.Fail(result.Errors);
-
-        var items = result.Value.Data
-            .Select(item => new TenantListItem(
-                item.Id,
-                item.Slug,
-                item.DisplayName,
-                QueryRows.ParseStatus(item.Status),
-                QueryRows.AsUtc(item.CreatedAt)))
-            .ToList();
-
-        return Result.Ok(new PaginationListResponse<TenantListItem>(result.Value.RecordsTotal, items));
     }
 }

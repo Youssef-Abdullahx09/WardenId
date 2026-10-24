@@ -1,64 +1,37 @@
 using FluentResults;
 using MediatR;
-using WardenId.Identity.Application.Utilities;
 using WardenId.Identity.Domain;
 using WardenId.Identity.Query.Contracts;
+using WardenId.Identity.Query.Contracts.Features.Users.List;
 using WardenId.SharedKernel.Query.Contracts;
-using ListSortField = WardenId.Identity.Query.Contracts.Features.Users.List.SortField;
+using UserStatus = WardenId.Identity.Query.Contracts.Features.Users.UserStatus;
 using UsersListQuery = WardenId.Identity.Query.Contracts.Features.Users.List.Query;
 
 namespace WardenId.Identity.Application.Features.Users.List;
 
 /// <summary>Read side: a tenant's users come from the Dapper query layer (Identity.Query), not the aggregate.</summary>
-public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<Query, Result<PaginationListResponse<UserListItem>>>
+public sealed class Handler(IUsersQuery usersQuery) : IRequestHandler<Query, Result<PaginationListResponse<Item>>>
 {
-    public async Task<Result<PaginationListResponse<UserListItem>>> Handle(Query request, CancellationToken cancellationToken)
+    public async Task<Result<PaginationListResponse<Item>>> Handle(Query request, CancellationToken cancellationToken)
     {
-        var sortResult = UserListSort.Parse(request.Sort);
-        if (sortResult.IsFailed) return Result.Fail(sortResult.Errors);
-        var sort = sortResult.Value;
+        // Minimal-API enum binding also accepts numbers, so an undefined member can get this far.
+        if (!Enum.IsDefined(request.SortOption) || !Enum.IsDefined(request.SortDirection))
+            return Result.Fail(UserErrors.Validation(
+                $"SortOption must be one of {string.Join(", ", Enum.GetNames<SortOption>())} " +
+                $"and SortDirection one of {string.Join(", ", Enum.GetNames<SortDirection>())}."));
 
-        var search = request.Search?.Trim();
-        if (search?.Length > Email.MaxLength)
+        if (request.Search?.Trim().Length > Email.MaxLength)
             return Result.Fail(UserErrors.Validation($"Search cannot exceed {Email.MaxLength} characters."));
 
-        // Emails are stored lowercased (Email.Create) and the username and names are lowered in SQL, so the prefix is lowered here.
-        // The match is a literal prefix (LIKE 'prefix%' with % and _ escaped); see Features/Users/List/Query.sql.
-        var result = await usersQuery.List(
-            new UsersListQuery(
-                request.TenantId,
+        return await usersQuery.List(
+            new UsersListQuery(request.TenantId, request.PageNumber, request.PageSize, request.SortDirection)
+            {
                 // Soft-deleted users are hidden unless asked for by status, so they can be found to restore.
-                IncludeDeleted: request.Status == UserStatus.SoftDeleted,
-                request.Status?.ToString(),
-                string.IsNullOrEmpty(search) ? null : search.ToLowerInvariant(),
-                MapSortField(sort.Field),
-                sort.Descending ? SortDirection.Desc : SortDirection.Asc,
-                request.PageNumber,
-                request.PageSize),
+                IncludeDeleted = request.Status == UserStatus.SoftDeleted,
+                Status = request.Status,
+                Search = request.Search,
+                SortOption = request.SortOption
+            },
             cancellationToken);
-        if (result.IsFailed) return Result.Fail(result.Errors);
-
-        var users = result.Value.Data
-            .Select(item => new UserListItem(
-                item.Id,
-                item.Email,
-                item.Username,
-                item.FirstName,
-                item.LastName,
-                QueryColumns.ParseEnum<UserStatus>(item.Status),
-                QueryColumns.AsUtc(item.CreatedAt)))
-            .ToList();
-
-        return Result.Ok(new PaginationListResponse<UserListItem>(result.Value.RecordsTotal, users));
     }
-
-    private static ListSortField MapSortField(UserSortField field) => field switch
-    {
-        UserSortField.CreatedAt => ListSortField.CreatedAt,
-        UserSortField.Email => ListSortField.Email,
-        UserSortField.Username => ListSortField.Username,
-        UserSortField.FirstName => ListSortField.FirstName,
-        UserSortField.LastName => ListSortField.LastName,
-        _ => throw new ArgumentOutOfRangeException(nameof(field), field, "Unmapped UserSortField.")
-    };
 }

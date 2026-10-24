@@ -5,9 +5,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using WardenId.ClientManagement.Application.Features.Clients.List;
-using WardenId.ClientManagement.Domain;
 using WardenId.ClientManagement.Presentation.Utilities;
+using WardenId.ClientManagement.Query.Contracts.Features.Clients.List;
 using WardenId.SharedKernel.Presentation;
 using WardenId.SharedKernel.Presentation.Utilities;
 using WardenId.SharedKernel.Query.Contracts;
@@ -25,14 +24,10 @@ public sealed class Endpoint : IEndpoint
 
         return app.MapGet(ClientManagementRoutes.Clients, async (
                 [FromRoute] Guid tenantId,
-                [FromQuery] int pageNumber,
-                [FromQuery] int pageSize,
-                [FromQuery] bool? enabled,
-                [FromQuery] ClientType? clientType,
+                [AsParameters] Request request,
                 [FromServices] ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                var request = new Request(pageNumber, pageSize, enabled, clientType);
                 var result = await sender.Send(request.ToQuery(tenantId), cancellationToken);
 
                 return result.IsSuccess ? Results.Ok(result.Value) : result.HandleApiFailure();
@@ -43,8 +38,13 @@ public sealed class Endpoint : IEndpoint
             .RequireAuthorization()
             .WithTags(EndpointTags.Clients)
             .WithSummary("List Clients")
-            .WithDescription("Lists clients for the given tenant, paginated and optionally filtered by enabled/clientType.")
-            .Produces<PaginationListResponse<ClientListItem>>(StatusCodes.Status200OK)
+            .WithDescription(
+                "Lists the given tenant's clients, paginated and optionally filtered by `enabled` (`true` or `false`) " +
+                "and `clientType` (`Confidential` or `Public`). `sortOption` is `CreatedAt`, `ClientId` or " +
+                "`DisplayName` and `sortDirection` is `Asc` or `Desc`; the default is `CreatedAt` `Desc` (newest " +
+                "first). `pageNumber` defaults to 1 and `pageSize` to 10.")
+            .Produces<PaginationListResponse<Item>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 }
